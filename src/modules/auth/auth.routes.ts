@@ -3,8 +3,10 @@ import rateLimit from 'express-rate-limit';
 import { API_STATUS } from '../../common/status';
 import { authenticate } from '../../middlewares/auth';
 import { validate } from '../../middlewares/validate';
+import bidderSignupRoutes from '../bidder-signup/bidder-signup.routes';
 import { authController } from './auth.controller';
 import {
+  refreshTokenSchema,
   requestOtpSchema,
   roleParamSchema,
   verifyOtpSchema,
@@ -24,6 +26,40 @@ const otpLimiter = rateLimit({
   },
 });
 
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: API_STATUS.RATE_LIMITED.message,
+    code: API_STATUS.RATE_LIMITED.code,
+  },
+});
+
+/** Bidder self-registration — mount before `/:role/...` so paths do not collide. */
+router.use('/bidder/register', bidderSignupRoutes);
+
+router.post(
+  '/refresh',
+  refreshLimiter,
+  validate(refreshTokenSchema),
+  (req, res, next) => authController.refresh(req, res, next)
+);
+
+router.get('/me', authenticate, (req, res, next) =>
+  authController.me(req, res, next)
+);
+
+router.post('/logout', authenticate, (req, res, next) =>
+  authController.logout(req, res, next)
+);
+
+router.post('/logout-all', authenticate, (req, res, next) =>
+  authController.logoutAll(req, res, next)
+);
+
 router.post(
   '/:role/request-otp',
   otpLimiter,
@@ -38,14 +74,6 @@ router.post(
   validate(roleParamSchema, 'params'),
   validate(verifyOtpSchema),
   (req, res, next) => authController.verifyOtp(req, res, next)
-);
-
-router.get('/me', authenticate, (req, res, next) =>
-  authController.me(req, res, next)
-);
-
-router.post('/logout', authenticate, (req, res, next) =>
-  authController.logout(req, res, next)
 );
 
 export default router;

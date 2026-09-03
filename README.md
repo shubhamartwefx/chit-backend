@@ -37,6 +37,9 @@ API base: `/api/{API_VERSION}` (default `/api/v1`, set via `API_VERSION` in `.en
 | `API_VERSION` | `v1` | API path version (`1` or `v1` both work) |
 | `PORT` | `4000` | Server port |
 | `PORT_FALLBACK_MAX_ATTEMPTS` | `10` | Dev-only: try next ports if busy |
+| `JWT_ACCESS_EXPIRES_IN` | `15m` | Access JWT lifetime |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh session lifetime |
+| `JWT_EXPIRES_IN` | `15m` | Legacy alias (prefer access TTL) |
 
 ## Auth (role-specific)
 
@@ -66,6 +69,34 @@ Content-Type: application/json
 Auth URL slugs: `super-admin`, `branch-store`, `admin` (alias → branch store), `agent`, `bidder`.
 
 Use the returned `accessToken` as `Authorization: Bearer <token>`.
+
+Also store `refreshToken`. Access tokens expire quickly (default 15m). When expired:
+
+```http
+POST /api/v1/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "<refreshToken>" }
+```
+
+Returns a new access + refresh pair (rotation). `POST /auth/logout` revokes the current session; `POST /auth/logout-all` revokes every session for the user.
+
+## Bidder signup (self-registration)
+
+Public, rate-limited APIs under `/api/v1/auth/bidder/register`. Mock Aadhaar OTP + DigiLocker providers; swap DigiLocker later via env.
+
+```http
+POST /api/v1/auth/bidder/register/aadhaar/request-otp
+{ "aadhaarNumber": "354136431636" }
+
+POST /api/v1/auth/bidder/register/aadhaar/verify-otp
+{ "sessionId": "<id>", "otp": "123456" }
+
+POST /api/v1/auth/bidder/register/complete
+{ "sessionId": "<id>", "countryCode": "+91", "phone": "9876543210", "currentAddress": "optional" }
+```
+
+`complete` creates the bidder and returns an access + refresh token pair (auto-login). Aadhaar-fetched fields are sealed server-side. DigiLocker: `POST .../digilocker/start` then `GET .../digilocker/callback?code=mock-digilocker-code&state=...` with `Accept: application/json`.
 
 ## RBAC structure
 

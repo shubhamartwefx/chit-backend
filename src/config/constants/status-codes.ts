@@ -60,8 +60,14 @@ export const API_MESSAGES = {
   HEALTH_OK: 'Service is healthy',
   LOGIN_SUCCESS: 'Login successful',
   LOGOUT_SUCCESS:
-    'Logged out successfully. Discard the access token on the client.',
+    'Logged out successfully. Discard access and refresh tokens on the client.',
+  LOGOUT_ALL_SUCCESS:
+    'All sessions revoked. Discard tokens on every device and log in again.',
+  TOKEN_REFRESHED: 'Access token refreshed successfully',
   OTP_SENT: 'OTP sent to registered phone number',
+  AADHAAR_VERIFIED: 'Aadhaar verified successfully',
+  DIGILOCKER_STARTED: 'DigiLocker authorization started',
+  BIDDER_REGISTERED: 'Bidder registered successfully',
   BRANCH_STORE_CREATED: 'Branch store user created successfully',
   AGENT_CREATED: 'Agent created successfully',
   BIDDER_CREATED: 'Bidder created successfully',

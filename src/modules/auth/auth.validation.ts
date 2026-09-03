@@ -32,3 +32,9 @@ export const verifyOtpSchema = z.object({
 
 export type RequestOtpInput = z.infer<typeof requestOtpSchema>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
+
+export const refreshTokenSchema = z.object({
+  refreshToken: z.string().min(20).max(512),
+});
+
+export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;

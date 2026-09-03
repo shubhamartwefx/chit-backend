@@ -93,8 +93,9 @@ sequenceDiagram
   U->>FE: Enter OTP
   FE->>API: POST /api/v1/auth/{role}/verify-otp
   API->>DB: Verify OTP + re-check role
-  API-->>FE: JWT + user + redirectTo
-  FE->>FE: Store token; go to role dashboard only
+  API->>DB: Create RefreshSession
+  API-->>FE: accessToken + refreshToken + user + redirectTo
+  FE->>FE: Store tokens; go to role dashboard only
 ```
 
 ### Phase-1 OTP (mock / development)
@@ -102,6 +103,12 @@ sequenceDiagram
 - Fixed OTP from env (`MOCK_OTP`, default `123456`).
 - Printed to server console; also returned as `mockOtpHint` in development responses only.
 - Provider interface is swappable later (MSG91 / Twilio) without changing Auth routes.
+
+### Access + refresh tokens
+
+- Access JWT default TTL: `JWT_ACCESS_EXPIRES_IN` (15m). Includes `jti` + `sid`.
+- Refresh token: opaque, hashed in Mongo; rotated on `POST /auth/refresh`. Reuse revokes the session family.
+- Logout revokes the current refresh session; `logout-all` revokes every session for the user.
 
 ---
 
@@ -119,6 +126,7 @@ chit-backend/
 │   ├── middlewares/             # auth JWT, authorize(role), authorizePermission
 │   ├── modules/
 │   │   ├── auth/                # Shared role-aware login / OTP / me
+│   │   ├── bidder-signup/       # Bidder self-registration (Aadhaar + DigiLocker)
 │   │   ├── users/               # User model (identity)
 │   │   ├── otp/                 # OTP sessions + mock provider
 │   │   ├── super-admin/         # Provisioning APIs + permission catalog
@@ -156,10 +164,21 @@ chit-backend/
 | `permissions[]` | Tier markers for super_admin; assignable subset for branch_store; fixed sets for agent/bidder |
 | `status` | `active` \| `inactive` \| `blocked` |
 | `createdBy` | Provenance for admins / future agents |
+| `gender`, `dateOfBirth`, `aadhaarAddress` | Optional KYC fields (self-registered bidders) |
+| `currentAddress`, `aadhaarLast4` | Manual current address + Aadhaar last-4 |
+| `aadhaarVerifiedAt`, `verificationMethod` | `manual` \| `digilocker` \| `admin_provisioned` |
 
 ### OtpSession
 
 Short-lived session with hashed OTP, attempt counter, TTL index (`expiresAt`).
+
+### RefreshSession
+
+Hashed refresh tokens bound to a user + session family. Supports rotation and reuse detection (theft → revoke family). TTL via `expiresAt`.
+
+### BidderSignupSession
+
+Short-lived bidder self-registration session (manual Aadhaar OTP or DigiLocker). Stores HMAC Aadhaar fingerprint, OTP hash (manual path), DigiLocker OAuth state, and a **sealed** verified profile after KYC. TTL via `expiresAt`.
 
 ---
 
@@ -174,9 +193,33 @@ Short-lived session with hashed OTP, attempt counter, TTL index (`expiresAt`).
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | `/auth/:role/request-otp` | Public | Validate phone + Aadhaar for role; send OTP |
-| POST | `/auth/:role/verify-otp` | Public | Verify OTP; return JWT |
+| POST | `/auth/:role/verify-otp` | Public | Verify OTP; return access + refresh token pair |
+| POST | `/auth/refresh` | Public | Rotate refresh token; return new pair |
 | GET | `/auth/me` | Bearer | Current user profile |
-| POST | `/auth/logout` | Bearer | Client should discard token |
+| POST | `/auth/logout` | Bearer | Revoke current refresh session (`sid`) |
+| POST | `/auth/logout-all` | Bearer | Revoke all refresh sessions for the user |
+
+### Tokens
+
+- **Access JWT** — short-lived (default `JWT_ACCESS_EXPIRES_IN=15m`); claims include `jti` + `sid`.
+- **Refresh token** — opaque, hashed in `RefreshSession`; default `JWT_REFRESH_EXPIRES_IN=7d`. Rotated on each refresh; reuse of an old refresh revokes the whole session family.
+- `authenticate` middleware **verifies only** — it does not mint tokens on every request.
+
+### Bidder signup endpoints (public, rate-limited)
+
+Base: `/auth/bidder/register`
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/aadhaar/request-otp` | Start manual Aadhaar OTP (12 digits) |
+| POST | `/aadhaar/resend-otp` | Resend OTP for signup session |
+| POST | `/aadhaar/verify-otp` | Verify OTP; seal read-only KYC profile |
+| POST | `/digilocker/start` | Start DigiLocker mock OAuth; return `authorizationUrl` |
+| GET | `/digilocker/callback` | DigiLocker callback; redirect or JSON (`Accept: application/json`) |
+| GET | `/session/:sessionId` | Session status + sealed profile |
+| POST | `/complete` | Create bidder from sealed KYC + phone/currentAddress; return token pair |
+
+KYC fields from Aadhaar are sealed server-side — `complete` only accepts `phone` and optional `currentAddress`. Mock OTP is `MOCK_OTP` (default `123456`). DigiLocker mock uses `code=mock-digilocker-code`.
 
 `:role` ∈ `super-admin` \| `branch-store` \| `admin` (alias) \| `agent` \| `bidder`
 

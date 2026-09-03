@@ -1,6 +1,9 @@
-import jwt from 'jsonwebtoken';
-import { SignOptions } from 'jsonwebtoken';
-import { fingerprintAadhaar, isValidAadhaar, isValidIndianPhone, normalizePhone } from '../../common/crypto';
+import {
+  fingerprintAadhaar,
+  isValidAadhaar,
+  isValidIndianPhone,
+  normalizePhone,
+} from '../../common/crypto';
 import { accessDenied, badRequest, unauthorized } from '../../common/errors';
 import { API_MESSAGES } from '../../common/status';
 import { env } from '../../config/env';
@@ -16,10 +19,13 @@ import {
   canLoginWithPermissions,
   resolveSuperAdminTier,
 } from '../../config/rbac';
-import { JwtPayload } from '../../types/express';
 import { otpService } from '../otp/otp.service';
 import { User } from '../users/user.model';
-import { RequestOtpInput, VerifyOtpInput } from './auth.validation';
+import {
+  RequestOtpInput,
+  VerifyOtpInput,
+} from './auth.validation';
+import { TokenPairMeta, tokenService } from './token.service';
 
 function assertCredentialsFormat(phone: string, aadhaar: string): void {
   if (!isValidIndianPhone(phone)) {
@@ -48,7 +54,6 @@ export class AuthService {
     });
 
     if (!user) {
-      // Wrong role or credentials — do not reveal which
       throw accessDenied(
         'Invalid credentials for this login portal, or account does not exist for this role'
       );
@@ -83,7 +88,11 @@ export class AuthService {
     };
   }
 
-  async verifyOtp(roleSlug: RoleUrlSlug, input: VerifyOtpInput) {
+  async verifyOtp(
+    roleSlug: RoleUrlSlug,
+    input: VerifyOtpInput,
+    meta: TokenPairMeta = {}
+  ) {
     const role = urlSlugToRole(roleSlug);
     const phone = normalizePhone(input.phone);
     assertCredentialsFormat(phone, input.aadhaarNumber);
@@ -120,36 +129,38 @@ export class AuthService {
     user.lastLoginAt = new Date();
     await user.save();
 
-    const payload: JwtPayload = {
-      sub: user._id.toString(),
-      role: user.role,
-      permissions: user.permissions,
-      phone: user.phone,
-      name: user.name,
-    };
-
-    const options: SignOptions = {
-      expiresIn: env.JWT_EXPIRES_IN as SignOptions['expiresIn'],
-    };
-    const accessToken = jwt.sign(payload, env.JWT_SECRET, options);
+    const tokens = await tokenService.issueTokenPair(user, meta);
 
     return {
-      accessToken,
-      tokenType: 'Bearer',
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenType: tokens.tokenType,
+      expiresIn: tokens.expiresIn,
+      refreshExpiresIn: tokens.refreshExpiresIn,
       user: {
-        id: user._id.toString(),
-        name: user.name,
-        phone: user.phone,
-        countryCode: user.countryCode,
-        role: toClientRole(user.role),
-        permissions: user.permissions,
-        internalRole: user.role,
+        ...tokens.user,
         ...(user.role === USER_ROLES.SUPER_ADMIN
           ? { tier: resolveSuperAdminTier(user.permissions) }
           : {}),
       },
-      redirectTo: ROLE_DASHBOARD_PATH[user.role],
+      redirectTo: tokens.redirectTo,
     };
+  }
+
+  async refresh(refreshToken: string, meta: TokenPairMeta = {}) {
+    return tokenService.rotateRefreshToken(refreshToken, meta);
+  }
+
+  async logout(userId: string, sid: string | undefined) {
+    if (sid) {
+      await tokenService.revokeSessionBySid(sid, userId);
+    }
+    return { loggedOut: true };
+  }
+
+  async logoutAll(userId: string) {
+    const revokedCount = await tokenService.revokeAllSessionsForUser(userId);
+    return { loggedOut: true, revokedSessions: revokedCount };
   }
 
   async me(userId: string) {

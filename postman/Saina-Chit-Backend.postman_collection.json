@@ -20,6 +20,7 @@
     { "key": "apiVersion", "value": "v1" },
     { "key": "apiBase", "value": "{{baseUrl}}/api/{{apiVersion}}" },
     { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
     { "key": "countryCode", "value": "+91" },
     { "key": "mockOtp", "value": "123456" },
     { "key": "superAdminPhone", "value": "9999999999" },
@@ -29,7 +30,11 @@
     { "key": "agentPhone", "value": "9888888882" },
     { "key": "agentAadhaar", "value": "222222222222" },
     { "key": "bidderPhone", "value": "9888888883" },
-    { "key": "bidderAadhaar", "value": "333333333333" }
+    { "key": "bidderAadhaar", "value": "333333333333" },
+    { "key": "signupAadhaar", "value": "354136431636" },
+    { "key": "signupPhone", "value": "9876543210" },
+    { "key": "signupSessionId", "value": "" },
+    { "key": "digilockerState", "value": "" }
   ],
   "item": [
     {
@@ -54,7 +59,7 @@
     },
     {
       "name": "Auth",
-      "description": "Phone + Aadhaar OTP login per role. After **Verify OTP**, the access token is saved to `accessToken`.",
+      "description": "Phone + Aadhaar OTP login per role. After **Verify OTP**, access + refresh tokens are saved. Use **Session → Refresh Token** when access expires.",
       "item": [
         {
           "name": "Super Admin",
@@ -90,6 +95,11 @@
                       "        pm.environment.set('accessToken', json.data.accessToken);",
                       "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
                       "        console.log('accessToken saved');",
+                      "    }",
+                      "    if (json.data && json.data.refreshToken) {",
+                      "        pm.environment.set('refreshToken', json.data.refreshToken);",
+                      "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                      "        console.log('refreshToken saved');",
                       "    }",
                       "}"
                     ],
@@ -150,6 +160,10 @@
                       "        pm.environment.set('accessToken', json.data.accessToken);",
                       "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
                       "    }",
+                      "    if (json.data && json.data.refreshToken) {",
+                      "        pm.environment.set('refreshToken', json.data.refreshToken);",
+                      "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                      "    }",
                       "}"
                     ],
                     "type": "text/javascript"
@@ -202,6 +216,10 @@
                       "    if (json.data && json.data.accessToken) {",
                       "        pm.environment.set('accessToken', json.data.accessToken);",
                       "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                      "    }",
+                      "    if (json.data && json.data.refreshToken) {",
+                      "        pm.environment.set('refreshToken', json.data.refreshToken);",
+                      "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
                       "    }",
                       "}"
                     ],
@@ -261,6 +279,10 @@
                       "        pm.environment.set('accessToken', json.data.accessToken);",
                       "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
                       "    }",
+                      "    if (json.data && json.data.refreshToken) {",
+                      "        pm.environment.set('refreshToken', json.data.refreshToken);",
+                      "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                      "    }",
                       "}"
                     ],
                     "type": "text/javascript"
@@ -319,6 +341,10 @@
                       "        pm.environment.set('accessToken', json.data.accessToken);",
                       "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
                       "    }",
+                      "    if (json.data && json.data.refreshToken) {",
+                      "        pm.environment.set('refreshToken', json.data.refreshToken);",
+                      "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                      "    }",
                       "}"
                     ],
                     "type": "text/javascript"
@@ -356,7 +382,47 @@
                   "host": ["{{apiBase}}"],
                   "path": ["auth", "me"]
                 },
-                "description": "Requires Bearer token. Returns profile, permissions, and redirectTo."
+                "description": "Requires Bearer access token. Returns profile, permissions, and redirectTo."
+              },
+              "response": []
+            },
+            {
+              "name": "Refresh Token (saves tokens)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.accessToken) {",
+                      "        pm.environment.set('accessToken', json.data.accessToken);",
+                      "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                      "    }",
+                      "    if (json.data && json.data.refreshToken) {",
+                      "        pm.environment.set('refreshToken', json.data.refreshToken);",
+                      "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/refresh",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "refresh"]
+                },
+                "description": "Rotates refresh token and returns a new access + refresh pair. Reusing an old refresh token revokes the session family."
               },
               "response": []
             },
@@ -370,7 +436,229 @@
                   "host": ["{{apiBase}}"],
                   "path": ["auth", "logout"]
                 },
-                "description": "Stateless logout — discard token on client after this call."
+                "description": "Revokes the current refresh session (sid from access JWT). Discard both tokens on the client."
+              },
+              "response": []
+            },
+            {
+              "name": "Logout All Sessions",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/auth/logout-all",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "logout-all"]
+                },
+                "description": "Revokes every refresh session for the user (stolen-device recovery)."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Bidder Signup",
+      "description": "Public bidder self-registration (Aadhaar OTP or DigiLocker mock). Use a fresh Aadhaar/phone that is not already seeded. Saves `signupSessionId` and on complete saves `accessToken`.",
+      "item": [
+        {
+          "name": "Manual Aadhaar",
+          "item": [
+            {
+              "name": "1. Request Aadhaar OTP",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.sessionId) {",
+                      "        pm.collectionVariables.set('signupSessionId', json.data.sessionId);",
+                      "        pm.environment.set('signupSessionId', json.data.sessionId);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"aadhaarNumber\": \"{{signupAadhaar}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/register/aadhaar/request-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "register", "aadhaar", "request-otp"]
+                },
+                "description": "12-digit Aadhaar only. Returns sessionId + maskedPhone. Dev includes mockOtpHint."
+              },
+              "response": []
+            },
+            {
+              "name": "2. Resend Aadhaar OTP",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/register/aadhaar/resend-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "register", "aadhaar", "resend-otp"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Verify Aadhaar OTP",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/register/aadhaar/verify-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "register", "aadhaar", "verify-otp"]
+                },
+                "description": "Seals read-only KYC profile on the session."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "DigiLocker",
+          "item": [
+            {
+              "name": "1. Start DigiLocker",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.sessionId) {",
+                      "        pm.collectionVariables.set('signupSessionId', json.data.sessionId);",
+                      "        pm.environment.set('signupSessionId', json.data.sessionId);",
+                      "    }",
+                      "    if (json.data && json.data.authorizationUrl) {",
+                      "        const u = new URL(json.data.authorizationUrl);",
+                      "        pm.collectionVariables.set('digilockerState', u.searchParams.get('state') || '');",
+                      "        pm.environment.set('digilockerState', u.searchParams.get('state') || '');",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/register/digilocker/start",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "register", "digilocker", "start"]
+                },
+                "description": "Returns sessionId + authorizationUrl. Mock URL already includes code=mock-digilocker-code."
+              },
+              "response": []
+            },
+            {
+              "name": "2. DigiLocker Callback (JSON)",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "GET",
+                "header": [
+                  { "key": "Accept", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/register/digilocker/callback?code=mock-digilocker-code&state={{digilockerState}}",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "register", "digilocker", "callback"],
+                  "query": [
+                    { "key": "code", "value": "mock-digilocker-code" },
+                    { "key": "state", "value": "{{digilockerState}}" }
+                  ]
+                },
+                "description": "Send Accept: application/json to get sealed profile instead of browser redirect."
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Session & Complete",
+          "item": [
+            {
+              "name": "Get Signup Session",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/register/session/{{signupSessionId}}",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "register", "session", "{{signupSessionId}}"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Complete Registration (saves token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201 || pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.accessToken) {",
+                      "        pm.environment.set('accessToken', json.data.accessToken);",
+                      "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                      "        console.log('accessToken saved from signup');",
+                      "    }",
+                      "    if (json.data && json.data.refreshToken) {",
+                      "        pm.environment.set('refreshToken', json.data.refreshToken);",
+                      "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                      "        console.log('refreshToken saved from signup');",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{signupPhone}}\",\n  \"currentAddress\": \"12, Indiranagar, Bengaluru\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/register/complete",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "register", "complete"]
+                },
+                "description": "Creates bidder from sealed KYC + phone/currentAddress. Returns JWT (auto-login)."
               },
               "response": []
             }

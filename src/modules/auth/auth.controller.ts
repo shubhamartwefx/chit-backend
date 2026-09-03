@@ -3,7 +3,18 @@ import { API_MESSAGES } from '../../common/status';
 import { sendSuccess, sendSuccessWithKey } from '../../common/response';
 import { RoleUrlSlug } from '../../config/roles';
 import { authService } from './auth.service';
-import { RequestOtpInput, VerifyOtpInput } from './auth.validation';
+import {
+  RefreshTokenInput,
+  RequestOtpInput,
+  VerifyOtpInput,
+} from './auth.validation';
+
+function requestMeta(req: Request) {
+  return {
+    userAgent: req.get('user-agent') ?? undefined,
+    ip: req.ip,
+  };
+}
 
 export class AuthController {
   async requestOtp(req: Request, res: Response, next: NextFunction) {
@@ -24,9 +35,20 @@ export class AuthController {
       const role = req.params.role as RoleUrlSlug;
       const data = await authService.verifyOtp(
         role,
-        req.body as VerifyOtpInput
+        req.body as VerifyOtpInput,
+        requestMeta(req)
       );
       sendSuccess(res, data, API_MESSAGES.LOGIN_SUCCESS);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async refresh(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { refreshToken } = req.body as RefreshTokenInput;
+      const data = await authService.refresh(refreshToken, requestMeta(req));
+      sendSuccess(res, data, API_MESSAGES.TOKEN_REFRESHED);
     } catch (err) {
       next(err);
     }
@@ -41,13 +63,19 @@ export class AuthController {
     }
   }
 
-  async logout(_req: Request, res: Response, next: NextFunction) {
+  async logout(req: Request, res: Response, next: NextFunction) {
     try {
-      sendSuccess(
-        res,
-        { loggedOut: true },
-        API_MESSAGES.LOGOUT_SUCCESS
-      );
+      const data = await authService.logout(req.user!.sub, req.user!.sid);
+      sendSuccess(res, data, API_MESSAGES.LOGOUT_SUCCESS);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async logoutAll(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await authService.logoutAll(req.user!.sub);
+      sendSuccess(res, data, API_MESSAGES.LOGOUT_ALL_SUCCESS);
     } catch (err) {
       next(err);
     }
