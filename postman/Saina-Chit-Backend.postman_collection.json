@@ -1,0 +1,650 @@
+{
+  "info": {
+    "_postman_id": "saina-chit-backend-v1",
+    "name": "Saina Chit Backend API",
+    "description": "Postman collection for Saina Chit Funds backend (`chit-backend`).\n\n## Setup\n1. Import this collection and `Saina-Chit-Backend.local.postman_environment.json`\n2. Select the **Saina Local** environment\n3. Run `npm run seed` on the backend, then start the server (`npm run dev`)\n4. Use **Auth → Login flows** to request OTP and verify — the access token is saved automatically\n\n## Demo credentials (after seed)\n| Role | Auth slug | Phone | Aadhaar | OTP |\n|------|-----------|-------|---------|-----|\n| Super Admin | super-admin | 9999999999 | 123456789012 | 123456 |\n| Branch Store | admin or branch-store | 9888888881 | 111111111111 | 123456 |\n| Agent | agent | 9888888882 | 222222222222 | 123456 |\n| Bidder | bidder | 9888888883 | 333333333333 | 123456 |\n\n## Auth\nProtected routes use `Authorization: Bearer {{accessToken}}`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:4000" },
+    { "key": "apiVersion", "value": "v1" },
+    { "key": "apiBase", "value": "{{baseUrl}}/api/{{apiVersion}}" },
+    { "key": "accessToken", "value": "" },
+    { "key": "countryCode", "value": "+91" },
+    { "key": "mockOtp", "value": "123456" },
+    { "key": "superAdminPhone", "value": "9999999999" },
+    { "key": "superAdminAadhaar", "value": "123456789012" },
+    { "key": "branchStorePhone", "value": "9888888881" },
+    { "key": "branchStoreAadhaar", "value": "111111111111" },
+    { "key": "agentPhone", "value": "9888888882" },
+    { "key": "agentAadhaar", "value": "222222222222" },
+    { "key": "bidderPhone", "value": "9888888883" },
+    { "key": "bidderAadhaar", "value": "333333333333" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Server liveness check. No authentication required."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "description": "Phone + Aadhaar OTP login per role. After **Verify OTP**, the access token is saved to `accessToken`.",
+      "item": [
+        {
+          "name": "Super Admin",
+          "item": [
+            {
+              "name": "Request OTP",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{superAdminPhone}}\",\n  \"aadhaarNumber\": \"{{superAdminAadhaar}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/super-admin/request-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "super-admin", "request-otp"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Verify OTP (saves token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.accessToken) {",
+                      "        pm.environment.set('accessToken', json.data.accessToken);",
+                      "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                      "        console.log('accessToken saved');",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{superAdminPhone}}\",\n  \"aadhaarNumber\": \"{{superAdminAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/super-admin/verify-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "super-admin", "verify-otp"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Branch Store",
+          "item": [
+            {
+              "name": "Request OTP (admin slug)",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{branchStorePhone}}\",\n  \"aadhaarNumber\": \"{{branchStoreAadhaar}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/admin/request-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "admin", "request-otp"]
+                },
+                "description": "FE-compatible alias slug `admin` → internal role `branch_store`."
+              },
+              "response": []
+            },
+            {
+              "name": "Verify OTP (admin slug, saves token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.accessToken) {",
+                      "        pm.environment.set('accessToken', json.data.accessToken);",
+                      "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{branchStorePhone}}\",\n  \"aadhaarNumber\": \"{{branchStoreAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/admin/verify-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "admin", "verify-otp"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Request OTP (branch-store slug)",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{branchStorePhone}}\",\n  \"aadhaarNumber\": \"{{branchStoreAadhaar}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/branch-store/request-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "branch-store", "request-otp"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Verify OTP (branch-store slug, saves token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.accessToken) {",
+                      "        pm.environment.set('accessToken', json.data.accessToken);",
+                      "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{branchStorePhone}}\",\n  \"aadhaarNumber\": \"{{branchStoreAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/branch-store/verify-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "branch-store", "verify-otp"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Agent",
+          "item": [
+            {
+              "name": "Request OTP",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{agentPhone}}\",\n  \"aadhaarNumber\": \"{{agentAadhaar}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/agent/request-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "agent", "request-otp"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Verify OTP (saves token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.accessToken) {",
+                      "        pm.environment.set('accessToken', json.data.accessToken);",
+                      "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{agentPhone}}\",\n  \"aadhaarNumber\": \"{{agentAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/agent/verify-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "agent", "verify-otp"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Bidder",
+          "item": [
+            {
+              "name": "Request OTP",
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{bidderPhone}}\",\n  \"aadhaarNumber\": \"{{bidderAadhaar}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/request-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "request-otp"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Verify OTP (saves token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 200) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.accessToken) {",
+                      "        pm.environment.set('accessToken', json.data.accessToken);",
+                      "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{bidderPhone}}\",\n  \"aadhaarNumber\": \"{{bidderAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/auth/bidder/verify-otp",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "bidder", "verify-otp"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Session",
+          "item": [
+            {
+              "name": "Get Current User (me)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/auth/me",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "me"]
+                },
+                "description": "Requires Bearer token. Returns profile, permissions, and redirectTo."
+              },
+              "response": []
+            },
+            {
+              "name": "Logout",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/auth/logout",
+                  "host": ["{{apiBase}}"],
+                  "path": ["auth", "logout"]
+                },
+                "description": "Stateless logout — discard token on client after this call."
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Super Admin",
+      "description": "Requires Super Admin token. Login via **Auth → Super Admin → Verify OTP** first.",
+      "item": [
+        {
+          "name": "Get Permission Catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/super-admin/permissions",
+              "host": ["{{apiBase}}"],
+              "path": ["super-admin", "permissions"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Branch Stores",
+          "item": [
+            {
+              "name": "Create Branch Store User",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Branch Store Manager\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888891\",\n  \"aadhaarNumber\": \"444444444444\",\n  \"permissions\": [\n    \"agents:read\",\n    \"bidders:read\",\n    \"bidders:write\",\n    \"chits:read\",\n    \"reports:read\"\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/branch-stores",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "branch-stores"]
+                },
+                "description": "Requires manager tier or full (`*`) permission."
+              },
+              "response": []
+            },
+            {
+              "name": "List Branch Store Users",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/branch-stores",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "branch-stores"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Branch Store (deprecated /admins alias)",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Legacy Admin Alias Test\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888892\",\n  \"aadhaarNumber\": \"555555555555\",\n  \"permissions\": [\"bidders:read\", \"reports:read\"]\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/admins",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "admins"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Branch Stores (deprecated /admins alias)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/admins",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "admins"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Agents",
+          "item": [
+            {
+              "name": "Create Agent",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New Agent\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888893\",\n  \"aadhaarNumber\": \"666666666666\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/agents",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "agents"]
+                },
+                "description": "Permissions are auto-assigned from AGENT_DEFAULT."
+              },
+              "response": []
+            },
+            {
+              "name": "List Agents",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/agents",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "agents"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Bidders",
+          "item": [
+            {
+              "name": "Create Bidder",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"New Bidder\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888894\",\n  \"aadhaarNumber\": \"777777777777\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/bidders",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "bidders"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Bidders",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/bidders",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "bidders"]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Staff",
+          "item": [
+            {
+              "name": "Create Super Admin Staff",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Platform Editor\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888895\",\n  \"aadhaarNumber\": \"888888888888\",\n  \"tier\": \"editor\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/staff",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "staff"]
+                },
+                "description": "Requires full (`*`) permission. Tier: `full` | `manager` | `editor`."
+              },
+              "response": []
+            },
+            {
+              "name": "List Super Admin Staff",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/staff",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "staff"]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Branch Store",
+      "description": "Requires Branch Store token. Login via **Auth → Branch Store** first.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/branch-store/health",
+              "host": ["{{apiBase}}"],
+              "path": ["branch-store", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Agent",
+      "description": "Requires Agent token. Login via **Auth → Agent** first.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/agent/health",
+              "host": ["{{apiBase}}"],
+              "path": ["agent", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bidder",
+      "description": "Requires Bidder token. Login via **Auth → Bidder** first.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/bidder/health",
+              "host": ["{{apiBase}}"],
+              "path": ["bidder", "health"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Deprecated Aliases",
+      "item": [
+        {
+          "name": "Admin Module Health (deprecated)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/admin/health",
+              "host": ["{{apiBase}}"],
+              "path": ["admin", "health"]
+            },
+            "description": "Alias of branch-store module. Requires Branch Store token."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+export const API_STATUS = {
+  OK: {
+    httpStatus: 200,
+    code: 'OK',
+    message: 'Request completed successfully',
+  },
+  CREATED: {
+    httpStatus: 201,
+    code: 'CREATED',
+    message: 'Resource created successfully',
+  },
+  BAD_REQUEST: {
+    httpStatus: 400,
+    code: 'BAD_REQUEST',
+    message: 'The request could not be processed',
+  },
+  UNAUTHORIZED: {
+    httpStatus: 401,
+    code: 'UNAUTHORIZED',
+    message: 'Authentication required',
+  },
+  ACCESS_DENIED: {
+    httpStatus: 403,
+    code: 'ACCESS_DENIED',
+    message: 'Access denied',
+  },
+  INSUFFICIENT_PERMISSIONS: {
+    httpStatus: 403,
+    code: 'INSUFFICIENT_PERMISSIONS',
+    message: 'Insufficient permissions for this action',
+  },
+  NOT_FOUND: {
+    httpStatus: 404,
+    code: 'NOT_FOUND',
+    message: 'Resource not found',
+  },
+  CONFLICT: {
+    httpStatus: 409,
+    code: 'CONFLICT',
+    message: 'Resource conflict',
+  },
+  RATE_LIMITED: {
+    httpStatus: 429,
+    code: 'RATE_LIMITED',
+    message: 'Too many requests. Try again later.',
+  },
+  INTERNAL_ERROR: {
+    httpStatus: 500,
+    code: 'INTERNAL_ERROR',
+    message: 'Internal server error',
+  },
+} as const;
+
+export type ApiStatusKey = keyof typeof API_STATUS;
+export type ApiStatusCode = (typeof API_STATUS)[ApiStatusKey]['code'];
+
+export type StatusDefinition = (typeof API_STATUS)[ApiStatusKey];
+
+export const API_MESSAGES = {
+  HEALTH_OK: 'Service is healthy',
+  LOGIN_SUCCESS: 'Login successful',
+  LOGOUT_SUCCESS:
+    'Logged out successfully. Discard the access token on the client.',
+  OTP_SENT: 'OTP sent to registered phone number',
+  BRANCH_STORE_CREATED: 'Branch store user created successfully',
+  AGENT_CREATED: 'Agent created successfully',
+  BIDDER_CREATED: 'Bidder created successfully',
+  STAFF_CREATED: 'Super admin staff created successfully',
+  ROUTE_NOT_FOUND: 'Route not found',
+} as const;
+
+export type ApiMessageKey = keyof typeof API_MESSAGES;
+
+const statusByCode = Object.values(API_STATUS).reduce(
+  (acc, status) => {
+    acc[status.code] = status;
+    return acc;
+  },
+  {} as Record<ApiStatusCode, StatusDefinition>
+);
+
+export function getStatusByKey(key: ApiStatusKey): StatusDefinition {
+  return API_STATUS[key];
+}
+
+export function getStatusByCode(code: string): StatusDefinition | undefined {
+  return statusByCode[code as ApiStatusCode];
+}
+
+export function resolveMessage(
+  key: ApiStatusKey,
+  override?: string
+): string {
+  return override ?? API_STATUS[key].message;
+}
