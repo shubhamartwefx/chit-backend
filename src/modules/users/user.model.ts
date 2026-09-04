@@ -23,6 +23,14 @@ export interface IAadhaarAddress {
   country: string;
 }
 
+export interface IWebAuthnCredential {
+  credentialId: string;
+  publicKey: string;
+  counter: number;
+  transports?: string[];
+  createdAt: Date;
+}
+
 export interface IUser {
   name: string;
   countryCode: string;
@@ -40,6 +48,16 @@ export interface IUser {
   aadhaarLast4?: string | null;
   aadhaarVerifiedAt?: Date | null;
   verificationMethod?: VerificationMethod | null;
+  totpSecret?: string | null;
+  totpPendingSecret?: string | null;
+  totpEnabled?: boolean;
+  totpVerifiedAt?: Date | null;
+  pinHash?: string | null;
+  screenLockEnabled?: boolean;
+  biometricEnabled?: boolean;
+  webauthnCredentials?: IWebAuthnCredential[];
+  webauthnChallenge?: string | null;
+  webauthnChallengeExpiresAt?: Date | null;
 }
 
 export interface IUserDocument extends IUser, Document {
@@ -55,6 +73,17 @@ const aadhaarAddressSchema = new Schema<IAadhaarAddress>(
     state: { type: String, required: true, trim: true },
     pincode: { type: String, required: true, trim: true },
     country: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
+const webauthnCredentialSchema = new Schema<IWebAuthnCredential>(
+  {
+    credentialId: { type: String, required: true },
+    publicKey: { type: String, required: true },
+    counter: { type: Number, required: true, default: 0 },
+    transports: { type: [String], default: undefined },
+    createdAt: { type: Date, required: true, default: Date.now },
   },
   { _id: false }
 );
@@ -90,15 +119,22 @@ const userSchema = new Schema<IUserDocument>(
       enum: Object.values(VERIFICATION_METHODS),
       default: undefined,
     },
+    totpSecret: { type: String, default: null, select: false },
+    totpPendingSecret: { type: String, default: null, select: false },
+    totpEnabled: { type: Boolean, default: false },
+    totpVerifiedAt: { type: Date, default: null },
+    pinHash: { type: String, default: null, select: false },
+    screenLockEnabled: { type: Boolean, default: false },
+    biometricEnabled: { type: Boolean, default: false },
+    webauthnCredentials: { type: [webauthnCredentialSchema], default: [] },
+    webauthnChallenge: { type: String, default: null, select: false },
+    webauthnChallengeExpiresAt: { type: Date, default: null, select: false },
   },
   { timestamps: true }
 );
 
 userSchema.index({ phone: 1, role: 1 }, { unique: true });
-userSchema.index(
-  { aadhaarFingerprint: 1, role: 1 },
-  { unique: true }
-);
+userSchema.index({ aadhaarFingerprint: 1, role: 1 }, { unique: true });
 
 export const User: Model<IUserDocument> =
   mongoose.models.User || mongoose.model<IUserDocument>('User', userSchema);

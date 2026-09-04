@@ -28,10 +28,25 @@ const envSchema = z.object({
   DIGILOCKER_CLIENT_SECRET: z.string().default('mock-digilocker-secret'),
   DIGILOCKER_REDIRECT_URI: z
     .string()
-    .default('http://localhost:4000/api/v1/auth/bidder/register/digilocker/callback'),
+    .default(
+      'http://localhost:4000/api/v1/auth/bidder/register/digilocker/callback'
+    ),
   DIGILOCKER_SUCCESS_REDIRECT_URL: z
     .string()
     .default('http://localhost:3000/auth/register'),
+  DIGILOCKER_AGENT_REDIRECT_URI: z
+    .string()
+    .default(
+      'http://localhost:4000/api/v1/auth/agent/register/digilocker/callback'
+    ),
+  DIGILOCKER_AGENT_SUCCESS_REDIRECT_URL: z
+    .string()
+    .default('http://localhost:3000/agent/register'),
+  TOTP_ISSUER: z.string().default('Saina Chit Funds'),
+  SCREEN_LOCK_INACTIVITY_MINUTES: z.coerce.number().default(5),
+  WEBAUTHN_RP_ID: z.string().default('localhost'),
+  WEBAUTHN_ORIGIN: z.string().default('http://localhost:3000'),
+  WEBAUTHN_RP_NAME: z.string().default('Saina Chit Funds'),
 });
 
 const parsed = envSchema.safeParse(process.env);

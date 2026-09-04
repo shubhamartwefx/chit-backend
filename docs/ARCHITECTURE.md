@@ -192,12 +192,18 @@ Short-lived bidder self-registration session (manual Aadhaar OTP or DigiLocker).
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | `/auth/:role/request-otp` | Public | Validate phone + Aadhaar for role; send OTP |
-| POST | `/auth/:role/verify-otp` | Public | Verify OTP; return access + refresh token pair |
+| POST | `/auth/:role/request-otp` | Public | Phone + Aadhaar; SMS OTP **or** `{ requires2fa: true }` if TOTP enabled |
+| POST | `/auth/:role/verify-otp` | Public | Verify SMS OTP; return token pair (rejected if 2FA enabled) |
+| POST | `/auth/:role/verify-2fa` | Public | Verify TOTP; return token pair (2FA-enabled accounts only) |
 | POST | `/auth/refresh` | Public | Rotate refresh token; return new pair |
 | GET | `/auth/me` | Bearer | Current user profile |
 | POST | `/auth/logout` | Bearer | Revoke current refresh session (`sid`) |
 | POST | `/auth/logout-all` | Bearer | Revoke all refresh sessions for the user |
+| GET/POST | `/auth/2fa/*` | Bearer | TOTP setup/confirm/disable/status (not bidder) |
+| GET/POST | `/auth/screen-lock/*` | Bearer | PIN set/enable/unlock/status |
+| GET/POST | `/auth/biometric/*` | Bearer | WebAuthn register/auth/disable (bidder only) |
+
+See **[AUTH_REQUIREMENTS.md](./AUTH_REQUIREMENTS.md)** for role matrix.
 
 ### Tokens
 
@@ -205,9 +211,9 @@ Short-lived bidder self-registration session (manual Aadhaar OTP or DigiLocker).
 - **Refresh token** — opaque, hashed in `RefreshSession`; default `JWT_REFRESH_EXPIRES_IN=7d`. Rotated on each refresh; reuse of an old refresh revokes the whole session family.
 - `authenticate` middleware **verifies only** — it does not mint tokens on every request.
 
-### Bidder signup endpoints (public, rate-limited)
+### Bidder / Agent signup endpoints (public, rate-limited)
 
-Base: `/auth/bidder/register`
+Bases: `/auth/bidder/register` and `/auth/agent/register` (same shapes; agent creates `agent` role).
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -217,7 +223,7 @@ Base: `/auth/bidder/register`
 | POST | `/digilocker/start` | Start DigiLocker mock OAuth; return `authorizationUrl` |
 | GET | `/digilocker/callback` | DigiLocker callback; redirect or JSON (`Accept: application/json`) |
 | GET | `/session/:sessionId` | Session status + sealed profile |
-| POST | `/complete` | Create bidder from sealed KYC + phone/currentAddress; return token pair |
+| POST | `/complete` | Create user from sealed KYC + phone/currentAddress; return token pair |
 
 KYC fields from Aadhaar are sealed server-side — `complete` only accepts `phone` and optional `currentAddress`. Mock OTP is `MOCK_OTP` (default `123456`). DigiLocker mock uses `code=mock-digilocker-code`.
 

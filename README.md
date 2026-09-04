@@ -81,22 +81,23 @@ Content-Type: application/json
 
 Returns a new access + refresh pair (rotation). `POST /auth/logout` revokes the current session; `POST /auth/logout-all` revokes every session for the user.
 
-## Bidder signup (self-registration)
+If `request-otp` returns `requires2fa: true`, call `POST /auth/:role/verify-2fa` with `{ countryCode, phone, aadhaarNumber, totp }` instead of `verify-otp`. 2FA is for super-admin, branch-store, and agent only (not bidder). See [docs/AUTH_REQUIREMENTS.md](./docs/AUTH_REQUIREMENTS.md).
 
-Public, rate-limited APIs under `/api/v1/auth/bidder/register`. Mock Aadhaar OTP + DigiLocker providers; swap DigiLocker later via env.
+## Bidder / Agent signup (self-registration)
+
+Public APIs under `/api/v1/auth/bidder/register` and `/api/v1/auth/agent/register` (same shapes).
 
 ```http
-POST /api/v1/auth/bidder/register/aadhaar/request-otp
+POST /api/v1/auth/agent/register/aadhaar/request-otp
 { "aadhaarNumber": "354136431636" }
 
-POST /api/v1/auth/bidder/register/aadhaar/verify-otp
-{ "sessionId": "<id>", "otp": "123456" }
-
-POST /api/v1/auth/bidder/register/complete
-{ "sessionId": "<id>", "countryCode": "+91", "phone": "9876543210", "currentAddress": "optional" }
+POST /api/v1/auth/agent/register/complete
+{ "sessionId": "<id>", "countryCode": "+91", "phone": "9876501111" }
 ```
 
-`complete` creates the bidder and returns an access + refresh token pair (auto-login). Aadhaar-fetched fields are sealed server-side. DigiLocker: `POST .../digilocker/start` then `GET .../digilocker/callback?code=mock-digilocker-code&state=...` with `Accept: application/json`.
+## 2FA / screen lock / biometric
+
+Authenticated under `/api/v1/auth/2fa/*`, `/auth/screen-lock/*`, `/auth/biometric/*` (bidder WebAuthn only).
 
 ## RBAC structure
 

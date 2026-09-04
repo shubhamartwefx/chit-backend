@@ -24,8 +24,11 @@ import { User } from '../users/user.model';
 import {
   RequestOtpInput,
   VerifyOtpInput,
+  Verify2faInput,
 } from './auth.validation';
+import { usesTotpLogin } from './security-policy';
 import { TokenPairMeta, tokenService } from './token.service';
+import { verifyTotpCode } from './totp.util';
 
 function assertCredentialsFormat(phone: string, aadhaar: string): void {
   if (!isValidIndianPhone(phone)) {
@@ -37,13 +40,16 @@ function assertCredentialsFormat(phone: string, aadhaar: string): void {
 }
 
 export class AuthService {
-  async requestOtp(roleSlug: RoleUrlSlug, input: RequestOtpInput) {
+  private async findActiveLoginUser(
+    roleSlug: RoleUrlSlug,
+    phone: string,
+    aadhaarNumber: string,
+    extraSelect = ''
+  ) {
+    assertCredentialsFormat(phone, aadhaarNumber);
     const role = urlSlugToRole(roleSlug);
-    const phone = normalizePhone(input.phone);
-    assertCredentialsFormat(phone, input.aadhaarNumber);
-
     const aadhaarFingerprint = fingerprintAadhaar(
-      input.aadhaarNumber,
+      aadhaarNumber,
       env.JWT_SECRET
     );
 
@@ -51,7 +57,7 @@ export class AuthService {
       phone,
       aadhaarFingerprint,
       role,
-    });
+    }).select(extraSelect);
 
     if (!user) {
       throw accessDenied(
@@ -69,6 +75,27 @@ export class AuthService {
       );
     }
 
+    return { user, role, phone, aadhaarFingerprint };
+  }
+
+  async requestOtp(roleSlug: RoleUrlSlug, input: RequestOtpInput) {
+    const phone = normalizePhone(input.phone);
+    const { user, role, aadhaarFingerprint } = await this.findActiveLoginUser(
+      roleSlug,
+      phone,
+      input.aadhaarNumber
+    );
+
+    if (usesTotpLogin(user)) {
+      return {
+        message: 'Enter the code from your authenticator app',
+        authMethod: 'totp' as const,
+        requires2fa: true,
+        maskedPhone: `${'*'.repeat(6)}${phone.slice(-4)}`,
+        role,
+      };
+    }
+
     const { expiresInMinutes } = await otpService.createAndSend({
       phone,
       countryCode: input.countryCode,
@@ -79,6 +106,8 @@ export class AuthService {
 
     return {
       message: API_MESSAGES.OTP_SENT,
+      authMethod: 'otp' as const,
+      requires2fa: false,
       expiresInMinutes,
       maskedPhone: `${'*'.repeat(6)}${phone.slice(-4)}`,
       role,
@@ -93,38 +122,64 @@ export class AuthService {
     input: VerifyOtpInput,
     meta: TokenPairMeta = {}
   ) {
-    const role = urlSlugToRole(roleSlug);
     const phone = normalizePhone(input.phone);
-    assertCredentialsFormat(phone, input.aadhaarNumber);
-
-    const aadhaarFingerprint = fingerprintAadhaar(
-      input.aadhaarNumber,
-      env.JWT_SECRET
+    const { user, role } = await this.findActiveLoginUser(
+      roleSlug,
+      phone,
+      input.aadhaarNumber
     );
 
-    const user = await User.findOne({
-      phone,
-      aadhaarFingerprint,
-      role,
-    });
-
-    if (!user) {
-      throw accessDenied(
-        'Invalid credentials for this login portal, or account does not exist for this role'
-      );
-    }
-
-    if (user.status !== USER_STATUS.ACTIVE) {
-      throw accessDenied('Your account is inactive or blocked. Contact support.');
-    }
-
-    if (!canLoginWithPermissions(user.role, user.permissions)) {
-      throw accessDenied(
-        'Your account has no valid permissions assigned. Contact support.'
+    if (usesTotpLogin(user)) {
+      throw badRequest(
+        '2FA is enabled for this account. Use verify-2fa instead of verify-otp.'
       );
     }
 
     await otpService.verify({ phone, role, otp: input.otp });
+
+    user.lastLoginAt = new Date();
+    await user.save();
+
+    const tokens = await tokenService.issueTokenPair(user, meta);
+
+    return {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenType: tokens.tokenType,
+      expiresIn: tokens.expiresIn,
+      refreshExpiresIn: tokens.refreshExpiresIn,
+      user: {
+        ...tokens.user,
+        ...(user.role === USER_ROLES.SUPER_ADMIN
+          ? { tier: resolveSuperAdminTier(user.permissions) }
+          : {}),
+      },
+      redirectTo: tokens.redirectTo,
+    };
+  }
+
+  async verify2fa(
+    roleSlug: RoleUrlSlug,
+    input: Verify2faInput,
+    meta: TokenPairMeta = {}
+  ) {
+    const phone = normalizePhone(input.phone);
+    const { user } = await this.findActiveLoginUser(
+      roleSlug,
+      phone,
+      input.aadhaarNumber,
+      '+totpSecret totpEnabled'
+    );
+
+    if (!usesTotpLogin(user) || !user.totpSecret) {
+      throw badRequest(
+        '2FA is not enabled for this account. Use verify-otp instead.'
+      );
+    }
+
+    if (!verifyTotpCode(user.totpSecret, input.totp)) {
+      throw unauthorized('Invalid authenticator code');
+    }
 
     user.lastLoginAt = new Date();
     await user.save();
@@ -180,6 +235,9 @@ export class AuthService {
       internalRole: user.role,
       status: user.status,
       lastLoginAt: user.lastLoginAt,
+      totpEnabled: Boolean(user.totpEnabled),
+      screenLockEnabled: Boolean(user.screenLockEnabled),
+      biometricEnabled: Boolean(user.biometricEnabled),
       redirectTo: ROLE_DASHBOARD_PATH[user.role],
       ...(user.role === USER_ROLES.SUPER_ADMIN
         ? { tier: resolveSuperAdminTier(user.permissions) }

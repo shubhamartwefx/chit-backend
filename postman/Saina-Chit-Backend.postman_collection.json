@@ -667,6 +667,233 @@
       ]
     },
     {
+      "name": "Agent Signup",
+      "description": "Public agent self-registration (same flow as bidder). Use a fresh Aadhaar/phone.",
+      "item": [
+        {
+          "name": "1. Request Aadhaar OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data && json.data.sessionId) {",
+                  "        pm.collectionVariables.set('signupSessionId', json.data.sessionId);",
+                  "        pm.environment.set('signupSessionId', json.data.sessionId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"aadhaarNumber\": \"{{signupAadhaar}}\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/agent/register/aadhaar/request-otp",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "agent", "register", "aadhaar", "request-otp"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2. Verify Aadhaar OTP",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/agent/register/aadhaar/verify-otp",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "agent", "register", "aadhaar", "verify-otp"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "3. Complete Registration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data && json.data.accessToken) {",
+                  "        pm.environment.set('accessToken', json.data.accessToken);",
+                  "        pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "    }",
+                  "    if (json.data && json.data.refreshToken) {",
+                  "        pm.environment.set('refreshToken', json.data.refreshToken);",
+                  "        pm.collectionVariables.set('refreshToken', json.data.refreshToken);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9876502222\",\n  \"currentAddress\": \"Agent address\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/agent/register/complete",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "agent", "register", "complete"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Security (2FA / Screen Lock / Biometric)",
+      "description": "Authenticated. 2FA for SA/branch/agent. Biometric for bidder only.",
+      "item": [
+        {
+          "name": "2FA Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{apiBase}}/auth/2fa/status",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "2fa", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2FA Setup",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{apiBase}}/auth/2fa/setup",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "2fa", "setup"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "2FA Confirm",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"totp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/2fa/confirm",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "2fa", "confirm"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Screen Lock Set PIN",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pin\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/screen-lock/pin",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "screen-lock", "pin"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Screen Lock Enable",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/screen-lock/enable",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "screen-lock", "enable"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Screen Lock Unlock PIN",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"method\": \"pin\",\n  \"pin\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/screen-lock/unlock",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "screen-lock", "unlock"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Biometric Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{apiBase}}/auth/biometric/status",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "biometric", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify 2FA Login (role)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{superAdminPhone}}\",\n  \"aadhaarNumber\": \"{{superAdminAadhaar}}\",\n  \"totp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/auth/super-admin/verify-2fa",
+              "host": ["{{apiBase}}"],
+              "path": ["auth", "super-admin", "verify-2fa"]
+            },
+            "description": "Use after request-otp returns requires2fa=true."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "Super Admin",
       "description": "Requires Super Admin token. Login via **Auth → Super Admin → Verify OTP** first.",
       "item": [

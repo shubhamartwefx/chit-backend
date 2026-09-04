@@ -31,7 +31,13 @@ Import these files into Postman to test the API locally.
 
 Repeat with **Branch Store**, **Agent**, or **Bidder** folders to test role-scoped modules.
 
-## Bidder signup (self-registration)
+## Agent signup
+
+Same as bidder under **Agent Signup** (`/auth/agent/register`).
+
+## Security
+
+Folder **Security (2FA / Screen Lock / Biometric)** — requires Bearer token except verify-2fa login.
 
 Use folder **Bidder Signup**. Prefer a fresh `signupAadhaar` / `signupPhone` (not seed credentials).
 

@@ -16,15 +16,11 @@ import {
 } from '../../common/errors';
 import { env } from '../../config/env';
 import {
-  BIDDER_DEFAULT,
+  AGENT_DEFAULT,
   USER_ROLES,
   USER_STATUS,
 } from '../../config/roles';
 import { TokenPairMeta, tokenService } from '../auth/token.service';
-import {
-  User,
-  VERIFICATION_METHODS,
-} from '../users/user.model';
 import {
   createAadhaarKycProvider,
   type AadhaarKycProvider,
@@ -35,17 +31,21 @@ import {
 } from '../kyc-providers/digilocker.provider';
 import type { IVerifiedAadhaarProfile } from '../kyc-providers/types';
 import {
-  BidderSignupSession,
-  IBidderSignupSessionDocument,
+  User,
+  VERIFICATION_METHODS,
+} from '../users/user.model';
+import {
+  AgentSignupSession,
+  IAgentSignupSessionDocument,
   SIGNUP_METHODS,
   SIGNUP_STATUS,
-} from './bidder-signup.model';
+} from './agent-signup.model';
 import {
   CompleteRegistrationInput,
   DigilockerCallbackQuery,
   RequestAadhaarOtpInput,
   VerifyAadhaarOtpInput,
-} from './bidder-signup.validation';
+} from './agent-signup.validation';
 
 function newSessionId(): string {
   return crypto.randomBytes(24).toString('hex');
@@ -56,12 +56,9 @@ function newOAuthState(): string {
 }
 
 function sessionExpiresAt(): Date {
-  return new Date(
-    Date.now() + env.SIGNUP_SESSION_TTL_MINUTES * 60 * 1000
-  );
+  return new Date(Date.now() + env.SIGNUP_SESSION_TTL_MINUTES * 60 * 1000);
 }
 
-/** Deterministic 12-digit synthetic Aadhaar scoped to a DigiLocker session. */
 function syntheticAadhaarFromSession(sessionId: string): string {
   const hash = crypto.createHash('sha256').update(sessionId).digest('hex');
   let digits = '';
@@ -82,38 +79,38 @@ function formatSealedProfile(profile: IVerifiedAadhaarProfile) {
   };
 }
 
-export class BidderSignupService {
+export class AgentSignupService {
   constructor(
     private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(),
     private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider()
   ) {}
 
-  private async assertNoExistingBidderByFingerprint(
+  private async assertNoExistingAgentByFingerprint(
     aadhaarFingerprint: string
   ): Promise<void> {
     const existing = await User.findOne({
       aadhaarFingerprint,
-      role: USER_ROLES.BIDDER,
+      role: USER_ROLES.AGENT,
     });
     if (existing) {
-      throw conflict('A bidder account already exists for this Aadhaar number');
+      throw conflict('An agent account already exists for this Aadhaar number');
     }
   }
 
-  private async assertNoExistingBidderByPhone(phone: string): Promise<void> {
+  private async assertNoExistingAgentByPhone(phone: string): Promise<void> {
     const existing = await User.findOne({
       phone,
-      role: USER_ROLES.BIDDER,
+      role: USER_ROLES.AGENT,
     });
     if (existing) {
-      throw conflict('A bidder account already exists for this phone number');
+      throw conflict('An agent account already exists for this phone number');
     }
   }
 
   private async getActiveSession(
     sessionId: string
-  ): Promise<IBidderSignupSessionDocument> {
-    const session = await BidderSignupSession.findOne({ sessionId });
+  ): Promise<IAgentSignupSessionDocument> {
+    const session = await AgentSignupSession.findOne({ sessionId });
     if (!session) {
       throw notFound('Signup session not found');
     }
@@ -138,7 +135,7 @@ export class BidderSignupService {
 
     const aadhaar = normalizeAadhaar(input.aadhaarNumber);
     const aadhaarFingerprint = fingerprintAadhaar(aadhaar, env.JWT_SECRET);
-    await this.assertNoExistingBidderByFingerprint(aadhaarFingerprint);
+    await this.assertNoExistingAgentByFingerprint(aadhaarFingerprint);
 
     const { maskedPhone } = await this.aadhaarKyc.requestLinkedMobile(aadhaar);
     const otp = env.MOCK_OTP;
@@ -148,7 +145,7 @@ export class BidderSignupService {
     );
 
     const sessionId = newSessionId();
-    await BidderSignupSession.create({
+    await AgentSignupSession.create({
       sessionId,
       method: SIGNUP_METHODS.MANUAL,
       status: SIGNUP_STATUS.PENDING_OTP,
@@ -178,7 +175,9 @@ export class BidderSignupService {
     const session = await this.getActiveSession(sessionId);
 
     if (session.method !== SIGNUP_METHODS.MANUAL) {
-      throw badRequest('OTP resend is only available for manual Aadhaar verification');
+      throw badRequest(
+        'OTP resend is only available for manual Aadhaar verification'
+      );
     }
     if (session.status !== SIGNUP_STATUS.PENDING_OTP) {
       throw badRequest('OTP has already been verified for this session');
@@ -213,7 +212,9 @@ export class BidderSignupService {
     const session = await this.getActiveSession(input.sessionId);
 
     if (session.method !== SIGNUP_METHODS.MANUAL) {
-      throw badRequest('OTP verify is only available for manual Aadhaar verification');
+      throw badRequest(
+        'OTP verify is only available for manual Aadhaar verification'
+      );
     }
     if (session.status !== SIGNUP_STATUS.PENDING_OTP) {
       throw badRequest('OTP has already been verified for this session');
@@ -259,7 +260,7 @@ export class BidderSignupService {
     const sessionId = newSessionId();
     const digilockerState = newOAuthState();
 
-    await BidderSignupSession.create({
+    await AgentSignupSession.create({
       sessionId,
       method: SIGNUP_METHODS.DIGILOCKER,
       status: SIGNUP_STATUS.DIGILOCKER_PENDING,
@@ -269,13 +270,14 @@ export class BidderSignupService {
 
     const authorizationUrl = this.digiLocker.buildAuthorizationUrl(
       digilockerState,
-      env.DIGILOCKER_REDIRECT_URI
+      env.DIGILOCKER_AGENT_REDIRECT_URI
     );
 
     return {
       sessionId,
       authorizationUrl,
-      message: 'Redirect the user to DigiLocker to complete Aadhaar verification',
+      message:
+        'Redirect the user to DigiLocker to complete Aadhaar verification',
       ...(env.NODE_ENV === 'development'
         ? {
             mockHint:
@@ -286,7 +288,7 @@ export class BidderSignupService {
   }
 
   async digilockerCallback(query: DigilockerCallbackQuery) {
-    const session = await BidderSignupSession.findOne({
+    const session = await AgentSignupSession.findOne({
       digilockerState: query.state,
       method: SIGNUP_METHODS.DIGILOCKER,
     });
@@ -325,7 +327,7 @@ export class BidderSignupService {
       syntheticAadhaar,
       env.JWT_SECRET
     );
-    await this.assertNoExistingBidderByFingerprint(aadhaarFingerprint);
+    await this.assertNoExistingAgentByFingerprint(aadhaarFingerprint);
 
     const profile = await this.digiLocker.exchangeAndFetchProfile(
       query.code,
@@ -350,7 +352,7 @@ export class BidderSignupService {
   }
 
   async getSession(sessionId: string) {
-    const session = await BidderSignupSession.findOne({ sessionId });
+    const session = await AgentSignupSession.findOne({ sessionId });
     if (!session) {
       throw notFound('Signup session not found');
     }
@@ -397,8 +399,8 @@ export class BidderSignupService {
       throw badRequest('Enter a valid 10-digit Indian mobile number');
     }
 
-    await this.assertNoExistingBidderByFingerprint(session.aadhaarFingerprint);
-    await this.assertNoExistingBidderByPhone(phone);
+    await this.assertNoExistingAgentByFingerprint(session.aadhaarFingerprint);
+    await this.assertNoExistingAgentByPhone(phone);
 
     const profile = session.verifiedProfile;
     const verificationMethod =
@@ -413,8 +415,8 @@ export class BidderSignupService {
         countryCode: input.countryCode,
         phone,
         aadhaarFingerprint: session.aadhaarFingerprint,
-        role: USER_ROLES.BIDDER,
-        permissions: [...BIDDER_DEFAULT],
+        role: USER_ROLES.AGENT,
+        permissions: [...AGENT_DEFAULT],
         status: USER_STATUS.ACTIVE,
         createdBy: null,
         gender: profile.gender,
@@ -434,7 +436,7 @@ export class BidderSignupService {
         (err as { code?: number }).code === 11000
       ) {
         throw conflict(
-          'A bidder account already exists for this phone or Aadhaar number'
+          'An agent account already exists for this phone or Aadhaar number'
         );
       }
       throw err;
@@ -465,4 +467,5 @@ export class BidderSignupService {
     };
   }
 }
-export const bidderSignupService = new BidderSignupService();
+
+export const agentSignupService = new AgentSignupService();
