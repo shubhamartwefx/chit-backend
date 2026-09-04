@@ -6,6 +6,10 @@ export interface JwtPayload {
   permissions: string[];
   phone: string;
   name: string;
+  /** Unique access-token id */
+  jti: string;
+  /** Refresh session id */
+  sid: string;
 }
 
 declare global {

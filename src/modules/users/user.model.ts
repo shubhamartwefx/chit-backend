@@ -6,6 +6,31 @@ import {
   UserStatus,
 } from '../../config/roles';
 
+export const VERIFICATION_METHODS = {
+  MANUAL: 'manual',
+  DIGILOCKER: 'digilocker',
+  ADMIN_PROVISIONED: 'admin_provisioned',
+} as const;
+
+export type VerificationMethod =
+  (typeof VERIFICATION_METHODS)[keyof typeof VERIFICATION_METHODS];
+
+export interface IAadhaarAddress {
+  street: string;
+  city: string;
+  state: string;
+  pincode: string;
+  country: string;
+}
+
+export interface IWebAuthnCredential {
+  credentialId: string;
+  publicKey: string;
+  counter: number;
+  transports?: string[];
+  createdAt: Date;
+}
+
 export interface IUser {
   name: string;
   countryCode: string;
@@ -16,6 +41,23 @@ export interface IUser {
   status: UserStatus;
   createdBy?: Types.ObjectId | null;
   lastLoginAt?: Date | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
+  aadhaarAddress?: IAadhaarAddress | null;
+  currentAddress?: string | null;
+  aadhaarLast4?: string | null;
+  aadhaarVerifiedAt?: Date | null;
+  verificationMethod?: VerificationMethod | null;
+  totpSecret?: string | null;
+  totpPendingSecret?: string | null;
+  totpEnabled?: boolean;
+  totpVerifiedAt?: Date | null;
+  pinHash?: string | null;
+  screenLockEnabled?: boolean;
+  biometricEnabled?: boolean;
+  webauthnCredentials?: IWebAuthnCredential[];
+  webauthnChallenge?: string | null;
+  webauthnChallengeExpiresAt?: Date | null;
 }
 
 export interface IUserDocument extends IUser, Document {
@@ -23,6 +65,28 @@ export interface IUserDocument extends IUser, Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+const aadhaarAddressSchema = new Schema<IAadhaarAddress>(
+  {
+    street: { type: String, required: true, trim: true },
+    city: { type: String, required: true, trim: true },
+    state: { type: String, required: true, trim: true },
+    pincode: { type: String, required: true, trim: true },
+    country: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+);
+
+const webauthnCredentialSchema = new Schema<IWebAuthnCredential>(
+  {
+    credentialId: { type: String, required: true },
+    publicKey: { type: String, required: true },
+    counter: { type: Number, required: true, default: 0 },
+    transports: { type: [String], default: undefined },
+    createdAt: { type: Date, required: true, default: Date.now },
+  },
+  { _id: false }
+);
 
 const userSchema = new Schema<IUserDocument>(
   {
@@ -44,15 +108,33 @@ const userSchema = new Schema<IUserDocument>(
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     lastLoginAt: { type: Date, default: null },
+    gender: { type: String, default: null, trim: true },
+    dateOfBirth: { type: String, default: null, trim: true },
+    aadhaarAddress: { type: aadhaarAddressSchema, default: null },
+    currentAddress: { type: String, default: null, trim: true },
+    aadhaarLast4: { type: String, default: null, trim: true },
+    aadhaarVerifiedAt: { type: Date, default: null },
+    verificationMethod: {
+      type: String,
+      enum: Object.values(VERIFICATION_METHODS),
+      default: undefined,
+    },
+    totpSecret: { type: String, default: null, select: false },
+    totpPendingSecret: { type: String, default: null, select: false },
+    totpEnabled: { type: Boolean, default: false },
+    totpVerifiedAt: { type: Date, default: null },
+    pinHash: { type: String, default: null, select: false },
+    screenLockEnabled: { type: Boolean, default: false },
+    biometricEnabled: { type: Boolean, default: false },
+    webauthnCredentials: { type: [webauthnCredentialSchema], default: [] },
+    webauthnChallenge: { type: String, default: null, select: false },
+    webauthnChallengeExpiresAt: { type: Date, default: null, select: false },
   },
   { timestamps: true }
 );
 
 userSchema.index({ phone: 1, role: 1 }, { unique: true });
-userSchema.index(
-  { aadhaarFingerprint: 1, role: 1 },
-  { unique: true }
-);
+userSchema.index({ aadhaarFingerprint: 1, role: 1 }, { unique: true });
 
 export const User: Model<IUserDocument> =
   mongoose.models.User || mongoose.model<IUserDocument>('User', userSchema);

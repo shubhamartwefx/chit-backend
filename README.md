@@ -37,6 +37,9 @@ API base: `/api/{API_VERSION}` (default `/api/v1`, set via `API_VERSION` in `.en
 | `API_VERSION` | `v1` | API path version (`1` or `v1` both work) |
 | `PORT` | `4000` | Server port |
 | `PORT_FALLBACK_MAX_ATTEMPTS` | `10` | Dev-only: try next ports if busy |
+| `JWT_ACCESS_EXPIRES_IN` | `15m` | Access JWT lifetime |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh session lifetime |
+| `JWT_EXPIRES_IN` | `15m` | Legacy alias (prefer access TTL) |
 
 ## Auth (role-specific)
 
@@ -66,6 +69,35 @@ Content-Type: application/json
 Auth URL slugs: `super-admin`, `branch-store`, `admin` (alias → branch store), `agent`, `bidder`.
 
 Use the returned `accessToken` as `Authorization: Bearer <token>`.
+
+Also store `refreshToken`. Access tokens expire quickly (default 15m). When expired:
+
+```http
+POST /api/v1/auth/refresh
+Content-Type: application/json
+
+{ "refreshToken": "<refreshToken>" }
+```
+
+Returns a new access + refresh pair (rotation). `POST /auth/logout` revokes the current session; `POST /auth/logout-all` revokes every session for the user.
+
+If `request-otp` returns `requires2fa: true`, call `POST /auth/:role/verify-2fa` with `{ countryCode, phone, aadhaarNumber, totp }` instead of `verify-otp`. 2FA is for super-admin, branch-store, and agent only (not bidder). See [docs/AUTH_REQUIREMENTS.md](./docs/AUTH_REQUIREMENTS.md).
+
+## Bidder / Agent signup (self-registration)
+
+Public APIs under `/api/v1/auth/bidder/register` and `/api/v1/auth/agent/register` (same shapes).
+
+```http
+POST /api/v1/auth/agent/register/aadhaar/request-otp
+{ "aadhaarNumber": "354136431636" }
+
+POST /api/v1/auth/agent/register/complete
+{ "sessionId": "<id>", "countryCode": "+91", "phone": "9876501111" }
+```
+
+## 2FA / screen lock / biometric
+
+Authenticated under `/api/v1/auth/2fa/*`, `/auth/screen-lock/*`, `/auth/biometric/*` (bidder WebAuthn only).
 
 ## RBAC structure
 

@@ -45,8 +45,20 @@ Central catalog: [`src/config/constants/status-codes.ts`](../src/config/constant
 |-----|---------|
 | `HEALTH_OK` | Service is healthy |
 | `LOGIN_SUCCESS` | Login successful |
-| `LOGOUT_SUCCESS` | Logged out successfully. Discard the access token on the client. |
+| `LOGOUT_SUCCESS` | Logged out successfully. Discard access and refresh tokens on the client. |
+| `LOGOUT_ALL_SUCCESS` | All sessions revoked. Discard tokens on every device and log in again. |
+| `TOKEN_REFRESHED` | Access token refreshed successfully |
 | `OTP_SENT` | OTP sent to registered phone number |
+| `AADHAAR_VERIFIED` | Aadhaar verified successfully |
+| `DIGILOCKER_STARTED` | DigiLocker authorization started |
+| `BIDDER_REGISTERED` | Bidder registered successfully |
+| `AGENT_REGISTERED` | Agent registered successfully |
+| `TWO_FA_SETUP` | 2FA setup started... |
+| `TWO_FA_ENABLED` | 2FA enabled successfully |
+| `TWO_FA_DISABLED` | 2FA disabled successfully |
+| `SCREEN_LOCK_UPDATED` | Screen lock settings updated |
+| `SCREEN_UNLOCKED` | Screen unlocked successfully |
+| `BIOMETRIC_UPDATED` | Biometric settings updated |
 | `BRANCH_STORE_CREATED` | Branch store user created successfully |
 | `AGENT_CREATED` | Agent created successfully |
 | `BIDDER_CREATED` | Bidder created successfully |
