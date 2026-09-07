@@ -6,13 +6,8 @@ import {
   type RegistrationResponseJSON,
   type AuthenticationResponseJSON,
 } from '@simplewebauthn/server';
-import {
-  accessDenied,
-  badRequest,
-  unauthorized,
-} from '../../common/errors';
+import { badRequest, unauthorized } from '../../common/errors';
 import { env } from '../../config/env';
-import { USER_ROLES } from '../../config/roles';
 import { User } from '../users/user.model';
 
 type Transport =
@@ -24,21 +19,12 @@ type Transport =
   | 'smart-card'
   | 'usb';
 
-function assertBidder(role: string): void {
-  if (role !== USER_ROLES.BIDDER) {
-    throw accessDenied(
-      'Biometric authentication is only available for bidders'
-    );
-  }
-}
-
 export class BiometricService {
   async status(userId: string) {
     const user = await User.findById(userId).select(
-      'role biometricEnabled webauthnCredentials'
+      'biometricEnabled webauthnCredentials'
     );
     if (!user) throw unauthorized('User not found');
-    assertBidder(user.role);
 
     return {
       enabled: Boolean(user.biometricEnabled),
@@ -48,10 +34,9 @@ export class BiometricService {
 
   async registerOptions(userId: string) {
     const user = await User.findById(userId).select(
-      '+webauthnChallenge +webauthnChallengeExpiresAt role phone name webauthnCredentials'
+      '+webauthnChallenge +webauthnChallengeExpiresAt phone name webauthnCredentials'
     );
     if (!user) throw unauthorized('User not found');
-    assertBidder(user.role);
 
     const options = await generateRegistrationOptions({
       rpName: env.WEBAUTHN_RP_NAME,
@@ -80,10 +65,9 @@ export class BiometricService {
 
   async registerVerify(userId: string, body: RegistrationResponseJSON) {
     const user = await User.findById(userId).select(
-      '+webauthnChallenge +webauthnChallengeExpiresAt role webauthnCredentials biometricEnabled'
+      '+webauthnChallenge +webauthnChallengeExpiresAt webauthnCredentials biometricEnabled'
     );
     if (!user) throw unauthorized('User not found');
-    assertBidder(user.role);
 
     if (
       !user.webauthnChallenge ||
@@ -139,10 +123,9 @@ export class BiometricService {
 
   async authenticateOptions(userId: string) {
     const user = await User.findById(userId).select(
-      '+webauthnChallenge +webauthnChallengeExpiresAt role webauthnCredentials biometricEnabled'
+      '+webauthnChallenge +webauthnChallengeExpiresAt webauthnCredentials biometricEnabled'
     );
     if (!user) throw unauthorized('User not found');
-    assertBidder(user.role);
 
     const credentials = user.webauthnCredentials ?? [];
     if (!user.biometricEnabled || credentials.length === 0) {
@@ -167,10 +150,9 @@ export class BiometricService {
 
   async authenticateVerify(userId: string, body: AuthenticationResponseJSON) {
     const user = await User.findById(userId).select(
-      '+webauthnChallenge +webauthnChallengeExpiresAt role webauthnCredentials biometricEnabled'
+      '+webauthnChallenge +webauthnChallengeExpiresAt webauthnCredentials biometricEnabled'
     );
     if (!user) throw unauthorized('User not found');
-    assertBidder(user.role);
 
     if (
       !user.webauthnChallenge ||
@@ -216,10 +198,9 @@ export class BiometricService {
 
   async disable(userId: string) {
     const user = await User.findById(userId).select(
-      'role biometricEnabled webauthnCredentials'
+      'biometricEnabled webauthnCredentials'
     );
     if (!user) throw unauthorized('User not found');
-    assertBidder(user.role);
 
     user.biometricEnabled = false;
     user.webauthnCredentials = [];

@@ -10,10 +10,8 @@ import {
   refreshTokenSchema,
   requestOtpSchema,
   roleParamSchema,
-  screenLockEnableSchema,
-  screenLockUnlockSchema,
-  setPinSchema,
-  totpConfirmSchema,
+  securityConfigureSchema,
+  securityUnlockSchema,
   verify2faSchema,
   verifyOtpSchema,
 } from './auth.validation';
@@ -66,64 +64,22 @@ router.post('/logout-all', authenticate, (req, res, next) =>
   authController.logoutAll(req, res, next)
 );
 
-router.get('/2fa/status', authenticate, (req, res, next) =>
-  authController.twoFaStatus(req, res, next)
-);
-router.post('/2fa/setup', authenticate, (req, res, next) =>
-  authController.twoFaSetup(req, res, next)
-);
-router.post(
-  '/2fa/confirm',
-  authenticate,
-  validate(totpConfirmSchema),
-  (req, res, next) => authController.twoFaConfirm(req, res, next)
-);
-router.post(
-  '/2fa/disable',
-  authenticate,
-  validate(totpConfirmSchema),
-  (req, res, next) => authController.twoFaDisable(req, res, next)
+router.get('/security', authenticate, (req, res, next) =>
+  authController.securityStatus(req, res, next)
 );
 
-router.get('/screen-lock/status', authenticate, (req, res, next) =>
-  authController.screenLockStatus(req, res, next)
-);
 router.post(
-  '/screen-lock/pin',
+  '/security',
   authenticate,
-  validate(setPinSchema),
-  (req, res, next) => authController.screenLockSetPin(req, res, next)
-);
-router.post(
-  '/screen-lock/enable',
-  authenticate,
-  validate(screenLockEnableSchema),
-  (req, res, next) => authController.screenLockEnable(req, res, next)
-);
-router.post(
-  '/screen-lock/unlock',
-  authenticate,
-  validate(screenLockUnlockSchema),
-  (req, res, next) => authController.screenLockUnlock(req, res, next)
+  validate(securityConfigureSchema),
+  (req, res, next) => authController.securityConfigure(req, res, next)
 );
 
-router.get('/biometric/status', authenticate, (req, res, next) =>
-  authController.biometricStatus(req, res, next)
-);
-router.post('/biometric/register/options', authenticate, (req, res, next) =>
-  authController.biometricRegisterOptions(req, res, next)
-);
-router.post('/biometric/register/verify', authenticate, (req, res, next) =>
-  authController.biometricRegisterVerify(req, res, next)
-);
-router.post('/biometric/authenticate/options', authenticate, (req, res, next) =>
-  authController.biometricAuthOptions(req, res, next)
-);
-router.post('/biometric/authenticate/verify', authenticate, (req, res, next) =>
-  authController.biometricAuthVerify(req, res, next)
-);
-router.post('/biometric/disable', authenticate, (req, res, next) =>
-  authController.biometricDisable(req, res, next)
+router.post(
+  '/security/unlock',
+  authenticate,
+  validate(securityUnlockSchema),
+  (req, res, next) => authController.securityUnlock(req, res, next)
 );
 
 router.post(

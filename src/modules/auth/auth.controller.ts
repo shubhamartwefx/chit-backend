@@ -3,14 +3,17 @@ import { API_MESSAGES } from '../../common/status';
 import { sendSuccess, sendSuccessWithKey } from '../../common/response';
 import { RoleUrlSlug } from '../../config/roles';
 import { authService } from './auth.service';
-import { biometricService } from './biometric.service';
 import {
   RefreshTokenInput,
   RequestOtpInput,
   Verify2faInput,
   VerifyOtpInput,
 } from './auth.validation';
-import { screenLockService, twoFaService } from './two-fa.service';
+import {
+  securityService,
+  type SecurityConfigureInput,
+  type SecurityUnlockInput,
+} from './security.service';
 
 function requestMeta(req: Request) {
   return {
@@ -98,144 +101,34 @@ export class AuthController {
     }
   }
 
-  async twoFaStatus(req: Request, res: Response, next: NextFunction) {
+  async securityStatus(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await twoFaService.status(req.user!.sub);
+      const data = await securityService.status(req.user!.sub);
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
     }
   }
 
-  async twoFaSetup(req: Request, res: Response, next: NextFunction) {
+  async securityConfigure(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await twoFaService.setup(req.user!.sub);
-      sendSuccess(res, data, API_MESSAGES.TWO_FA_SETUP);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async twoFaConfirm(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await twoFaService.confirm(req.user!.sub, req.body.totp);
-      sendSuccess(res, data, API_MESSAGES.TWO_FA_ENABLED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async twoFaDisable(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await twoFaService.disable(req.user!.sub, req.body.totp);
-      sendSuccess(res, data, API_MESSAGES.TWO_FA_DISABLED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async screenLockStatus(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await screenLockService.status(req.user!.sub);
-      sendSuccessWithKey(res, data, 'OK');
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async screenLockSetPin(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await screenLockService.setPin(req.user!.sub, req.body);
-      sendSuccess(res, data, API_MESSAGES.SCREEN_LOCK_UPDATED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async screenLockEnable(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await screenLockService.enable(
+      const data = await securityService.configure(
         req.user!.sub,
-        req.body.enabled
+        req.body as SecurityConfigureInput
       );
-      sendSuccess(res, data, API_MESSAGES.SCREEN_LOCK_UPDATED);
+      sendSuccess(res, data, API_MESSAGES.SECURITY_UPDATED);
     } catch (err) {
       next(err);
     }
   }
 
-  async screenLockUnlock(req: Request, res: Response, next: NextFunction) {
+  async securityUnlock(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await screenLockService.unlock(req.user!.sub, req.body);
-      sendSuccess(res, data, API_MESSAGES.SCREEN_UNLOCKED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async biometricStatus(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await biometricService.status(req.user!.sub);
-      sendSuccessWithKey(res, data, 'OK');
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async biometricRegisterOptions(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const data = await biometricService.registerOptions(req.user!.sub);
-      sendSuccessWithKey(res, data, 'OK');
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async biometricRegisterVerify(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ) {
-    try {
-      const data = await biometricService.registerVerify(
+      const data = await securityService.unlock(
         req.user!.sub,
-        req.body
-      );
-      sendSuccess(res, data, API_MESSAGES.BIOMETRIC_UPDATED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async biometricAuthOptions(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await biometricService.authenticateOptions(req.user!.sub);
-      sendSuccessWithKey(res, data, 'OK');
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async biometricAuthVerify(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await biometricService.authenticateVerify(
-        req.user!.sub,
-        req.body
+        req.body as SecurityUnlockInput
       );
       sendSuccess(res, data, API_MESSAGES.SCREEN_UNLOCKED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async biometricDisable(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await biometricService.disable(req.user!.sub);
-      sendSuccess(res, data, API_MESSAGES.BIOMETRIC_UPDATED);
     } catch (err) {
       next(err);
     }
