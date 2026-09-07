@@ -43,7 +43,9 @@ export const verify2faSchema = z.object({
   aadhaarNumber: z
     .string()
     .regex(/^\d{12}$/, 'Aadhaar must be exactly 12 digits'),
-  totp: z.string().regex(/^\d{6}$/, 'Authenticator code must be exactly 6 digits'),
+  totp: z
+    .string()
+    .regex(/^\d{6}$/, 'Authenticator code must be exactly 6 digits'),
 });
 
 export type Verify2faInput = z.infer<typeof verify2faSchema>;
@@ -54,37 +56,28 @@ export const refreshTokenSchema = z.object({
 
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 
-export const totpConfirmSchema = z.object({
-  totp: z.string().regex(/^\d{6}$/, 'Authenticator code must be exactly 6 digits'),
-});
+const pinSchema = z.string().regex(/^\d{4,8}$/, 'PIN must be 4–8 digits');
+const totpCodeSchema = z
+  .string()
+  .regex(/^\d{6}$/, 'Authenticator code must be exactly 6 digits');
 
-export const setPinSchema = z.object({
-  pin: z.string().regex(/^\d{4,8}$/, 'PIN must be 4–8 digits'),
-  currentPin: z
-    .string()
-    .regex(/^\d{4,8}$/)
-    .optional(),
-  totp: z
-    .string()
-    .regex(/^\d{6}$/)
-    .optional(),
-});
-
-export const screenLockEnableSchema = z.object({
+export const securityConfigureSchema = z.object({
+  method: z.enum(['totp', 'screen_lock', 'biometric']),
   enabled: z.boolean(),
+  pin: pinSchema.optional(),
+  currentPin: pinSchema.optional(),
+  totp: totpCodeSchema.optional(),
+  webauthnResponse: z.record(z.string(), z.unknown()).optional(),
 });
 
-export const screenLockUnlockSchema = z
+export type SecurityConfigureInput = z.infer<typeof securityConfigureSchema>;
+
+export const securityUnlockSchema = z
   .object({
-    method: z.enum(['pin', 'totp']),
-    pin: z
-      .string()
-      .regex(/^\d{4,8}$/)
-      .optional(),
-    totp: z
-      .string()
-      .regex(/^\d{6}$/)
-      .optional(),
+    method: z.enum(['pin', 'totp', 'biometric']),
+    pin: pinSchema.optional(),
+    totp: totpCodeSchema.optional(),
+    webauthnResponse: z.record(z.string(), z.unknown()).optional(),
   })
   .superRefine((val, ctx) => {
     if (val.method === 'pin' && !val.pin) {
@@ -102,3 +95,5 @@ export const screenLockUnlockSchema = z
       });
     }
   });
+
+export type SecurityUnlockInput = z.infer<typeof securityUnlockSchema>;

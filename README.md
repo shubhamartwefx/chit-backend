@@ -97,7 +97,7 @@ POST /api/v1/auth/agent/register/complete
 
 ## 2FA / screen lock / biometric
 
-Authenticated under `/api/v1/auth/2fa/*`, `/auth/screen-lock/*`, `/auth/biometric/*` (bidder WebAuthn only).
+Authenticated under `/api/v1/auth/security` (GET status, POST configure) and `POST /auth/security/unlock`. TOTP is for super-admin, branch-store, and agent only; screen lock and biometric are available for every role. See [docs/AUTH_REQUIREMENTS.md](./docs/AUTH_REQUIREMENTS.md).
 
 ## RBAC structure
 

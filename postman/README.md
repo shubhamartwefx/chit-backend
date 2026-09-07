@@ -37,7 +37,7 @@ Same as bidder under **Agent Signup** (`/auth/agent/register`).
 
 ## Security
 
-Folder **Security (2FA / Screen Lock / Biometric)** — requires Bearer token except verify-2fa login.
+Folder **Security** — `GET/POST /auth/security` and `POST /auth/security/unlock` (Bearer). Login `verify-2fa` remains under Auth role folders.
 
 Use folder **Bidder Signup**. Prefer a fresh `signupAadhaar` / `signupPhone` (not seed credentials).
 

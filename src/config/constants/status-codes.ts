@@ -72,6 +72,7 @@ export const API_MESSAGES = {
   TWO_FA_SETUP: '2FA setup started. Confirm with a code from your authenticator app.',
   TWO_FA_ENABLED: '2FA enabled successfully',
   TWO_FA_DISABLED: '2FA disabled successfully',
+  SECURITY_UPDATED: 'Security settings updated',
   SCREEN_LOCK_UPDATED: 'Screen lock settings updated',
   SCREEN_UNLOCKED: 'Screen unlocked successfully',
   BIOMETRIC_UPDATED: 'Biometric settings updated',

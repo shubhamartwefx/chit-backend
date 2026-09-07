@@ -199,9 +199,9 @@ Short-lived bidder self-registration session (manual Aadhaar OTP or DigiLocker).
 | GET | `/auth/me` | Bearer | Current user profile |
 | POST | `/auth/logout` | Bearer | Revoke current refresh session (`sid`) |
 | POST | `/auth/logout-all` | Bearer | Revoke all refresh sessions for the user |
-| GET/POST | `/auth/2fa/*` | Bearer | TOTP setup/confirm/disable/status (not bidder) |
-| GET/POST | `/auth/screen-lock/*` | Bearer | PIN set/enable/unlock/status |
-| GET/POST | `/auth/biometric/*` | Bearer | WebAuthn register/auth/disable (bidder only) |
+| GET | `/auth/security` | Bearer | Security status + role `allowed` flags |
+| POST | `/auth/security` | Bearer | Configure totp / screen_lock / biometric |
+| POST | `/auth/security/unlock` | Bearer | Unlock after screen lock (pin / totp / biometric) |
 
 See **[AUTH_REQUIREMENTS.md](./AUTH_REQUIREMENTS.md)** for role matrix.
 
