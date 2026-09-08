@@ -121,7 +121,7 @@ export class SecurityService {
     }
 
     if (input.method === SECURITY_METHODS.SCREEN_LOCK) {
-      const user = await User.findById(userId).select('+pinHash screenLockEnabled');
+      const user = await User.findById(userId).select('+pinHash');
       if (!user) throw unauthorized('User not found');
 
       if (!user.pinHash) {

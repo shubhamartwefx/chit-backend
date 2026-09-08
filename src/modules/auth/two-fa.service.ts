@@ -127,8 +127,8 @@ export class ScreenLockService {
     userId: string,
     input: { pin: string; currentPin?: string; totp?: string }
   ) {
-    if (!/^\d{4,8}$/.test(input.pin)) {
-      throw badRequest('PIN must be 4–8 digits');
+    if (!/^\d{6}$/.test(input.pin)) {
+      throw badRequest('PIN must be exactly 6 digits');
     }
 
     const user = await User.findById(userId).select(
@@ -159,7 +159,7 @@ export class ScreenLockService {
   }
 
   async enable(userId: string, enabled: boolean) {
-    const user = await User.findById(userId).select('+pinHash screenLockEnabled');
+    const user = await User.findById(userId).select('+pinHash');
     if (!user) throw unauthorized('User not found');
 
     if (enabled && !user.pinHash) {

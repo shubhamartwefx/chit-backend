@@ -41,8 +41,8 @@ Login `POST /auth/:role/verify-2fa` is unchanged (used when TOTP is enabled for 
 {
   "method": "totp" | "screen_lock" | "biometric",
   "enabled": true | false,
-  "pin": "1234",
-  "currentPin": "1234",
+  "pin": "123456",
+  "currentPin": "123456",
   "totp": "123456",
   "webauthnResponse": {}
 }
@@ -56,9 +56,9 @@ Login `POST /auth/:role/verify-2fa` is unchanged (used when TOTP is enabled for 
 
 ### PIN unlock flow
 
-1. Enable: `POST /auth/security` `{ "method": "screen_lock", "enabled": true, "pin": "1234" }`
+1. Enable: `POST /auth/security` `{ "method": "screen_lock", "enabled": true, "pin": "123456" }`
 2. FE uses `inactivityMinutes` from `GET /auth/security`; on timeout show lock UI (JWT still valid)
-3. Unlock: `POST /auth/security/unlock` `{ "method": "pin", "pin": "1234" }`
+3. Unlock: `POST /auth/security/unlock` `{ "method": "pin", "pin": "123456" }`
 
 Disable screen lock clears `screenLockEnabled` only; `pinHash` is kept for faster re-enable.
 

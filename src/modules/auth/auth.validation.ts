@@ -56,7 +56,7 @@ export const refreshTokenSchema = z.object({
 
 export type RefreshTokenInput = z.infer<typeof refreshTokenSchema>;
 
-const pinSchema = z.string().regex(/^\d{4,8}$/, 'PIN must be 4–8 digits');
+const pinSchema = z.string().regex(/^\d{6}$/, 'PIN must be exactly 6 digits');
 const totpCodeSchema = z
   .string()
   .regex(/^\d{6}$/, 'Authenticator code must be exactly 6 digits');

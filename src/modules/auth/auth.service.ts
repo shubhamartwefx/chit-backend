@@ -168,7 +168,7 @@ export class AuthService {
       roleSlug,
       phone,
       input.aadhaarNumber,
-      '+totpSecret totpEnabled'
+      '+totpSecret'
     );
 
     if (!usesTotpLogin(user) || !user.totpSecret) {
