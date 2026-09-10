@@ -68,6 +68,22 @@ Content-Type: application/json
 
 Auth URL slugs: `super-admin`, `branch-store`, `admin` (alias → branch store), `agent`, `bidder`.
 
+### Demo signup payment (agent / bidder)
+
+```http
+POST /api/v1/auth/payments/create-order
+{ "role": "agent", "sessionId": "<verified-signup-session>" }
+
+POST /api/v1/auth/payments/confirm
+{ "orderId": "order_demo_...", "paymentId": "optional" }
+
+POST /api/v1/auth/agent/register/complete
+{ "sessionId", "phone", "countryCode", "paymentId": "<from confirm>" }
+```
+
+Fees: `SIGNUP_FEE_AGENT` (700) / `SIGNUP_FEE_BIDDER` (300). `PAYMENT_MODE=demo` confirms without Razorpay.
+
+
 Use the returned `accessToken` as `Authorization: Bearer <token>`.
 
 Also store `refreshToken`. Access tokens expire quickly (default 15m). When expired:
@@ -87,12 +103,20 @@ If `request-otp` returns `requires2fa: true`, call `POST /auth/:role/verify-2fa`
 
 Public APIs under `/api/v1/auth/bidder/register` and `/api/v1/auth/agent/register` (same shapes).
 
+Mock Aadhaar KYC returns **different demographics per role** (demo only):
+
+| Role | Name | City |
+|------|------|------|
+| Agent | Rajesh Kumar | Bengaluru |
+| Bidder | Priya Sharma | Hyderabad |
+| Branch (seed / last4 `1111`) | Anil Reddy | Chennai |
+
 ```http
 POST /api/v1/auth/agent/register/aadhaar/request-otp
 { "aadhaarNumber": "354136431636" }
 
 POST /api/v1/auth/agent/register/complete
-{ "sessionId": "<id>", "countryCode": "+91", "phone": "9876501111" }
+{ "sessionId": "<id>", "countryCode": "+91", "phone": "9876501111", "paymentId": "<paid>" }
 ```
 
 ## 2FA / screen lock / biometric

@@ -5,6 +5,7 @@ import { authenticate } from '../../middlewares/auth';
 import { validate } from '../../middlewares/validate';
 import agentSignupRoutes from '../agent-signup/agent-signup.routes';
 import bidderSignupRoutes from '../bidder-signup/bidder-signup.routes';
+import signupPaymentRoutes from '../signup-payment/signup-payment.routes';
 import { authController } from './auth.controller';
 import {
   refreshTokenSchema,
@@ -44,6 +45,7 @@ const refreshLimiter = rateLimit({
 
 router.use('/bidder/register', bidderSignupRoutes);
 router.use('/agent/register', agentSignupRoutes);
+router.use('/payments', signupPaymentRoutes);
 
 router.post(
   '/refresh',

@@ -21,6 +21,7 @@ import {
   USER_STATUS,
 } from '../../config/roles';
 import { TokenPairMeta, tokenService } from '../auth/token.service';
+import { signupPaymentService } from '../signup-payment/signup-payment.service';
 import {
   createAadhaarKycProvider,
   type AadhaarKycProvider,
@@ -81,8 +82,12 @@ function formatSealedProfile(profile: IVerifiedAadhaarProfile) {
 
 export class AgentSignupService {
   constructor(
-    private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(),
-    private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider()
+    private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(
+      'agent'
+    ),
+    private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider(
+      'agent'
+    )
   ) {}
 
   private async assertNoExistingAgentByFingerprint(
@@ -401,6 +406,12 @@ export class AgentSignupService {
 
     await this.assertNoExistingAgentByFingerprint(session.aadhaarFingerprint);
     await this.assertNoExistingAgentByPhone(phone);
+
+    await signupPaymentService.consumePaidOrder({
+      role: 'agent',
+      sessionId: input.sessionId,
+      paymentId: input.paymentId,
+    });
 
     const profile = session.verifiedProfile;
     const verificationMethod =

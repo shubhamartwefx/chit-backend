@@ -21,6 +21,7 @@ import {
   USER_STATUS,
 } from '../../config/roles';
 import { TokenPairMeta, tokenService } from '../auth/token.service';
+import { signupPaymentService } from '../signup-payment/signup-payment.service';
 import {
   User,
   VERIFICATION_METHODS,
@@ -84,8 +85,12 @@ function formatSealedProfile(profile: IVerifiedAadhaarProfile) {
 
 export class BidderSignupService {
   constructor(
-    private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(),
-    private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider()
+    private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(
+      'bidder'
+    ),
+    private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider(
+      'bidder'
+    )
   ) {}
 
   private async assertNoExistingBidderByFingerprint(
@@ -399,6 +404,12 @@ export class BidderSignupService {
 
     await this.assertNoExistingBidderByFingerprint(session.aadhaarFingerprint);
     await this.assertNoExistingBidderByPhone(phone);
+
+    await signupPaymentService.consumePaidOrder({
+      role: 'bidder',
+      sessionId: input.sessionId,
+      paymentId: input.paymentId,
+    });
 
     const profile = session.verifiedProfile;
     const verificationMethod =

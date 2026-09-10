@@ -238,6 +238,11 @@ export class AuthService {
       totpEnabled: Boolean(user.totpEnabled),
       screenLockEnabled: Boolean(user.screenLockEnabled),
       biometricEnabled: Boolean(user.biometricEnabled),
+      gender: user.gender ?? null,
+      dateOfBirth: user.dateOfBirth ?? null,
+      aadhaarLast4: user.aadhaarLast4 ?? null,
+      aadhaarAddress: user.aadhaarAddress ?? null,
+      currentAddress: user.currentAddress ?? null,
       redirectTo: ROLE_DASHBOARD_PATH[user.role],
       ...(user.role === USER_ROLES.SUPER_ADMIN
         ? { tier: resolveSuperAdminTier(user.permissions) }

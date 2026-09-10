@@ -33,6 +33,7 @@ export const completeRegistrationSchema = z.object({
     .max(15)
     .regex(/^\d+$/, 'Phone must contain digits only'),
   currentAddress: z.string().trim().max(500).optional(),
+  paymentId: z.string().min(4).max(128),
 });
 
 export type RequestAadhaarOtpInput = z.infer<typeof requestAadhaarOtpSchema>;
