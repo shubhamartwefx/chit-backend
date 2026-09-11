@@ -72,27 +72,73 @@ const SEED_USERS: SeedUser[] = [
     permissions: [...BIDDER_DEFAULT],
     kycRole: 'bidder',
   },
+  // Extra active users for nominee search (Profile → Nominee tab)
+  {
+    key: 'nominee_rahul',
+    name: 'Rahul Verma',
+    countryCode: '+91',
+    phone: '9777777771',
+    aadhaar: '444444444441',
+    role: USER_ROLES.BIDDER,
+    permissions: [...BIDDER_DEFAULT],
+  },
+  {
+    key: 'nominee_sneha',
+    name: 'Sneha Iyer',
+    countryCode: '+91',
+    phone: '9777777772',
+    aadhaar: '555555555552',
+    role: USER_ROLES.BIDDER,
+    permissions: [...BIDDER_DEFAULT],
+  },
+  {
+    key: 'nominee_vikram',
+    name: 'Vikram Patel',
+    countryCode: '+91',
+    phone: '9777777773',
+    aadhaar: '666666666663',
+    role: USER_ROLES.AGENT,
+    permissions: [...AGENT_DEFAULT],
+  },
 ];
 
 function kycFields(seedUser: SeedUser) {
-  if (!seedUser.kycRole) return {};
-  const demo = getMockAadhaarDemographics(
-    seedUser.kycRole,
-    seedUser.aadhaar.slice(-4)
-  );
+  if (seedUser.kycRole) {
+    const demo = getMockAadhaarDemographics(
+      seedUser.kycRole,
+      seedUser.aadhaar.slice(-4)
+    );
+    return {
+      name: demo.fullName,
+      gender: demo.gender,
+      dateOfBirth: demo.dateOfBirth,
+      aadhaarAddress: { ...demo.aadhaarAddress },
+      aadhaarLast4: seedUser.aadhaar.slice(-4),
+      aadhaarVerifiedAt: new Date(),
+      currentAddress: [
+        demo.aadhaarAddress.street,
+        demo.aadhaarAddress.city,
+        demo.aadhaarAddress.state,
+        demo.aadhaarAddress.pincode,
+      ].join(', '),
+    };
+  }
+
+  // Lightweight KYC for nominee search candidates
   return {
-    name: demo.fullName,
-    gender: demo.gender,
-    dateOfBirth: demo.dateOfBirth,
-    aadhaarAddress: { ...demo.aadhaarAddress },
+    name: seedUser.name,
+    gender: 'Male',
+    dateOfBirth: '01/01/1992',
+    aadhaarAddress: {
+      street: '12, Demo Street',
+      city: 'Pune',
+      state: 'Maharashtra',
+      pincode: '411001',
+      country: 'India',
+    },
     aadhaarLast4: seedUser.aadhaar.slice(-4),
     aadhaarVerifiedAt: new Date(),
-    currentAddress: [
-      demo.aadhaarAddress.street,
-      demo.aadhaarAddress.city,
-      demo.aadhaarAddress.state,
-      demo.aadhaarAddress.pincode,
-    ].join(', '),
+    currentAddress: '12, Demo Street, Pune, Maharashtra, 411001',
   };
 }
 
@@ -113,34 +159,32 @@ async function seed() {
     const profile = kycFields(seedUser);
 
     if (existing) {
-      if (seedUser.kycRole) {
-        existing.name = profile.name || existing.name;
-        existing.gender = profile.gender ?? existing.gender;
+      existing.name = profile.name || seedUser.name || existing.name;
+      if (profile.gender !== undefined) existing.gender = profile.gender ?? existing.gender;
+      if (profile.dateOfBirth !== undefined) {
         existing.dateOfBirth = profile.dateOfBirth ?? existing.dateOfBirth;
-        existing.aadhaarAddress = profile.aadhaarAddress ?? existing.aadhaarAddress;
-        existing.aadhaarLast4 = profile.aadhaarLast4 ?? existing.aadhaarLast4;
-        existing.aadhaarVerifiedAt =
-          profile.aadhaarVerifiedAt ?? existing.aadhaarVerifiedAt;
-        existing.currentAddress =
-          profile.currentAddress ?? existing.currentAddress;
-        await existing.save();
-        console.log(`[updated KYC] ${seedUser.key}:`, {
-          id: existing._id.toString(),
-          name: existing.name,
-          aadhaarLast4: existing.aadhaarLast4,
-        });
-      } else {
-        console.log(`[skip] ${seedUser.key} already exists:`, {
-          id: existing._id.toString(),
-          phone: existing.phone,
-          role: existing.role,
-        });
       }
+      if (profile.aadhaarAddress) {
+        existing.aadhaarAddress = profile.aadhaarAddress;
+      }
+      if (profile.aadhaarLast4) existing.aadhaarLast4 = profile.aadhaarLast4;
+      if (profile.aadhaarVerifiedAt) {
+        existing.aadhaarVerifiedAt = profile.aadhaarVerifiedAt;
+      }
+      if (profile.currentAddress) {
+        existing.currentAddress = profile.currentAddress;
+      }
+      await existing.save();
+      console.log(`[updated] ${seedUser.key}:`, {
+        id: existing._id.toString(),
+        name: existing.name,
+        phone: existing.phone,
+        aadhaarLast4: existing.aadhaarLast4,
+      });
       continue;
     }
 
     const user = await User.create({
-      name: seedUser.name,
       countryCode: seedUser.countryCode,
       phone: seedUser.phone,
       aadhaarFingerprint,
@@ -148,6 +192,7 @@ async function seed() {
       permissions: seedUser.permissions,
       status: USER_STATUS.ACTIVE,
       ...profile,
+      name: profile.name || seedUser.name,
     });
 
     console.log(`[created] ${seedUser.key}:`, {
@@ -171,6 +216,12 @@ async function seed() {
     }
   }
   console.log(`\n  OTP (all): ${env.MOCK_OTP}`);
+
+  console.log('\nNominee search test values (Profile → Nominee → Add Nominee):');
+  console.log('  Rahul Verma   phone 9777777771  aadhaar 444444444441');
+  console.log('  Sneha Iyer    phone 9777777772  aadhaar 555555555552');
+  console.log('  Vikram Patel  phone 9777777773  aadhaar 666666666663');
+  console.log('  (You can also search other seed users, e.g. 9888888883 / 333333333333)');
 
   process.exit(0);
 }

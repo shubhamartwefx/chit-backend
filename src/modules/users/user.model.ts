@@ -31,10 +31,16 @@ export interface IWebAuthnCredential {
   createdAt: Date;
 }
 
+export interface INomineeLink {
+  userId: Types.ObjectId;
+  linkedAt: Date;
+}
+
 export interface IUser {
   name: string;
   countryCode: string;
   phone: string;
+  phone2?: string | null;
   aadhaarFingerprint: string;
   role: UserRole;
   permissions: string[];
@@ -48,6 +54,7 @@ export interface IUser {
   aadhaarLast4?: string | null;
   aadhaarVerifiedAt?: Date | null;
   verificationMethod?: VerificationMethod | null;
+  nominees?: INomineeLink[];
   totpSecret?: string | null;
   totpPendingSecret?: string | null;
   totpEnabled?: boolean;
@@ -88,11 +95,20 @@ const webauthnCredentialSchema = new Schema<IWebAuthnCredential>(
   { _id: false }
 );
 
+const nomineeLinkSchema = new Schema<INomineeLink>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    linkedAt: { type: Date, required: true, default: Date.now },
+  },
+  { _id: false }
+);
+
 const userSchema = new Schema<IUserDocument>(
   {
     name: { type: String, required: true, trim: true },
     countryCode: { type: String, required: true, default: '+91' },
     phone: { type: String, required: true, trim: true, index: true },
+    phone2: { type: String, default: null, trim: true },
     aadhaarFingerprint: { type: String, required: true, index: true },
     role: {
       type: String,
@@ -119,6 +135,7 @@ const userSchema = new Schema<IUserDocument>(
       enum: Object.values(VERIFICATION_METHODS),
       default: undefined,
     },
+    nominees: { type: [nomineeLinkSchema], default: [] },
     totpSecret: { type: String, default: null, select: false },
     totpPendingSecret: { type: String, default: null, select: false },
     totpEnabled: { type: Boolean, default: false },

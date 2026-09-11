@@ -8,9 +8,7 @@ import { accessDenied, badRequest, unauthorized } from '../../common/errors';
 import { API_MESSAGES } from '../../common/status';
 import { env } from '../../config/env';
 import {
-  ROLE_DASHBOARD_PATH,
   RoleUrlSlug,
-  toClientRole,
   urlSlugToRole,
   USER_ROLES,
   USER_STATUS,
@@ -26,6 +24,7 @@ import {
   VerifyOtpInput,
   Verify2faInput,
 } from './auth.validation';
+import { profileService } from './profile.service';
 import { usesTotpLogin } from './security-policy';
 import { TokenPairMeta, tokenService } from './token.service';
 import { verifyTotpCode } from './totp.util';
@@ -219,35 +218,7 @@ export class AuthService {
   }
 
   async me(userId: string) {
-    const user = await User.findById(userId).select(
-      '-aadhaarFingerprint -__v'
-    );
-    if (!user) {
-      throw unauthorized('User not found');
-    }
-    return {
-      id: user._id.toString(),
-      name: user.name,
-      phone: user.phone,
-      countryCode: user.countryCode,
-      role: toClientRole(user.role),
-      permissions: user.permissions,
-      internalRole: user.role,
-      status: user.status,
-      lastLoginAt: user.lastLoginAt,
-      totpEnabled: Boolean(user.totpEnabled),
-      screenLockEnabled: Boolean(user.screenLockEnabled),
-      biometricEnabled: Boolean(user.biometricEnabled),
-      gender: user.gender ?? null,
-      dateOfBirth: user.dateOfBirth ?? null,
-      aadhaarLast4: user.aadhaarLast4 ?? null,
-      aadhaarAddress: user.aadhaarAddress ?? null,
-      currentAddress: user.currentAddress ?? null,
-      redirectTo: ROLE_DASHBOARD_PATH[user.role],
-      ...(user.role === USER_ROLES.SUPER_ADMIN
-        ? { tier: resolveSuperAdminTier(user.permissions) }
-        : {}),
-    };
+    return profileService.formatProfile(userId);
   }
 }
 

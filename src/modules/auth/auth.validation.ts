@@ -97,3 +97,32 @@ export const securityUnlockSchema = z
   });
 
 export type SecurityUnlockInput = z.infer<typeof securityUnlockSchema>;
+
+export const updateProfileSchema = z
+  .object({
+    phone2: z
+      .string()
+      .max(15)
+      .regex(/^$|^\d+$/, 'Phone must contain digits only')
+      .optional(),
+    currentAddress: z.string().max(500).optional(),
+    nomineeUserIds: z
+      .array(z.string().regex(/^[a-f\d]{24}$/i, 'Invalid user id'))
+      .max(2)
+      .optional(),
+  })
+  .refine(
+    (val) =>
+      val.phone2 !== undefined ||
+      val.currentAddress !== undefined ||
+      val.nomineeUserIds !== undefined,
+    { message: 'Provide at least one of phone2, currentAddress, or nomineeUserIds' }
+  );
+
+export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const nomineeSearchQuerySchema = z.object({
+  q: z.string().min(10).max(20),
+});
+
+export type NomineeSearchQuery = z.infer<typeof nomineeSearchQuerySchema>;

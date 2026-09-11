@@ -121,7 +121,28 @@ POST /api/v1/auth/agent/register/complete
 
 ## 2FA / screen lock / biometric
 
-Authenticated under `/api/v1/auth/security` (GET status, POST configure) and `POST /auth/security/unlock`. TOTP is for super-admin, branch-store, and agent only; screen lock and biometric are available for every role. See [docs/AUTH_REQUIREMENTS.md](./docs/AUTH_REQUIREMENTS.md).
+Authenticated under `/api/v1/auth/security` (GET status, POST configure) and `POST /auth/security/unlock`. TOTP is for super-admin, branch-store, and agent only. Client demo unlocks the lock screen with **TOTP only** when 2FA is enabled — no separate screen-lock PIN enable/disable in the FE.
+
+## Profile update + nominee
+
+```http
+PATCH /api/v1/auth/profile
+Authorization: Bearer <accessToken>
+{ "phone2": "9876543210", "currentAddress": "…", "nomineeUserIds": ["<userId>"] }
+
+GET /api/v1/auth/profile/nominee-search?q=9888888883
+Authorization: Bearer <accessToken>
+```
+
+`q` is a 10-digit phone or 12-digit Aadhaar. Nominees must already exist; max 2. `GET /auth/me` returns `phone2` and resolved `nominees`.
+
+After `npm run seed`, try nominee search with:
+
+| Name | Phone | Aadhaar |
+|------|-------|---------|
+| Rahul Verma | `9777777771` | `444444444441` |
+| Sneha Iyer | `9777777772` | `555555555552` |
+| Vikram Patel | `9777777773` | `666666666663` |
 
 ## RBAC structure
 

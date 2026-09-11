@@ -272,18 +272,24 @@ export class SecurityService {
     );
     if (!user) throw unauthorized('User not found');
 
-    if (!user.screenLockEnabled) {
-      throw badRequest('Screen lock is not enabled');
-    }
-
-    if (input.method === 'pin' || input.method === 'totp') {
-      if (input.method === 'totp') {
-        assertSecurityMethodAllowed(user.role, SECURITY_METHODS.TOTP);
+    if (input.method === 'totp') {
+      assertSecurityMethodAllowed(user.role, SECURITY_METHODS.TOTP);
+      if (!user.totpEnabled) {
+        throw badRequest('Enable Two-Factor Auth before unlocking with TOTP');
       }
       return screenLockService.unlock(userId, {
-        method: input.method,
-        pin: input.pin,
+        method: 'totp',
         totp: input.totp,
+      });
+    }
+
+    if (input.method === 'pin') {
+      if (!user.screenLockEnabled) {
+        throw badRequest('Screen lock PIN is not enabled');
+      }
+      return screenLockService.unlock(userId, {
+        method: 'pin',
+        pin: input.pin,
       });
     }
 

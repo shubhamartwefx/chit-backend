@@ -6,9 +6,11 @@ import { authService } from './auth.service';
 import {
   RefreshTokenInput,
   RequestOtpInput,
+  UpdateProfileInput,
   Verify2faInput,
   VerifyOtpInput,
 } from './auth.validation';
+import { profileService } from './profile.service';
 import {
   securityService,
   type SecurityConfigureInput,
@@ -77,6 +79,28 @@ export class AuthController {
   async me(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await authService.me(req.user!.sub);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await profileService.updateProfile(
+        req.user!.sub,
+        req.body as UpdateProfileInput
+      );
+      sendSuccess(res, data, API_MESSAGES.PROFILE_UPDATED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async searchNominees(req: Request, res: Response, next: NextFunction) {
+    try {
+      const q = String(req.query.q ?? '');
+      const data = await profileService.searchNominees(req.user!.sub, q);
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
