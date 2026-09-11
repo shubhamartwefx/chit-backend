@@ -62,6 +62,13 @@ export const createStaffSchema = z
 
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;
 
+export const listUsersQuerySchema = z.object({
+  q: z.string().max(80).optional(),
+  status: z.enum(['active', 'inactive', 'blocked']).optional(),
+});
+
+export type ListUsersQueryInput = z.infer<typeof listUsersQuerySchema>;
+
 export const assignablePermissionsResponse = {
   branchStore: BRANCH_STORE_ASSIGNABLE,
   agent: AGENT_DEFAULT,

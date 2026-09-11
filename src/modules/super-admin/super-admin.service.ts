@@ -45,6 +45,9 @@ function formatUser(user: {
   createdBy?: { toString(): string } | null;
   createdAt: Date;
   lastLoginAt?: Date | null;
+  aadhaarLast4?: string | null;
+  gender?: string | null;
+  dateOfBirth?: string | null;
 }) {
   return {
     id: user._id.toString(),
@@ -57,7 +60,37 @@ function formatUser(user: {
     createdBy: user.createdBy?.toString() ?? null,
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt ?? null,
+    aadhaarLast4: user.aadhaarLast4 ?? null,
+    gender: user.gender ?? null,
+    dateOfBirth: user.dateOfBirth ?? null,
   };
+}
+
+export type ListUsersQuery = {
+  q?: string;
+  status?: string;
+};
+
+async function listUsersByRole(role: UserRole, query: ListUsersQuery = {}) {
+  const filter: Record<string, unknown> = { role };
+
+  if (query.status) {
+    filter.status = query.status;
+  }
+
+  if (query.q?.trim()) {
+    const q = query.q.trim();
+    filter.$or = [
+      { name: { $regex: q, $options: 'i' } },
+      { phone: { $regex: q.replace(/\D/g, ''), $options: 'i' } },
+    ];
+  }
+
+  const users = await User.find(filter)
+    .select('-aadhaarFingerprint -__v')
+    .sort({ createdAt: -1 });
+
+  return users.map(formatUser);
 }
 
 export class SuperAdminService {
@@ -117,17 +150,13 @@ export class SuperAdminService {
     return this.createBranchStore(createdById, input);
   }
 
-  async listBranchStores() {
-    const users = await User.find({ role: USER_ROLES.BRANCH_STORE })
-      .select('-aadhaarFingerprint -__v')
-      .sort({ createdAt: -1 });
-
-    return users.map(formatUser);
+  async listBranchStores(query: ListUsersQuery = {}) {
+    return listUsersByRole(USER_ROLES.BRANCH_STORE, query);
   }
 
   /** @deprecated Use listBranchStores */
-  async listAdmins() {
-    return this.listBranchStores();
+  async listAdmins(query: ListUsersQuery = {}) {
+    return this.listBranchStores(query);
   }
 
   async createAgent(createdById: string, input: CreateAgentInput) {
@@ -155,12 +184,8 @@ export class SuperAdminService {
     return formatUser(user);
   }
 
-  async listAgents() {
-    const users = await User.find({ role: USER_ROLES.AGENT })
-      .select('-aadhaarFingerprint -__v')
-      .sort({ createdAt: -1 });
-
-    return users.map(formatUser);
+  async listAgents(query: ListUsersQuery = {}) {
+    return listUsersByRole(USER_ROLES.AGENT, query);
   }
 
   async createBidder(createdById: string, input: CreateBidderInput) {
@@ -188,12 +213,8 @@ export class SuperAdminService {
     return formatUser(user);
   }
 
-  async listBidders() {
-    const users = await User.find({ role: USER_ROLES.BIDDER })
-      .select('-aadhaarFingerprint -__v')
-      .sort({ createdAt: -1 });
-
-    return users.map(formatUser);
+  async listBidders(query: ListUsersQuery = {}) {
+    return listUsersByRole(USER_ROLES.BIDDER, query);
   }
 
   async createStaff(createdById: string, input: CreateStaffInput) {
@@ -229,12 +250,8 @@ export class SuperAdminService {
     return formatUser(user);
   }
 
-  async listStaff() {
-    const users = await User.find({ role: USER_ROLES.SUPER_ADMIN })
-      .select('-aadhaarFingerprint -__v')
-      .sort({ createdAt: -1 });
-
-    return users.map(formatUser);
+  async listStaff(query: ListUsersQuery = {}) {
+    return listUsersByRole(USER_ROLES.SUPER_ADMIN, query);
   }
 }
 

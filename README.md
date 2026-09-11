@@ -178,6 +178,19 @@ Content-Type: application/json
 
 Deprecated alias: `POST /api/v1/super-admin/admins`
 
+## List agents / bidders / branch stores (Super Admin)
+
+```http
+GET /api/v1/super-admin/agents
+GET /api/v1/super-admin/bidders
+GET /api/v1/super-admin/branch-stores
+Authorization: Bearer <super_admin_token>
+```
+
+Optional query: `?q=<name|phone>&status=active|inactive|blocked`.
+
+Each row includes `id`, `name`, `phone`, `countryCode`, `role`, `permissions`, `status`, `aadhaarLast4`, `gender`, `dateOfBirth`, `createdAt`, `lastLoginAt`.
+
 ## Create Agent / Bidder / Super Admin staff
 
 ```http

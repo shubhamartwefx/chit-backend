@@ -17,6 +17,7 @@ import {
   createBidderSchema,
   createBranchStoreSchema,
   createStaffSchema,
+  listUsersQuerySchema,
 } from './super-admin.validation';
 
 const router = Router();
@@ -37,6 +38,7 @@ router.post(
 router.get(
   '/branch-stores',
   authorizeIf(canListPlatformUsers),
+  validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listBranchStores(req, res, next)
 );
 
@@ -50,6 +52,7 @@ router.post(
 router.get(
   '/agents',
   authorizeIf(canListPlatformUsers),
+  validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listAgents(req, res, next)
 );
 
@@ -63,6 +66,7 @@ router.post(
 router.get(
   '/bidders',
   authorizeIf(canListPlatformUsers),
+  validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listBidders(req, res, next)
 );
 
@@ -80,6 +84,7 @@ router.get(
     (canCreateSuperAdminStaff(perms) ||
       perms.includes(PERMISSIONS.PLATFORM.SUPER_ADMIN_MANAGER))
   ),
+  validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listStaff(req, res, next)
 );
 
@@ -94,6 +99,7 @@ router.post(
 router.get(
   '/admins',
   authorizeIf(canListPlatformUsers),
+  validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listAdmins(req, res, next)
 );
 
