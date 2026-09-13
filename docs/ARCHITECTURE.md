@@ -129,6 +129,7 @@ chit-backend/
 │   │   ├── bidder-signup/       # Bidder self-registration (Aadhaar + DigiLocker)
 │   │   ├── users/               # User model (identity)
 │   │   ├── otp/                 # OTP sessions + mock provider
+│   │   ├── chits/               # Shared chit CRUD (agent / branch / super-admin)
 │   │   ├── super-admin/         # Provisioning APIs + permission catalog
 │   │   ├── branch-store/        # Branch store APIs (scaffold)
 │   │   ├── admin/               # Deprecated alias module
@@ -176,6 +177,10 @@ Short-lived session with hashed OTP, attempt counter, TTL index (`expiresAt`).
 
 Hashed refresh tokens bound to a user + session family. Supports rotation and reuse detection (theft → revoke family). TTL via `expiresAt`.
 
+### Chit
+
+Shared domain collection for chit groups. Key fields: `chitCode` (unique), `type`, `amountInLakhs`, installment/months config, `agentId`, `branchStoreId`, `members[]` (bidder refs), soft-delete via `status: deleted`. Scoped reads/writes by role.
+
 ### BidderSignupSession
 
 Short-lived bidder self-registration session (manual Aadhaar OTP or DigiLocker). Stores HMAC Aadhaar fingerprint, OTP hash (manual path), DigiLocker OAuth state, and a **sealed** verified profile after KYC. TTL via `expiresAt`.
@@ -204,6 +209,21 @@ Short-lived bidder self-registration session (manual Aadhaar OTP or DigiLocker).
 | POST | `/auth/security/unlock` | Bearer | Unlock after screen lock (pin / totp / biometric) |
 
 See **[AUTH_REQUIREMENTS.md](./AUTH_REQUIREMENTS.md)** for role matrix.
+
+### Chits (shared domain)
+
+Base: `/api/v1/chits` — roles: `super_admin` | `branch_store` | `agent` (bidder excluded).  
+Permissions: `chits:read` (list/get/summary), `chits:write` (create/update/delete).  
+Scoped by `agentId` / `branchStoreId`; soft-delete via `status: deleted`.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/chits` | List chits (scoped; filter by amount, status, agentId, q) |
+| GET | `/chits/summary` | Aggregate counts by `amountInLakhs` (dashboard tiers) |
+| GET | `/chits/:id` | Chit detail + members |
+| POST | `/chits` | Create chit (auto `chitCode`; optional members) |
+| PATCH | `/chits/:id` | Update chit config / members |
+| DELETE | `/chits/:id` | Soft-delete chit |
 
 ### Tokens
 
@@ -297,8 +317,8 @@ Error:
 ## 9. Roadmap (post auth)
 
 1. Real SMS OTP provider behind existing `OtpProvider` interface.
-2. Super Admin: branches, chits CRUD with permission checks per route.
-3. Domain modules: chits, auctions/bids, subscriptions, invoices, reports.
+2. ~~Super Admin: branches, chits CRUD with permission checks per route.~~ **Chits CRUD shipped** (`/api/v1/chits`).
+3. Domain modules: auctions/bids, subscriptions, invoices, reports; bidder-facing “my chits”.
 4. Permission audit log on user permission changes.
 5. Optional refresh tokens / Redis session store.
 

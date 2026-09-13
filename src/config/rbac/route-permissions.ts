@@ -51,6 +51,12 @@ export const ROUTE_PERMISSIONS = {
   'GET /branch-store/health': [],
   'GET /agent/health': [],
   'GET /bidder/health': [],
+  'GET /chits': [PERMISSIONS.CHITS.READ],
+  'GET /chits/summary': [PERMISSIONS.CHITS.READ],
+  'GET /chits/:id': [PERMISSIONS.CHITS.READ],
+  'POST /chits': [PERMISSIONS.CHITS.WRITE],
+  'PATCH /chits/:id': [PERMISSIONS.CHITS.WRITE],
+  'DELETE /chits/:id': [PERMISSIONS.CHITS.WRITE],
 } as const;
 
 export type RoutePermissionKey = keyof typeof ROUTE_PERMISSIONS;

@@ -34,7 +34,10 @@
     { "key": "signupAadhaar", "value": "354136431636" },
     { "key": "signupPhone", "value": "9876543210" },
     { "key": "signupSessionId", "value": "" },
-    { "key": "digilockerState", "value": "" }
+    { "key": "digilockerState", "value": "" },
+    { "key": "chitId", "value": "" },
+    { "key": "agentId", "value": "" },
+    { "key": "bidderId", "value": "" }
   ],
   "item": [
     {
@@ -989,7 +992,7 @@
                 "header": [{ "key": "Content-Type", "value": "application/json" }],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Branch Store Manager\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888891\",\n  \"aadhaarNumber\": \"444444444444\",\n  \"permissions\": [\n    \"agents:read\",\n    \"bidders:read\",\n    \"bidders:write\",\n    \"chits:read\",\n    \"reports:read\"\n  ]\n}"
+                  "raw": "{\n  \"name\": \"Branch Store Manager\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888891\",\n  \"aadhaarNumber\": \"444444444444\",\n  \"permissions\": [\n    \"agents:read\",\n    \"bidders:read\",\n    \"bidders:write\",\n    \"chits:read\",\n    \"chits:write\",\n    \"reports:read\"\n  ]\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/super-admin/branch-stores",
@@ -1206,6 +1209,171 @@
               "host": ["{{apiBase}}"],
               "path": ["bidder", "health"]
             }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chits",
+      "description": "Shared chit CRUD at `/chits`. Roles: super_admin | branch_store | agent (bidder blocked).\n\n**Permissions:** `chits:read` (list/get/summary), `chits:write` (create/update/delete).\n\n**Flow:**\n1. Login as Agent (`Auth → Agent → Verify OTP`) — create does not need `agentId`\n2. Or login as Super Admin / Branch Store and set `{{agentId}}` (from List Agents)\n3. Optional: set `{{bidderId}}` to attach an existing bidder on create/update\n4. Create Chit auto-saves `{{chitId}}`",
+      "item": [
+        {
+          "name": "List Chits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits?page=1&limit=20",
+              "host": ["{{apiBase}}"],
+              "path": ["chits"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" },
+                { "key": "amountInLakhs", "value": "5", "disabled": true },
+                { "key": "status", "value": "active", "disabled": true },
+                { "key": "agentId", "value": "{{agentId}}", "disabled": true, "description": "Super admin / branch store only" },
+                { "key": "q", "value": "", "disabled": true, "description": "Search by chitCode" },
+                { "key": "includeDeleted", "value": "true", "disabled": true, "description": "Super admin only" }
+              ]
+            },
+            "description": "Scoped list. Agent sees own chits; branch store sees branch chits; super admin sees all."
+          },
+          "response": []
+        },
+        {
+          "name": "Chits Summary (by amount)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/summary",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "summary"],
+              "query": [
+                { "key": "agentId", "value": "{{agentId}}", "disabled": true, "description": "Super admin / branch store only" },
+                { "key": "includeDeleted", "value": "true", "disabled": true, "description": "Super admin only" }
+              ]
+            },
+            "description": "Dashboard tier aggregates: `{ amountInLakhs, chitCount, bidderCount }`."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Chit by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}"]
+            },
+            "description": "Detail + members. Requires `{{chitId}}` from Create or List."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Chit (as Agent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.environment.set('chitId', json.data.id);",
+                  "        pm.collectionVariables.set('chitId', json.data.id);",
+                  "        console.log('chitId saved:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"agent_chit\",\n  \"amountInLakhs\": 5,\n  \"govtBettingAmount\": 10000,\n  \"monthlyInstallment\": 5000,\n  \"maxBidders\": 5,\n  \"totalMonths\": 20,\n  \"govtBettingUnits\": 2,\n  \"startDate\": \"2026-10-01\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/chits",
+              "host": ["{{apiBase}}"],
+              "path": ["chits"]
+            },
+            "description": "Login as **Agent** first. `agentId` is forced to the logged-in agent. Auto-generates `chitCode`. Saves `{{chitId}}` on success."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Chit (as Super Admin / Branch)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.environment.set('chitId', json.data.id);",
+                  "        pm.collectionVariables.set('chitId', json.data.id);",
+                  "        console.log('chitId saved:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"auction_chit\",\n  \"amountInLakhs\": 10,\n  \"govtBettingAmount\": 15000,\n  \"monthlyInstallment\": 5500,\n  \"maxBidders\": 5,\n  \"totalMonths\": 20,\n  \"govtBettingUnits\": 3,\n  \"startDate\": \"2026-10-01\",\n  \"agentId\": \"{{agentId}}\",\n  \"members\": [\n    {\n      \"bidderId\": \"{{bidderId}}\",\n      \"numberOfTickets\": 1\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/chits",
+              "host": ["{{apiBase}}"],
+              "path": ["chits"]
+            },
+            "description": "Requires `{{agentId}}`. Branch store may only use agents they created. Optional `members` need real `{{bidderId}}` (active bidder). Remove the members array if you have no bidder id yet."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Chit",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthlyInstallment\": 5500,\n  \"maxBidders\": 5,\n  \"govtBettingAmount\": 12000\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}"]
+            },
+            "description": "Partial update. Sending `members` replaces the full members list."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Chit (soft)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}"]
+            },
+            "description": "Soft-delete: sets `status` to `deleted`. Confirmation UI is client-side."
           },
           "response": []
         }

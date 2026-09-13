@@ -81,6 +81,9 @@ export const API_MESSAGES = {
   AGENT_CREATED: 'Agent created successfully',
   BIDDER_CREATED: 'Bidder created successfully',
   STAFF_CREATED: 'Super admin staff created successfully',
+  CHIT_CREATED: 'Chit created successfully',
+  CHIT_UPDATED: 'Chit updated successfully',
+  CHIT_DELETED: 'Chit deleted successfully',
   ROUTE_NOT_FOUND: 'Route not found',
 } as const;
 

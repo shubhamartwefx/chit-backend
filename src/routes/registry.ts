@@ -6,6 +6,7 @@ import branchStoreRoutes from '../modules/branch-store/branch-store.routes';
 import adminRoutes from '../modules/admin/admin.routes';
 import agentRoutes from '../modules/agent/agent.routes';
 import bidderRoutes from '../modules/bidder/bidder.routes';
+import chitRoutes from '../modules/chits/chit.routes';
 
 export interface RouteMount {
   module: string;
@@ -53,6 +54,12 @@ export function createRouteRegistry(): RouteMount[] {
       segment: 'bidder',
       path: buildApiPath('bidder'),
       router: bidderRoutes,
+    },
+    {
+      module: 'chits',
+      segment: 'chits',
+      path: buildApiPath('chits'),
+      router: chitRoutes,
     },
   ];
 }

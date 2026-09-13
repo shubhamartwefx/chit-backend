@@ -48,6 +48,7 @@ const SEED_USERS: SeedUser[] = [
     permissions: [
       PERMISSIONS.BIDDERS.READ,
       PERMISSIONS.CHITS.READ,
+      PERMISSIONS.CHITS.WRITE,
       PERMISSIONS.REPORTS.READ,
     ],
     kycRole: 'branch_store',

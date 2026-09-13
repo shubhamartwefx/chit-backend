@@ -31,6 +31,15 @@ Import these files into Postman to test the API locally.
 
 Repeat with **Branch Store**, **Agent**, or **Bidder** folders to test role-scoped modules.
 
+## Chits
+
+Folder **Chits** — shared CRUD at `/api/v1/chits` (super_admin / branch_store / agent).
+
+1. Login as **Agent** (or Super Admin / Branch Store)
+2. **Create Chit (as Agent)** — saves `chitId` automatically
+3. Use List / Summary / Get / Update / Delete with that `chitId`
+4. For Super Admin / Branch create: set `agentId` from **Super Admin → Agents → List Agents**; optional `bidderId` from List Bidders
+
 ## Agent signup
 
 Same as bidder under **Agent Signup** (`/auth/agent/register`).
@@ -59,6 +68,9 @@ Complete returns access + refresh tokens (auto-login).
 | `signupAadhaar` | `354136431636` | Fresh Aadhaar for signup tests |
 | `signupPhone` | `9876543210` | Fresh phone for signup complete |
 | `signupSessionId` | (auto-set) | Signup session from request-otp / digilocker start |
+| `chitId` | (auto-set) | Chit id from Create Chit |
+| `agentId` | (manual) | Agent user id for branch/super-admin create |
+| `bidderId` | (manual) | Bidder user id for optional members[] |
 
 Change `baseUrl` or `apiVersion` in the environment if your server runs on a different host, port, or API version.
 

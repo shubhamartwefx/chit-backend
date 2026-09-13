@@ -47,7 +47,7 @@ Hierarchy: `*` > manager > editor (manager satisfies editor-level checks).
 
 ### Agent (auto-assigned)
 
-- `agents:read`, `bidders:read`, `bidders:write`, `chits:read`, `reports:read`, `notifications:read`
+- `agents:read`, `bidders:read`, `bidders:write`, `chits:read`, `chits:write`, `reports:read`, `notifications:read`
 
 ### Bidder (auto-assigned)
 
@@ -67,8 +67,16 @@ Defined in [`src/config/rbac/route-permissions.ts`](../src/config/rbac/route-per
 | `GET /super-admin/bidders` | editor, manager, or `*` |
 | `POST /super-admin/staff` | `*` only |
 | `GET /super-admin/staff` | manager or `*` |
+| `GET /chits` | `chits:read` |
+| `GET /chits/summary` | `chits:read` |
+| `GET /chits/:id` | `chits:read` |
+| `POST /chits` | `chits:write` |
+| `PATCH /chits/:id` | `chits:write` |
+| `DELETE /chits/:id` | `chits:write` |
 
 Deprecated aliases `/super-admin/admins` use the same rules as `/branch-stores`.
+
+Chit management routes are mounted at `/api/v1/chits` and allow roles `super_admin`, `branch_store`, and `agent` only (bidder is blocked at the role gate). Data is additionally scoped: agents see only their own chits; branch stores see chits for their branch; super admin sees all.
 
 ## Middleware
 
@@ -97,6 +105,9 @@ Run once after deploy:
 
 ```bash
 npm run migrate:branch-store
+npm run migrate:agent-chits-write
 ```
+
+`migrate:agent-chits-write` grants `chits:write` to existing agent users created before that permission was added to `AGENT_DEFAULT`.
 
 Renames existing MongoDB users with `role: 'admin'` to `role: 'branch_store'`.
