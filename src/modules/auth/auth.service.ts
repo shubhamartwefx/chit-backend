@@ -4,6 +4,7 @@ import {
   isValidIndianPhone,
   normalizePhone,
 } from '../../common/crypto';
+import { assertAccountCanAuthenticate } from '../../common/account-status';
 import { accessDenied, badRequest, unauthorized } from '../../common/errors';
 import { API_MESSAGES } from '../../common/status';
 import { env } from '../../config/env';
@@ -11,7 +12,6 @@ import {
   RoleUrlSlug,
   urlSlugToRole,
   USER_ROLES,
-  USER_STATUS,
 } from '../../config/roles';
 import {
   canLoginWithPermissions,
@@ -56,7 +56,7 @@ export class AuthService {
       phone,
       aadhaarFingerprint,
       role,
-    }).select(extraSelect);
+    }).select(`${extraSelect} status statusReason`);
 
     if (!user) {
       throw accessDenied(
@@ -64,9 +64,7 @@ export class AuthService {
       );
     }
 
-    if (user.status !== USER_STATUS.ACTIVE) {
-      throw accessDenied('Your account is inactive or blocked. Contact support.');
-    }
+    assertAccountCanAuthenticate(user);
 
     if (!canLoginWithPermissions(user.role, user.permissions)) {
       throw accessDenied(

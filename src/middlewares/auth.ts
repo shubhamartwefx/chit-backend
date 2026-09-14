@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import { assertAccountCanAuthenticate } from '../common/account-status';
 import {
   accessDenied,
   insufficientPermissions,
@@ -12,12 +13,13 @@ import {
 } from '../config/rbac';
 import { env } from '../config/env';
 import { JwtPayload } from '../types/express';
+import { User } from '../modules/users/user.model';
 
-export function authenticate(
+export async function authenticate(
   req: Request,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
     next(unauthorized('Missing or invalid Authorization header'));
@@ -27,10 +29,20 @@ export function authenticate(
   const token = header.slice(7);
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const account = await User.findById(decoded.sub)
+      .select('status statusReason')
+      .lean();
+
+    if (!account) {
+      next(unauthorized('Invalid or expired token'));
+      return;
+    }
+
+    assertAccountCanAuthenticate(account);
     req.user = decoded;
     next();
-  } catch {
-    next(unauthorized('Invalid or expired token'));
+  } catch (err) {
+    next(err);
   }
 }
 

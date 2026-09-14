@@ -18,6 +18,8 @@ import {
   createBranchStoreSchema,
   createStaffSchema,
   listUsersQuerySchema,
+  userIdParamsSchema,
+  userStatusActionSchema,
 } from './super-admin.validation';
 
 const router = Router();
@@ -101,6 +103,22 @@ router.get(
   authorizeIf(canListPlatformUsers),
   validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listAdmins(req, res, next)
+);
+
+router.post(
+  '/users/:userId/block',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(userIdParamsSchema, 'params'),
+  validate(userStatusActionSchema),
+  (req, res, next) => superAdminController.blockUser(req, res, next)
+);
+
+router.post(
+  '/users/:userId/unblock',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(userIdParamsSchema, 'params'),
+  validate(userStatusActionSchema),
+  (req, res, next) => superAdminController.unblockUser(req, res, next)
 );
 
 export default router;

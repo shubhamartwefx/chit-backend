@@ -67,16 +67,21 @@ Defined in [`src/config/rbac/route-permissions.ts`](../src/config/rbac/route-per
 | `GET /super-admin/bidders` | editor, manager, or `*` |
 | `POST /super-admin/staff` | `*` only |
 | `GET /super-admin/staff` | manager or `*` |
+| `GET /branch-store/agents` | `agents:read` |
 | `GET /chits` | `chits:read` |
 | `GET /chits/summary` | `chits:read` |
 | `GET /chits/:id` | `chits:read` |
 | `POST /chits` | `chits:write` |
 | `PATCH /chits/:id` | `chits:write` |
 | `DELETE /chits/:id` | `chits:write` |
+| `POST /super-admin/users/:userId/block` | `platform:super_admin:manager`, `*` |
+| `POST /super-admin/users/:userId/unblock` | `platform:super_admin:manager`, `*` |
 
 Deprecated aliases `/super-admin/admins` use the same rules as `/branch-stores`.
 
-Chit management routes are mounted at `/api/v1/chits` and allow roles `super_admin`, `branch_store`, and `agent` only (bidder is blocked at the role gate). Data is additionally scoped: agents see only their own chits; branch stores see chits for their branch; super admin sees all.
+Chit routes at `/api/v1/chits`: **read** allows `super_admin`, `branch_store`, `agent`, and `bidder`; **write** allows the first three only. Scoping: agents → own chits; branch stores → branch chits; bidders → chits where they are in `members[]`; super admin → all.
+
+Blocked users receive `403 ACCOUNT_BLOCKED` with `{ reason }` in `details` on login, refresh, and any authenticated API call.
 
 ## Middleware
 

@@ -37,7 +37,8 @@
     { "key": "digilockerState", "value": "" },
     { "key": "chitId", "value": "" },
     { "key": "agentId", "value": "" },
-    { "key": "bidderId", "value": "" }
+    { "key": "bidderId", "value": "" },
+    { "key": "userId", "value": "" }
   ],
   "item": [
     {
@@ -1154,6 +1155,47 @@
               "response": []
             }
           ]
+        },
+        {
+          "name": "User Actions",
+          "item": [
+            {
+              "name": "Block User",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Policy violation — manual block by super admin\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/users/{{userId}}/block",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "users", "{{userId}}", "block"]
+                },
+                "description": "Requires manager tier or `*`. Set `{{userId}}` from List Agents / Bidders / Branch Stores. Revokes all sessions immediately. Blocked users cannot login (403 `ACCOUNT_BLOCKED` with reason)."
+              },
+              "response": []
+            },
+            {
+              "name": "Unblock User",
+              "request": {
+                "method": "POST",
+                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Issue resolved — account restored by super admin\"\n}"
+                },
+                "url": {
+                  "raw": "{{apiBase}}/super-admin/users/{{userId}}/unblock",
+                  "host": ["{{apiBase}}"],
+                  "path": ["super-admin", "users", "{{userId}}", "unblock"]
+                },
+                "description": "Requires manager tier or `*`. Restores `status` to `active`. Reason is stored for audit."
+              },
+              "response": []
+            }
+          ]
         }
       ]
     },
@@ -1171,6 +1213,20 @@
               "host": ["{{apiBase}}"],
               "path": ["branch-store", "health"]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "List Branch Agents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/branch-store/agents",
+              "host": ["{{apiBase}}"],
+              "path": ["branch-store", "agents"]
+            },
+            "description": "Agents created by this branch store. Requires `agents:read`. Used for chit create agent picker."
           },
           "response": []
         }
@@ -1216,7 +1272,7 @@
     },
     {
       "name": "Chits",
-      "description": "Shared chit CRUD at `/chits`. Roles: super_admin | branch_store | agent (bidder blocked).\n\n**Permissions:** `chits:read` (list/get/summary), `chits:write` (create/update/delete).\n\n**Flow:**\n1. Login as Agent (`Auth → Agent → Verify OTP`) — create does not need `agentId`\n2. Or login as Super Admin / Branch Store and set `{{agentId}}` (from List Agents)\n3. Optional: set `{{bidderId}}` to attach an existing bidder on create/update\n4. Create Chit auto-saves `{{chitId}}`",
+      "description": "Shared chit APIs at `/chits`.\n\n**Read** (`chits:read`): super_admin | branch_store | agent | bidder\n**Write** (`chits:write`): super_admin | branch_store | agent only\n\nBidder sees only chits where they are in `members[]` (own membership row only in detail).\n\n**Flow:**\n1. Login as Agent — create does not need `agentId`\n2. Or Super Admin / Branch Store + set `{{agentId}}`\n3. Attach bidder via `members` on create; bidder then reads with Bidder token\n4. Create Chit auto-saves `{{chitId}}`",
       "item": [
         {
           "name": "List Chits",
@@ -1374,6 +1430,52 @@
               "path": ["chits", "{{chitId}}"]
             },
             "description": "Soft-delete: sets `status` to `deleted`. Confirmation UI is client-side."
+          },
+          "response": []
+        },
+        {
+          "name": "Bidder — List Assigned Chits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits?page=1&limit=20",
+              "host": ["{{apiBase}}"],
+              "path": ["chits"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Login as **Bidder** first. Returns only chits where this bidder is in `members[]`."
+          },
+          "response": []
+        },
+        {
+          "name": "Bidder — Get Assigned Chit",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}"]
+            },
+            "description": "Login as **Bidder**. Detail includes only this bidder's membership row."
+          },
+          "response": []
+        },
+        {
+          "name": "Bidder — Chits Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/summary",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "summary"]
+            },
+            "description": "Login as **Bidder**. Summary of assigned chits grouped by amount tier."
           },
           "response": []
         }

@@ -49,6 +49,7 @@ export const ROUTE_PERMISSIONS = {
     PERMISSIONS.PLATFORM.ALL,
   ],
   'GET /branch-store/health': [],
+  'GET /branch-store/agents': [PERMISSIONS.AGENTS.READ],
   'GET /agent/health': [],
   'GET /bidder/health': [],
   'GET /chits': [PERMISSIONS.CHITS.READ],
@@ -57,6 +58,14 @@ export const ROUTE_PERMISSIONS = {
   'POST /chits': [PERMISSIONS.CHITS.WRITE],
   'PATCH /chits/:id': [PERMISSIONS.CHITS.WRITE],
   'DELETE /chits/:id': [PERMISSIONS.CHITS.WRITE],
+  'POST /super-admin/users/:userId/block': [
+    PERMISSIONS.PLATFORM.SUPER_ADMIN_MANAGER,
+    PERMISSIONS.PLATFORM.ALL,
+  ],
+  'POST /super-admin/users/:userId/unblock': [
+    PERMISSIONS.PLATFORM.SUPER_ADMIN_MANAGER,
+    PERMISSIONS.PLATFORM.ALL,
+  ],
 } as const;
 
 export type RoutePermissionKey = keyof typeof ROUTE_PERMISSIONS;

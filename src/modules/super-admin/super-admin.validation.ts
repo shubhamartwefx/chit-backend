@@ -69,6 +69,22 @@ export const listUsersQuerySchema = z.object({
 
 export type ListUsersQueryInput = z.infer<typeof listUsersQuerySchema>;
 
+const objectIdSchema = z
+  .string()
+  .regex(/^[a-fA-F0-9]{24}$/, 'Must be a valid MongoDB ObjectId');
+
+export const userIdParamsSchema = z.object({
+  userId: objectIdSchema,
+});
+
+export type UserIdParams = z.infer<typeof userIdParamsSchema>;
+
+export const userStatusActionSchema = z.object({
+  reason: z.string().min(5).max(500),
+});
+
+export type UserStatusActionInput = z.infer<typeof userStatusActionSchema>;
+
 export const assignablePermissionsResponse = {
   branchStore: BRANCH_STORE_ASSIGNABLE,
   agent: AGENT_DEFAULT,

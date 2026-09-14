@@ -17,17 +17,24 @@ import {
 
 const router = Router();
 
-router.use(
-  authenticate,
-  authorize(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.BRANCH_STORE,
-    USER_ROLES.AGENT
-  )
-);
+const readRoles = [
+  USER_ROLES.SUPER_ADMIN,
+  USER_ROLES.BRANCH_STORE,
+  USER_ROLES.AGENT,
+  USER_ROLES.BIDDER,
+] as const;
+
+const writeRoles = [
+  USER_ROLES.SUPER_ADMIN,
+  USER_ROLES.BRANCH_STORE,
+  USER_ROLES.AGENT,
+] as const;
+
+router.use(authenticate);
 
 router.get(
   '/',
+  authorize(...readRoles),
   authorizePermission(PERMISSIONS.CHITS.READ),
   validate(listChitsQuerySchema, 'query'),
   (req, res, next) => chitController.list(req, res, next)
@@ -35,6 +42,7 @@ router.get(
 
 router.get(
   '/summary',
+  authorize(...readRoles),
   authorizePermission(PERMISSIONS.CHITS.READ),
   validate(summaryQuerySchema, 'query'),
   (req, res, next) => chitController.summary(req, res, next)
@@ -42,6 +50,7 @@ router.get(
 
 router.get(
   '/:id',
+  authorize(...readRoles),
   authorizePermission(PERMISSIONS.CHITS.READ),
   validate(chitIdParamsSchema, 'params'),
   (req, res, next) => chitController.getById(req, res, next)
@@ -49,6 +58,7 @@ router.get(
 
 router.post(
   '/',
+  authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(createChitSchema),
   (req, res, next) => chitController.create(req, res, next)
@@ -56,6 +66,7 @@ router.post(
 
 router.patch(
   '/:id',
+  authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitIdParamsSchema, 'params'),
   validate(updateChitSchema),
@@ -64,6 +75,7 @@ router.patch(
 
 router.delete(
   '/:id',
+  authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitIdParamsSchema, 'params'),
   (req, res, next) => chitController.remove(req, res, next)

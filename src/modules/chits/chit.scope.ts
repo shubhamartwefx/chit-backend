@@ -33,8 +33,10 @@ export function buildChitScopeFilter(
       break;
     case USER_ROLES.SUPER_ADMIN:
       break;
+    case USER_ROLES.BIDDER:
+      filter['members.bidderId'] = new Types.ObjectId(actor.sub);
+      break;
     default:
-      // Bidder and unknown roles must never match documents via this helper.
       filter._id = new Types.ObjectId('000000000000000000000000');
       break;
   }

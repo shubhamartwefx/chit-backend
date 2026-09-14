@@ -24,6 +24,11 @@ export const API_STATUS = {
     code: 'ACCESS_DENIED',
     message: 'Access denied',
   },
+  ACCOUNT_BLOCKED: {
+    httpStatus: 403,
+    code: 'ACCOUNT_BLOCKED',
+    message: 'Account blocked',
+  },
   INSUFFICIENT_PERMISSIONS: {
     httpStatus: 403,
     code: 'INSUFFICIENT_PERMISSIONS',
@@ -84,6 +89,8 @@ export const API_MESSAGES = {
   CHIT_CREATED: 'Chit created successfully',
   CHIT_UPDATED: 'Chit updated successfully',
   CHIT_DELETED: 'Chit deleted successfully',
+  USER_BLOCKED: 'User blocked successfully',
+  USER_UNBLOCKED: 'User unblocked successfully',
   ROUTE_NOT_FOUND: 'Route not found',
 } as const;
 

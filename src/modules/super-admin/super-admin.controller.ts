@@ -8,6 +8,7 @@ import {
   CreateBranchStoreInput,
   CreateStaffInput,
   ListUsersQueryInput,
+  UserStatusActionInput,
   assignablePermissionsResponse,
 } from './super-admin.validation';
 
@@ -122,6 +123,32 @@ export class SuperAdminController {
   async getPermissionsCatalog(_req: Request, res: Response, next: NextFunction) {
     try {
       sendSuccessWithKey(res, assignablePermissionsResponse, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async blockUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.blockUser(
+        req.user!.sub,
+        req.params.userId,
+        req.body as UserStatusActionInput
+      );
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_BLOCKED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async unblockUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.unblockUser(
+        req.user!.sub,
+        req.params.userId,
+        req.body as UserStatusActionInput
+      );
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_UNBLOCKED);
     } catch (err) {
       next(err);
     }

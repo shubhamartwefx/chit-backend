@@ -33,12 +33,17 @@ Repeat with **Branch Store**, **Agent**, or **Bidder** folders to test role-scop
 
 ## Chits
 
-Folder **Chits** — shared CRUD at `/api/v1/chits` (super_admin / branch_store / agent).
+Folder **Chits** — `/api/v1/chits`. Read: all four roles; write: super_admin / branch_store / agent only.
 
 1. Login as **Agent** (or Super Admin / Branch Store)
 2. **Create Chit (as Agent)** — saves `chitId` automatically
 3. Use List / Summary / Get / Update / Delete with that `chitId`
-4. For Super Admin / Branch create: set `agentId` from **Super Admin → Agents → List Agents**; optional `bidderId` from List Bidders
+4. For Super Admin / Branch create: set `agentId` from List Agents; optional `bidderId` from List Bidders
+5. Login as **Bidder** and use **Bidder — List/Get/Summary** to verify assigned-chit scoping
+
+## Block / Unblock
+
+**Super Admin → User Actions**. Set `userId` from a list endpoint. Block requires a reason (min 5 chars); revokes all sessions. Blocked users get `403 ACCOUNT_BLOCKED` with reason on login and on the next API call with an existing token.
 
 ## Agent signup
 
@@ -71,6 +76,7 @@ Complete returns access + refresh tokens (auto-login).
 | `chitId` | (auto-set) | Chit id from Create Chit |
 | `agentId` | (manual) | Agent user id for branch/super-admin create |
 | `bidderId` | (manual) | Bidder user id for optional members[] |
+| `userId` | (manual) | Target user id for block/unblock |
 
 Change `baseUrl` or `apiVersion` in the environment if your server runs on a different host, port, or API version.
 

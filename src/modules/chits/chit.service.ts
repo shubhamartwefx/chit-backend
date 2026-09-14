@@ -185,13 +185,35 @@ function toMemberDto(member: {
   };
 }
 
+function memberBidderIdString(
+  bidderId: Types.ObjectId | PopulatedBidder
+): string {
+  if (bidderId && typeof bidderId === 'object' && '_id' in bidderId) {
+    return (bidderId as PopulatedBidder)._id.toString();
+  }
+  return (bidderId as Types.ObjectId).toString();
+}
+
+function filterMembersForActor(
+  members: IChitMember[],
+  actor?: ChitActor
+): IChitMember[] {
+  if (actor?.role !== USER_ROLES.BIDDER) {
+    return members;
+  }
+  return members.filter(
+    (m) => memberBidderIdString(m.bidderId) === actor.sub
+  );
+}
+
 function toChitDto(
   chit: IChitDocument | (IChitDocument & { members?: unknown }),
-  options?: { includeMembers?: boolean }
+  options?: { includeMembers?: boolean; actor?: ChitActor }
 ) {
   const completedMonths = chit.completedMonths ?? 0;
   const pendingMonths = Math.max(0, chit.totalMonths - completedMonths);
-  const members = Array.isArray(chit.members) ? chit.members : [];
+  const allMembers = Array.isArray(chit.members) ? chit.members : [];
+  const visibleMembers = filterMembersForActor(allMembers, options?.actor);
 
   const base = {
     id: chit._id.toString(),
@@ -207,7 +229,10 @@ function toChitDto(
     endDate: chit.endDate,
     completedMonths,
     pendingMonths,
-    bidderCount: members.length,
+    bidderCount:
+      options?.actor?.role === USER_ROLES.BIDDER
+        ? visibleMembers.length
+        : allMembers.length,
     status: chit.status,
     agentId: chit.agentId?.toString?.() ?? String(chit.agentId),
     branchStoreId: chit.branchStoreId
@@ -221,7 +246,7 @@ function toChitDto(
   if (options?.includeMembers) {
     return {
       ...base,
-      members: members.map((m) =>
+      members: visibleMembers.map((m) =>
         toMemberDto(
           m as {
             bidderId: Types.ObjectId | PopulatedBidder;
@@ -295,7 +320,10 @@ export class ChitService {
 
     return {
       items: items.map((doc) =>
-        toChitDto(doc as unknown as IChitDocument, { includeMembers: false })
+        toChitDto(doc as unknown as IChitDocument, {
+          includeMembers: false,
+          actor,
+        })
       ),
       pagination: {
         page,
@@ -356,6 +384,7 @@ export class ChitService {
 
     return toChitDto(chit as unknown as IChitDocument, {
       includeMembers: true,
+      actor,
     });
   }
 

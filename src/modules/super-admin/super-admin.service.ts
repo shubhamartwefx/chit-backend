@@ -1,10 +1,11 @@
+import { Types } from 'mongoose';
 import {
   fingerprintAadhaar,
   isValidAadhaar,
   isValidIndianPhone,
   normalizePhone,
 } from '../../common/crypto';
-import { badRequest, conflict } from '../../common/errors';
+import { badRequest, conflict, notFound } from '../../common/errors';
 import { env } from '../../config/env';
 import {
   AGENT_DEFAULT,
@@ -16,7 +17,9 @@ import {
 import {
   validatePermissionsForRole,
 } from '../../config/rbac';
+import { tokenService } from '../auth/token.service';
 import { User } from '../users/user.model';
+import { UserStatusActionInput } from './super-admin.validation';
 import {
   CreateAgentInput,
   CreateBidderInput,
@@ -34,6 +37,12 @@ function assertIdentity(phone: string, aadhaarNumber: string): string {
   return fingerprintAadhaar(aadhaarNumber, env.JWT_SECRET);
 }
 
+const BLOCKABLE_ROLES: readonly UserRole[] = [
+  USER_ROLES.BRANCH_STORE,
+  USER_ROLES.AGENT,
+  USER_ROLES.BIDDER,
+];
+
 function formatUser(user: {
   _id: { toString(): string };
   name: string;
@@ -42,6 +51,9 @@ function formatUser(user: {
   role: UserRole;
   permissions: string[];
   status: string;
+  statusReason?: string | null;
+  statusChangedAt?: Date | null;
+  statusChangedBy?: { toString(): string } | null;
   createdBy?: { toString(): string } | null;
   createdAt: Date;
   lastLoginAt?: Date | null;
@@ -57,6 +69,9 @@ function formatUser(user: {
     role: user.role,
     permissions: user.permissions,
     status: user.status,
+    statusReason: user.statusReason ?? null,
+    statusChangedAt: user.statusChangedAt ?? null,
+    statusChangedBy: user.statusChangedBy?.toString() ?? null,
     createdBy: user.createdBy?.toString() ?? null,
     createdAt: user.createdAt,
     lastLoginAt: user.lastLoginAt ?? null,
@@ -252,6 +267,76 @@ export class SuperAdminService {
 
   async listStaff(query: ListUsersQuery = {}) {
     return listUsersByRole(USER_ROLES.SUPER_ADMIN, query);
+  }
+
+  private assertBlockableTarget(
+    actorId: string,
+    user: { _id: { toString(): string }; role: UserRole; status: string }
+  ): void {
+    if (actorId === user._id.toString()) {
+      throw badRequest('You cannot block or unblock your own account');
+    }
+    if (user.role === USER_ROLES.SUPER_ADMIN) {
+      throw badRequest('Super admin accounts cannot be blocked or unblocked');
+    }
+    if (!BLOCKABLE_ROLES.includes(user.role)) {
+      throw badRequest('This user role cannot be blocked or unblocked');
+    }
+  }
+
+  async blockUser(
+    actorId: string,
+    userId: string,
+    input: UserStatusActionInput
+  ) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw notFound('User not found');
+    }
+
+    this.assertBlockableTarget(actorId, user);
+
+    if (user.status === USER_STATUS.BLOCKED) {
+      throw conflict('User is already blocked');
+    }
+
+    user.status = USER_STATUS.BLOCKED;
+    user.statusReason = input.reason.trim();
+    user.statusChangedAt = new Date();
+    user.statusChangedBy = new Types.ObjectId(actorId);
+    await user.save();
+
+    const revokedSessions = await tokenService.revokeAllSessionsForUser(userId);
+
+    return {
+      ...formatUser(user),
+      revokedSessions,
+    };
+  }
+
+  async unblockUser(
+    actorId: string,
+    userId: string,
+    input: UserStatusActionInput
+  ) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw notFound('User not found');
+    }
+
+    this.assertBlockableTarget(actorId, user);
+
+    if (user.status !== USER_STATUS.BLOCKED) {
+      throw conflict('User is not blocked');
+    }
+
+    user.status = USER_STATUS.ACTIVE;
+    user.statusReason = input.reason.trim();
+    user.statusChangedAt = new Date();
+    user.statusChangedBy = new Types.ObjectId(actorId);
+    await user.save();
+
+    return formatUser(user);
   }
 }
 

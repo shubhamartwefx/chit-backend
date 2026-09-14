@@ -45,6 +45,9 @@ export interface IUser {
   role: UserRole;
   permissions: string[];
   status: UserStatus;
+  statusReason?: string | null;
+  statusChangedAt?: Date | null;
+  statusChangedBy?: Types.ObjectId | null;
   createdBy?: Types.ObjectId | null;
   lastLoginAt?: Date | null;
   gender?: string | null;
@@ -121,6 +124,13 @@ const userSchema = new Schema<IUserDocument>(
       type: String,
       enum: Object.values(USER_STATUS),
       default: USER_STATUS.ACTIVE,
+    },
+    statusReason: { type: String, default: null, trim: true },
+    statusChangedAt: { type: Date, default: null },
+    statusChangedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     lastLoginAt: { type: Date, default: null },

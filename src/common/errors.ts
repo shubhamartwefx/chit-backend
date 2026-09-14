@@ -52,6 +52,16 @@ export function accessDenied(message?: string): AppError {
   return AppError.fromStatusKey('ACCESS_DENIED', message);
 }
 
+export function accountBlocked(reason: string): AppError {
+  const message = `Account blocked. Reason: ${reason}`;
+  return new AppError(
+    message,
+    API_STATUS.ACCOUNT_BLOCKED.httpStatus,
+    API_STATUS.ACCOUNT_BLOCKED.code,
+    { reason }
+  );
+}
+
 export function insufficientPermissions(message?: string): AppError {
   return AppError.fromStatusKey('INSUFFICIENT_PERMISSIONS', message);
 }

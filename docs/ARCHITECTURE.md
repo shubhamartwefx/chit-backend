@@ -165,6 +165,7 @@ chit-backend/
 | `permissions[]` | Tier markers for super_admin; assignable subset for branch_store; fixed sets for agent/bidder |
 | `status` | `active` \| `inactive` \| `blocked` |
 | `createdBy` | Provenance for admins / future agents |
+| `statusReason`, `statusChangedAt`, `statusChangedBy` | Block/unblock audit trail |
 | `gender`, `dateOfBirth`, `aadhaarAddress` | Optional KYC fields (self-registered bidders) |
 | `currentAddress`, `aadhaarLast4` | Manual current address + Aadhaar last-4 |
 | `aadhaarVerifiedAt`, `verificationMethod` | `manual` \| `digilocker` \| `admin_provisioned` |
@@ -212,9 +213,9 @@ See **[AUTH_REQUIREMENTS.md](./AUTH_REQUIREMENTS.md)** for role matrix.
 
 ### Chits (shared domain)
 
-Base: `/api/v1/chits` — roles: `super_admin` | `branch_store` | `agent` (bidder excluded).  
+Base: `/api/v1/chits` — read: `super_admin` | `branch_store` | `agent` | `bidder`; write: first three only.  
 Permissions: `chits:read` (list/get/summary), `chits:write` (create/update/delete).  
-Scoped by `agentId` / `branchStoreId`; soft-delete via `status: deleted`.
+Scoped by `agentId` / `branchStoreId` / `members.bidderId`; soft-delete via `status: deleted`. Bidders see only their assigned chits and own membership row in detail.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -229,7 +230,7 @@ Scoped by `agentId` / `branchStoreId`; soft-delete via `status: deleted`.
 
 - **Access JWT** — short-lived (default `JWT_ACCESS_EXPIRES_IN=15m`); claims include `jti` + `sid`.
 - **Refresh token** — opaque, hashed in `RefreshSession`; default `JWT_REFRESH_EXPIRES_IN=7d`. Rotated on each refresh; reuse of an old refresh revokes the whole session family.
-- `authenticate` middleware **verifies only** — it does not mint tokens on every request.
+- `authenticate` middleware verifies JWT and re-checks user `status` (blocked → `403 ACCOUNT_BLOCKED` with reason).
 
 ### Bidder / Agent signup endpoints (public, rate-limited)
 
@@ -259,6 +260,15 @@ KYC fields from Aadhaar are sealed server-side — `complete` only accepts `phon
 | POST | `/super-admin/bidders` | Super Admin (manager+) | Create bidder |
 | POST | `/super-admin/staff` | Super Admin (`*` only) | Create super admin staff with tier |
 | GET | `/super-admin/permissions` | Super Admin | Permission catalog for provisioning |
+| POST | `/super-admin/users/:userId/block` | Super Admin (manager+) | Block agent/branch/bidder with required reason; revokes sessions |
+| POST | `/super-admin/users/:userId/unblock` | Super Admin (manager+) | Restore blocked user with required reason |
+
+### Branch Store
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/branch-store/health` | Branch Store | Module health |
+| GET | `/branch-store/agents` | Branch Store (`agents:read`) | List agents created by this branch (for chit create picker) |
 
 Deprecated aliases: `POST/GET /super-admin/admins`
 
