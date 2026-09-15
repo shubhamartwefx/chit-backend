@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/scripts/seed.ts",
+    "cleanup:operators": "tsx src/scripts/cleanup-operators.ts",
     "migrate:branch-store": "tsx src/scripts/migrate-admin-to-branch-store.ts",
     "migrate:agent-chits-write": "tsx src/scripts/migrate-agent-chits-write.ts",
     "lint": "tsc --noEmit"

@@ -25,7 +25,7 @@ export const MOCK_AADHAAR_BY_ROLE: Record<
   MockAadhaarDemographics
 > = {
   agent: {
-    fullName: 'Rajesh Kumar',
+    fullName: 'Abhishekar',
     gender: 'Male',
     dateOfBirth: '15/08/1990',
     aadhaarAddress: {
