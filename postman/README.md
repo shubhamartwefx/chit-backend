@@ -31,15 +31,37 @@ Import these files into Postman to test the API locally.
 
 Repeat with **Branch Store**, **Agent**, or **Bidder** folders to test role-scoped modules.
 
-## Chits
+## Provisioning rules
+
+- **Branch store:** Super Admin only (`POST /super-admin/branch-stores`). No branch self-signup.
+- **Agent / Bidder:** self-signup folders **or** SA create; peer operators create bidders via **Branch Store → Create Branch Bidder** / **Agent → Create Agent Bidder**.
+
+## Chits (peer operators)
 
 Folder **Chits** — `/api/v1/chits`. Read: all four roles; write: super_admin / branch_store / agent only.
 
-1. Login as **Agent** (or Super Admin / Branch Store)
-2. **Create Chit (as Agent)** — saves `chitId` automatically
-3. Use List / Summary / Get / Update / Delete with that `chitId`
-4. For Super Admin / Branch create: set `agentId` from List Agents; optional `bidderId` from List Bidders
+1. Login as **Agent** → **Create Chit (as Agent)** (no `agentId` in body) — saves `chitId`
+2. Or login as **Branch Store** → **Create Chit (as Branch Store)** (no `agentId`) — branch-owned
+3. Or Super Admin → create for agent (`agentId`) **or** branch (`branchStoreId`)
+4. **Add / Update / Remove Chit Member** for incremental membership
 5. Login as **Bidder** and use **Bidder — List/Get/Summary** to verify assigned-chit scoping
+
+## Operator bidders
+
+- **Branch Store → List/Create Branch Bidders** (`bidders:read` / `bidders:write`)
+- **Agent → List/Create Agent Bidders** (same permissions)
+- **Block / Unblock** bidder the operator created (`POST .../bidders/:id/block|unblock`)
+
+List includes bidders the operator created and members of the operator’s chits. Filter with `status=blocked`.
+
+## Installments / auctions / join
+
+Under **Chits**: record/list installments; create/list/close auction rounds; place bids (bidder token).  
+**Bidder → Join Chit** for self-join.
+
+## Reports
+
+**Reports → Overview** (`reports:read`) — scoped metrics for SA / branch / agent.
 
 ## Block / Unblock
 
@@ -74,8 +96,10 @@ Complete returns access + refresh tokens (auto-login).
 | `signupPhone` | `9876543210` | Fresh phone for signup complete |
 | `signupSessionId` | (auto-set) | Signup session from request-otp / digilocker start |
 | `chitId` | (auto-set) | Chit id from Create Chit |
-| `agentId` | (manual) | Agent user id for branch/super-admin create |
-| `bidderId` | (manual) | Bidder user id for optional members[] |
+| `agentId` | (manual) | Agent user id for SA create-as-agent |
+| `branchStoreId` | (auto from Create Branch Store) | Branch user id for SA create-as-branch |
+| `bidderId` | (auto from create bidder) | Bidder user id for members APIs |
+| `auctionRoundId` | (auto from Create Auction Round) | Auction round id |
 | `userId` | (manual) | Target user id for block/unblock |
 
 Change `baseUrl` or `apiVersion` in the environment if your server runs on a different host, port, or API version.

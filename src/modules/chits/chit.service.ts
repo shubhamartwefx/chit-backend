@@ -2,6 +2,7 @@ import { FilterQuery, Types } from 'mongoose';
 import {
   accessDenied,
   badRequest,
+  conflict,
   notFound,
 } from '../../common/errors';
 import { USER_ROLES, USER_STATUS } from '../../config/constants';
@@ -51,64 +52,65 @@ async function createUniqueChitCode(maxAttempts = 8): Promise<string> {
   throw badRequest('Unable to generate a unique chit code. Please retry.');
 }
 
-async function resolveBranchStoreIdForAgent(
-  agentId: Types.ObjectId
-): Promise<Types.ObjectId | null> {
-  const agent = await User.findById(agentId).select('role createdBy').lean();
-  if (!agent || agent.role !== USER_ROLES.AGENT) {
-    throw badRequest('agentId must reference an active agent user');
-  }
-  if (!agent.createdBy) {
-    return null;
-  }
-  const creator = await User.findById(agent.createdBy).select('role').lean();
-  if (creator?.role === USER_ROLES.BRANCH_STORE) {
-    return agent.createdBy as Types.ObjectId;
-  }
-  return null;
-}
-
 async function resolveOwnership(
   actor: JwtPayload,
-  inputAgentId?: string
-): Promise<{ agentId: Types.ObjectId; branchStoreId: Types.ObjectId | null }> {
+  input: { agentId?: string; branchStoreId?: string }
+): Promise<{
+  agentId: Types.ObjectId | null;
+  branchStoreId: Types.ObjectId | null;
+}> {
+  // Peer operator: agent owns chits as self; no branch linkage required.
   if (actor.role === USER_ROLES.AGENT) {
-    const agentId = new Types.ObjectId(actor.sub);
-    const branchStoreId = await resolveBranchStoreIdForAgent(agentId);
-    return { agentId, branchStoreId };
-  }
-
-  if (!inputAgentId) {
-    throw badRequest('agentId is required for this role');
-  }
-
-  const agentId = new Types.ObjectId(inputAgentId);
-  const agent = await User.findById(agentId)
-    .select('role createdBy status')
-    .lean();
-
-  if (!agent || agent.role !== USER_ROLES.AGENT) {
-    throw badRequest('agentId must reference an agent user');
-  }
-  if (agent.status !== USER_STATUS.ACTIVE) {
-    throw badRequest('Agent must be active');
-  }
-
-  if (actor.role === USER_ROLES.BRANCH_STORE) {
-    if (!agent.createdBy || agent.createdBy.toString() !== actor.sub) {
-      throw accessDenied(
-        'You can only create chits for agents belonging to your branch'
-      );
-    }
     return {
-      agentId,
+      agentId: new Types.ObjectId(actor.sub),
+      branchStoreId: null,
+    };
+  }
+
+  // Peer operator: branch owns chits as self; no subordinate agent required.
+  if (actor.role === USER_ROLES.BRANCH_STORE) {
+    return {
+      agentId: null,
       branchStoreId: new Types.ObjectId(actor.sub),
     };
   }
 
-  // super_admin
-  const branchStoreId = await resolveBranchStoreIdForAgent(agentId);
-  return { agentId, branchStoreId };
+  // Super admin must target exactly one operator.
+  if (input.agentId && input.branchStoreId) {
+    throw badRequest('Provide either agentId or branchStoreId, not both');
+  }
+
+  if (input.agentId) {
+    const agentId = new Types.ObjectId(input.agentId);
+    const agent = await User.findById(agentId)
+      .select('role status')
+      .lean();
+    if (!agent || agent.role !== USER_ROLES.AGENT) {
+      throw badRequest('agentId must reference an agent user');
+    }
+    if (agent.status !== USER_STATUS.ACTIVE) {
+      throw badRequest('Agent must be active');
+    }
+    return { agentId, branchStoreId: null };
+  }
+
+  if (input.branchStoreId) {
+    const branchStoreId = new Types.ObjectId(input.branchStoreId);
+    const branch = await User.findById(branchStoreId)
+      .select('role status')
+      .lean();
+    if (!branch || branch.role !== USER_ROLES.BRANCH_STORE) {
+      throw badRequest('branchStoreId must reference a branch store user');
+    }
+    if (branch.status !== USER_STATUS.ACTIVE) {
+      throw badRequest('Branch store must be active');
+    }
+    return { agentId: null, branchStoreId };
+  }
+
+  throw badRequest(
+    'Super admin must provide agentId or branchStoreId as the chit owner'
+  );
 }
 
 async function validateAndBuildMembers(
@@ -234,7 +236,7 @@ function toChitDto(
         ? visibleMembers.length
         : allMembers.length,
     status: chit.status,
-    agentId: chit.agentId?.toString?.() ?? String(chit.agentId),
+    agentId: chit.agentId ? chit.agentId.toString() : null,
     branchStoreId: chit.branchStoreId
       ? chit.branchStoreId.toString()
       : null,
@@ -261,24 +263,26 @@ function toChitDto(
   return base;
 }
 
-function assertAgentIdFilterAllowed(
+function assertOperatorFilterAllowed(
   actor: ChitActor,
-  agentIdFilter?: string
+  filters: { agentId?: string; branchStoreId?: string }
 ): void {
-  if (!agentIdFilter) {
+  if (!filters.agentId && !filters.branchStoreId) {
     return;
   }
-  if (
-    actor.role !== USER_ROLES.SUPER_ADMIN &&
-    actor.role !== USER_ROLES.BRANCH_STORE
-  ) {
-    throw accessDenied('Only branch store or super admin can filter by agentId');
+  if (actor.role !== USER_ROLES.SUPER_ADMIN) {
+    throw accessDenied(
+      'Only super admin can filter by agentId or branchStoreId'
+    );
   }
 }
 
 export class ChitService {
   async list(actor: JwtPayload, query: ListChitsQueryInput) {
-    assertAgentIdFilterAllowed(actor, query.agentId);
+    assertOperatorFilterAllowed(actor, {
+      agentId: query.agentId,
+      branchStoreId: query.branchStoreId,
+    });
 
     const includeDeleted =
       query.includeDeleted === true && actor.role === USER_ROLES.SUPER_ADMIN;
@@ -303,6 +307,10 @@ export class ChitService {
 
     if (query.agentId) {
       filter.agentId = new Types.ObjectId(query.agentId);
+    }
+
+    if (query.branchStoreId) {
+      filter.branchStoreId = new Types.ObjectId(query.branchStoreId);
     }
 
     if (query.q) {
@@ -335,7 +343,10 @@ export class ChitService {
   }
 
   async summary(actor: JwtPayload, query: SummaryQueryInput) {
-    assertAgentIdFilterAllowed(actor, query.agentId);
+    assertOperatorFilterAllowed(actor, {
+      agentId: query.agentId,
+      branchStoreId: query.branchStoreId,
+    });
 
     const includeDeleted =
       query.includeDeleted === true && actor.role === USER_ROLES.SUPER_ADMIN;
@@ -346,6 +357,10 @@ export class ChitService {
 
     if (query.agentId) {
       match.agentId = new Types.ObjectId(query.agentId);
+    }
+
+    if (query.branchStoreId) {
+      match.branchStoreId = new Types.ObjectId(query.branchStoreId);
     }
 
     const rows = await Chit.aggregate<{
@@ -389,10 +404,10 @@ export class ChitService {
   }
 
   async create(actor: JwtPayload, input: CreateChitInput) {
-    const { agentId, branchStoreId } = await resolveOwnership(
-      actor,
-      input.agentId
-    );
+    const { agentId, branchStoreId } = await resolveOwnership(actor, {
+      agentId: input.agentId,
+      branchStoreId: input.branchStoreId,
+    });
 
     const maxBidders = input.maxBidders;
     const members = await validateAndBuildMembers(input.members, maxBidders);
@@ -433,7 +448,7 @@ export class ChitService {
 
     return toChitDto(
       (populated ?? created) as unknown as IChitDocument,
-      { includeMembers: true }
+      { includeMembers: true, actor }
     );
   }
 
@@ -504,7 +519,7 @@ export class ChitService {
 
     return toChitDto(
       (populated ?? chit) as unknown as IChitDocument,
-      { includeMembers: true }
+      { includeMembers: true, actor }
     );
   }
 
@@ -522,6 +537,152 @@ export class ChitService {
       chitCode: chit.chitCode,
       status: chit.status,
     };
+  }
+
+  async addMember(
+    actor: JwtPayload,
+    chitId: string,
+    input: { bidderId: string; numberOfTickets: number }
+  ) {
+    const chit = await Chit.findOne(buildScopedChitByIdFilter(actor, chitId));
+    if (!chit) {
+      throw notFound('Chit not found');
+    }
+
+    const exists = chit.members.some(
+      (m) => m.bidderId.toString() === input.bidderId
+    );
+    if (exists) {
+      throw badRequest('Bidder is already a member of this chit');
+    }
+
+    if (chit.members.length >= chit.maxBidders) {
+      throw badRequest(
+        `Cannot add member: chit already has maxBidders (${chit.maxBidders})`
+      );
+    }
+
+    const built = await validateAndBuildMembers([input], chit.maxBidders);
+    chit.members.push(built[0]);
+    await chit.save();
+
+    const populated = await Chit.findById(chit._id)
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    return toChitDto(
+      (populated ?? chit) as unknown as IChitDocument,
+      { includeMembers: true, actor }
+    );
+  }
+
+  async updateMember(
+    actor: JwtPayload,
+    chitId: string,
+    bidderId: string,
+    input: { numberOfTickets: number }
+  ) {
+    const chit = await Chit.findOne(buildScopedChitByIdFilter(actor, chitId));
+    if (!chit) {
+      throw notFound('Chit not found');
+    }
+
+    const member = chit.members.find((m) => m.bidderId.toString() === bidderId);
+    if (!member) {
+      throw notFound('Member not found on this chit');
+    }
+
+    member.numberOfTickets = input.numberOfTickets;
+    await chit.save();
+
+    const populated = await Chit.findById(chit._id)
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    return toChitDto(
+      (populated ?? chit) as unknown as IChitDocument,
+      { includeMembers: true, actor }
+    );
+  }
+
+  async removeMember(actor: JwtPayload, chitId: string, bidderId: string) {
+    const chit = await Chit.findOne(buildScopedChitByIdFilter(actor, chitId));
+    if (!chit) {
+      throw notFound('Chit not found');
+    }
+
+    const before = chit.members.length;
+    chit.members = chit.members.filter(
+      (m) => m.bidderId.toString() !== bidderId
+    );
+    if (chit.members.length === before) {
+      throw notFound('Member not found on this chit');
+    }
+
+    await chit.save();
+
+    const populated = await Chit.findById(chit._id)
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    return toChitDto(
+      (populated ?? chit) as unknown as IChitDocument,
+      { includeMembers: true, actor }
+    );
+  }
+
+  /**
+   * Bidder self-join: add self as member on an active chit with spare capacity.
+   * Chit must be visible as open (active, not deleted) — not scoped to membership yet.
+   */
+  async joinAsBidder(
+    actor: JwtPayload,
+    chitId: string,
+    input: { numberOfTickets?: number }
+  ) {
+    if (actor.role !== USER_ROLES.BIDDER) {
+      throw badRequest('Only bidders can self-join a chit');
+    }
+
+    const chit = await Chit.findOne({
+      _id: new Types.ObjectId(chitId),
+      status: CHIT_STATUS.ACTIVE,
+    });
+    if (!chit) {
+      throw notFound('Chit not found or not open for joining');
+    }
+
+    const exists = chit.members.some(
+      (m) => m.bidderId.toString() === actor.sub
+    );
+    if (exists) {
+      throw conflict('You are already a member of this chit');
+    }
+
+    if (chit.members.length >= chit.maxBidders) {
+      throw badRequest('This chit is full');
+    }
+
+    const built = await validateAndBuildMembers(
+      [
+        {
+          bidderId: actor.sub,
+          numberOfTickets: input.numberOfTickets ?? 1,
+        },
+      ],
+      chit.maxBidders
+    );
+    chit.members.push(built[0]);
+    await chit.save();
+
+    const populated = await Chit.findById(chit._id)
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    return toChitDto(
+      (populated ?? chit) as unknown as IChitDocument,
+      { includeMembers: true, actor }
+    );
   }
 }
 

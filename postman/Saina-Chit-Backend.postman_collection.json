@@ -16,29 +16,106 @@
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:4000" },
-    { "key": "apiVersion", "value": "v1" },
-    { "key": "apiBase", "value": "{{baseUrl}}/api/{{apiVersion}}" },
-    { "key": "accessToken", "value": "" },
-    { "key": "refreshToken", "value": "" },
-    { "key": "countryCode", "value": "+91" },
-    { "key": "mockOtp", "value": "123456" },
-    { "key": "superAdminPhone", "value": "9999999999" },
-    { "key": "superAdminAadhaar", "value": "123456789012" },
-    { "key": "branchStorePhone", "value": "9888888881" },
-    { "key": "branchStoreAadhaar", "value": "111111111111" },
-    { "key": "agentPhone", "value": "9888888882" },
-    { "key": "agentAadhaar", "value": "222222222222" },
-    { "key": "bidderPhone", "value": "9888888883" },
-    { "key": "bidderAadhaar", "value": "333333333333" },
-    { "key": "signupAadhaar", "value": "354136431636" },
-    { "key": "signupPhone", "value": "9876543210" },
-    { "key": "signupSessionId", "value": "" },
-    { "key": "digilockerState", "value": "" },
-    { "key": "chitId", "value": "" },
-    { "key": "agentId", "value": "" },
-    { "key": "bidderId", "value": "" },
-    { "key": "userId", "value": "" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "apiVersion",
+      "value": "v1"
+    },
+    {
+      "key": "apiBase",
+      "value": "{{baseUrl}}/api/{{apiVersion}}"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "countryCode",
+      "value": "+91"
+    },
+    {
+      "key": "mockOtp",
+      "value": "123456"
+    },
+    {
+      "key": "superAdminPhone",
+      "value": "9999999999"
+    },
+    {
+      "key": "superAdminAadhaar",
+      "value": "123456789012"
+    },
+    {
+      "key": "branchStorePhone",
+      "value": "9888888881"
+    },
+    {
+      "key": "branchStoreAadhaar",
+      "value": "111111111111"
+    },
+    {
+      "key": "agentPhone",
+      "value": "9888888882"
+    },
+    {
+      "key": "agentAadhaar",
+      "value": "222222222222"
+    },
+    {
+      "key": "bidderPhone",
+      "value": "9888888883"
+    },
+    {
+      "key": "bidderAadhaar",
+      "value": "333333333333"
+    },
+    {
+      "key": "signupAadhaar",
+      "value": "354136431636"
+    },
+    {
+      "key": "signupPhone",
+      "value": "9876543210"
+    },
+    {
+      "key": "signupSessionId",
+      "value": ""
+    },
+    {
+      "key": "digilockerState",
+      "value": ""
+    },
+    {
+      "key": "chitId",
+      "value": ""
+    },
+    {
+      "key": "agentId",
+      "value": ""
+    },
+    {
+      "key": "bidderId",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "branchStoreId",
+      "value": ""
+    },
+    {
+      "key": "auctionRoundId",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -47,13 +124,19 @@
         {
           "name": "Health Check",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             },
             "description": "Server liveness check. No authentication required."
           },
@@ -71,17 +154,30 @@
             {
               "name": "Request OTP",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{superAdminPhone}}\",\n  \"aadhaarNumber\": \"{{superAdminAadhaar}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/super-admin/request-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "super-admin", "request-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "super-admin",
+                    "request-otp"
+                  ]
                 }
               },
               "response": []
@@ -112,17 +208,30 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{superAdminPhone}}\",\n  \"aadhaarNumber\": \"{{superAdminAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/super-admin/verify-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "super-admin", "verify-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "super-admin",
+                    "verify-otp"
+                  ]
                 }
               },
               "response": []
@@ -151,17 +260,30 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{superAdminPhone}}\",\n  \"aadhaarNumber\": \"{{superAdminAadhaar}}\",\n  \"totp\": \"123456\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/super-admin/verify-2fa",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "super-admin", "verify-2fa"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "super-admin",
+                    "verify-2fa"
+                  ]
                 },
                 "description": "Use after request-otp returns requires2fa=true."
               },
@@ -175,17 +297,30 @@
             {
               "name": "Request OTP (admin slug)",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{branchStorePhone}}\",\n  \"aadhaarNumber\": \"{{branchStoreAadhaar}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/admin/request-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "admin", "request-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "admin",
+                    "request-otp"
+                  ]
                 },
                 "description": "FE-compatible alias slug `admin` → internal role `branch_store`."
               },
@@ -215,17 +350,30 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{branchStorePhone}}\",\n  \"aadhaarNumber\": \"{{branchStoreAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/admin/verify-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "admin", "verify-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "admin",
+                    "verify-otp"
+                  ]
                 }
               },
               "response": []
@@ -233,17 +381,30 @@
             {
               "name": "Request OTP (branch-store slug)",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{branchStorePhone}}\",\n  \"aadhaarNumber\": \"{{branchStoreAadhaar}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/branch-store/request-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "branch-store", "request-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "branch-store",
+                    "request-otp"
+                  ]
                 }
               },
               "response": []
@@ -272,17 +433,30 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{branchStorePhone}}\",\n  \"aadhaarNumber\": \"{{branchStoreAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/branch-store/verify-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "branch-store", "verify-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "branch-store",
+                    "verify-otp"
+                  ]
                 }
               },
               "response": []
@@ -295,17 +469,30 @@
             {
               "name": "Request OTP",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{agentPhone}}\",\n  \"aadhaarNumber\": \"{{agentAadhaar}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/agent/request-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "agent", "request-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "agent",
+                    "request-otp"
+                  ]
                 }
               },
               "response": []
@@ -334,17 +521,30 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{agentPhone}}\",\n  \"aadhaarNumber\": \"{{agentAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/agent/verify-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "agent", "verify-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "agent",
+                    "verify-otp"
+                  ]
                 }
               },
               "response": []
@@ -357,17 +557,30 @@
             {
               "name": "Request OTP",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{bidderPhone}}\",\n  \"aadhaarNumber\": \"{{bidderAadhaar}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/request-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "request-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "request-otp"
+                  ]
                 }
               },
               "response": []
@@ -396,17 +609,30 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{bidderPhone}}\",\n  \"aadhaarNumber\": \"{{bidderAadhaar}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/verify-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "verify-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "verify-otp"
+                  ]
                 }
               },
               "response": []
@@ -423,8 +649,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/auth/me",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "me"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "me"
+                  ]
                 },
                 "description": "Requires Bearer access token. Returns profile, permissions, and redirectTo."
               },
@@ -454,17 +685,29 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/refresh",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "refresh"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "refresh"
+                  ]
                 },
                 "description": "Rotates refresh token and returns a new access + refresh pair. Reusing an old refresh token revokes the session family."
               },
@@ -477,8 +720,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/auth/logout",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "logout"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout"
+                  ]
                 },
                 "description": "Revokes the current refresh session (sid from access JWT). Discard both tokens on the client."
               },
@@ -491,8 +739,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/auth/logout-all",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "logout-all"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "logout-all"
+                  ]
                 },
                 "description": "Revokes every refresh session for the user (stolen-device recovery)."
               },
@@ -529,17 +782,32 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"aadhaarNumber\": \"{{signupAadhaar}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/register/aadhaar/request-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "register", "aadhaar", "request-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "register",
+                    "aadhaar",
+                    "request-otp"
+                  ]
                 },
                 "description": "12-digit Aadhaar only. Returns sessionId + maskedPhone. Dev includes mockOtpHint."
               },
@@ -548,17 +816,32 @@
             {
               "name": "2. Resend Aadhaar OTP",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/register/aadhaar/resend-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "register", "aadhaar", "resend-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "register",
+                    "aadhaar",
+                    "resend-otp"
+                  ]
                 }
               },
               "response": []
@@ -566,17 +849,32 @@
             {
               "name": "3. Verify Aadhaar OTP",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/register/aadhaar/verify-otp",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "register", "aadhaar", "verify-otp"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "register",
+                    "aadhaar",
+                    "verify-otp"
+                  ]
                 },
                 "description": "Seals read-only KYC profile on the session."
               },
@@ -612,13 +910,23 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/register/digilocker/start",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "register", "digilocker", "start"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "register",
+                    "digilocker",
+                    "start"
+                  ]
                 },
                 "description": "Returns sessionId + authorizationUrl. Mock URL already includes code=mock-digilocker-code."
               },
@@ -627,18 +935,37 @@
             {
               "name": "2. DigiLocker Callback (JSON)",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "GET",
                 "header": [
-                  { "key": "Accept", "value": "application/json" }
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
                 ],
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/register/digilocker/callback?code=mock-digilocker-code&state={{digilockerState}}",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "register", "digilocker", "callback"],
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "register",
+                    "digilocker",
+                    "callback"
+                  ],
                   "query": [
-                    { "key": "code", "value": "mock-digilocker-code" },
-                    { "key": "state", "value": "{{digilockerState}}" }
+                    {
+                      "key": "code",
+                      "value": "mock-digilocker-code"
+                    },
+                    {
+                      "key": "state",
+                      "value": "{{digilockerState}}"
+                    }
                   ]
                 },
                 "description": "Send Accept: application/json to get sealed profile instead of browser redirect."
@@ -653,13 +980,23 @@
             {
               "name": "Get Signup Session",
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "GET",
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/register/session/{{signupSessionId}}",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "register", "session", "{{signupSessionId}}"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "register",
+                    "session",
+                    "{{signupSessionId}}"
+                  ]
                 }
               },
               "response": []
@@ -690,17 +1027,31 @@
                 }
               ],
               "request": {
-                "auth": { "type": "noauth" },
+                "auth": {
+                  "type": "noauth"
+                },
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{signupPhone}}\",\n  \"currentAddress\": \"12, Indiranagar, Bengaluru\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/auth/bidder/register/complete",
-                  "host": ["{{apiBase}}"],
-                  "path": ["auth", "bidder", "register", "complete"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "bidder",
+                    "register",
+                    "complete"
+                  ]
                 },
                 "description": "Creates bidder from sealed KYC + phone/currentAddress. Returns JWT (auto-login)."
               },
@@ -734,17 +1085,32 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"aadhaarNumber\": \"{{signupAadhaar}}\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/agent/register/aadhaar/request-otp",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "agent", "register", "aadhaar", "request-otp"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "agent",
+                "register",
+                "aadhaar",
+                "request-otp"
+              ]
             }
           },
           "response": []
@@ -752,17 +1118,32 @@
         {
           "name": "2. Verify Aadhaar OTP",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\",\n  \"otp\": \"{{mockOtp}}\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/agent/register/aadhaar/verify-otp",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "agent", "register", "aadhaar", "verify-otp"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "agent",
+                "register",
+                "aadhaar",
+                "verify-otp"
+              ]
             }
           },
           "response": []
@@ -791,17 +1172,31 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"sessionId\": \"{{signupSessionId}}\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9876502222\",\n  \"currentAddress\": \"Agent address\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/agent/register/complete",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "agent", "register", "complete"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "agent",
+                "register",
+                "complete"
+              ]
             }
           },
           "response": []
@@ -818,8 +1213,13 @@
             "method": "GET",
             "url": {
               "raw": "{{apiBase}}/auth/security",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security"
+              ]
             },
             "description": "Returns inactivityMinutes and methods with allowed/enabled flags."
           },
@@ -829,15 +1229,25 @@
           "name": "Enable TOTP (start)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"method\": \"totp\",\n  \"enabled\": true\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/security",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security"
+              ]
             },
             "description": "Returns QR / secret. Confirm with Enable TOTP (confirm)."
           },
@@ -847,15 +1257,25 @@
           "name": "Enable TOTP (confirm)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"method\": \"totp\",\n  \"enabled\": true,\n  \"totp\": \"123456\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/security",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security"
+              ]
             }
           },
           "response": []
@@ -864,15 +1284,25 @@
           "name": "Enable Screen Lock",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"method\": \"screen_lock\",\n  \"enabled\": true,\n  \"pin\": \"1234\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/security",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security"
+              ]
             }
           },
           "response": []
@@ -881,15 +1311,25 @@
           "name": "Disable Screen Lock",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"method\": \"screen_lock\",\n  \"enabled\": false,\n  \"pin\": \"1234\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/security",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security"
+              ]
             }
           },
           "response": []
@@ -898,15 +1338,25 @@
           "name": "Enable Biometric (start)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"method\": \"biometric\",\n  \"enabled\": true\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/security",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security"
+              ]
             },
             "description": "Returns webauthnOptions. Complete with enabled:true + webauthnResponse."
           },
@@ -916,15 +1366,26 @@
           "name": "Unlock with PIN",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"method\": \"pin\",\n  \"pin\": \"1234\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/security/unlock",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security", "unlock"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security",
+                "unlock"
+              ]
             }
           },
           "response": []
@@ -933,15 +1394,26 @@
           "name": "Unlock with TOTP",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"method\": \"totp\",\n  \"totp\": \"123456\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/security/unlock",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security", "unlock"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security",
+                "unlock"
+              ]
             }
           },
           "response": []
@@ -950,15 +1422,26 @@
           "name": "Unlock with Biometric (start)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"method\": \"biometric\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/auth/security/unlock",
-              "host": ["{{apiBase}}"],
-              "path": ["auth", "security", "unlock"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "auth",
+                "security",
+                "unlock"
+              ]
             },
             "description": "Returns webauthnOptions when webauthnResponse is omitted."
           },
@@ -977,8 +1460,13 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/super-admin/permissions",
-              "host": ["{{apiBase}}"],
-              "path": ["super-admin", "permissions"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "super-admin",
+                "permissions"
+              ]
             }
           },
           "response": []
@@ -990,19 +1478,47 @@
               "name": "Create Branch Store User",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"name\": \"Branch Store Manager\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888891\",\n  \"aadhaarNumber\": \"444444444444\",\n  \"permissions\": [\n    \"agents:read\",\n    \"bidders:read\",\n    \"bidders:write\",\n    \"chits:read\",\n    \"chits:write\",\n    \"reports:read\"\n  ]\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/super-admin/branch-stores",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "branch-stores"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "branch-stores"
+                  ]
                 },
                 "description": "Requires manager tier or full (`*`) permission."
               },
-              "response": []
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.id) {",
+                      "        pm.environment.set('branchStoreId', json.data.id);",
+                      "        pm.collectionVariables.set('branchStoreId', json.data.id);",
+                      "        console.log('branchStoreId saved:', json.data.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
             },
             {
               "name": "List Branch Store Users",
@@ -1011,8 +1527,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/super-admin/branch-stores",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "branch-stores"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "branch-stores"
+                  ]
                 }
               },
               "response": []
@@ -1021,18 +1542,46 @@
               "name": "Create Branch Store (deprecated /admins alias)",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"name\": \"Legacy Admin Alias Test\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888892\",\n  \"aadhaarNumber\": \"555555555555\",\n  \"permissions\": [\"bidders:read\", \"reports:read\"]\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/super-admin/admins",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "admins"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "admins"
+                  ]
                 }
               },
-              "response": []
+              "response": [],
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "if (pm.response.code === 201) {",
+                      "    const json = pm.response.json();",
+                      "    if (json.data && json.data.id) {",
+                      "        pm.environment.set('branchStoreId', json.data.id);",
+                      "        pm.collectionVariables.set('branchStoreId', json.data.id);",
+                      "        console.log('branchStoreId saved:', json.data.id);",
+                      "    }",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ]
             },
             {
               "name": "List Branch Stores (deprecated /admins alias)",
@@ -1041,8 +1590,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/super-admin/admins",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "admins"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "admins"
+                  ]
                 }
               },
               "response": []
@@ -1056,15 +1610,25 @@
               "name": "Create Agent",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"name\": \"New Agent\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888893\",\n  \"aadhaarNumber\": \"666666666666\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/super-admin/agents",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "agents"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "agents"
+                  ]
                 },
                 "description": "Permissions are auto-assigned from AGENT_DEFAULT."
               },
@@ -1077,8 +1641,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/super-admin/agents",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "agents"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "agents"
+                  ]
                 }
               },
               "response": []
@@ -1092,15 +1661,25 @@
               "name": "Create Bidder",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"name\": \"New Bidder\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888894\",\n  \"aadhaarNumber\": \"777777777777\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/super-admin/bidders",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "bidders"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "bidders"
+                  ]
                 }
               },
               "response": []
@@ -1112,8 +1691,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/super-admin/bidders",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "bidders"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "bidders"
+                  ]
                 }
               },
               "response": []
@@ -1127,15 +1711,25 @@
               "name": "Create Super Admin Staff",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"name\": \"Platform Editor\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888895\",\n  \"aadhaarNumber\": \"888888888888\",\n  \"tier\": \"editor\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/super-admin/staff",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "staff"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "staff"
+                  ]
                 },
                 "description": "Requires full (`*`) permission. Tier: `full` | `manager` | `editor`."
               },
@@ -1148,8 +1742,13 @@
                 "header": [],
                 "url": {
                   "raw": "{{apiBase}}/super-admin/staff",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "staff"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "staff"
+                  ]
                 }
               },
               "response": []
@@ -1163,15 +1762,27 @@
               "name": "Block User",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"reason\": \"Policy violation — manual block by super admin\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/super-admin/users/{{userId}}/block",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "users", "{{userId}}", "block"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "users",
+                    "{{userId}}",
+                    "block"
+                  ]
                 },
                 "description": "Requires manager tier or `*`. Set `{{userId}}` from List Agents / Bidders / Branch Stores. Revokes all sessions immediately. Blocked users cannot login (403 `ACCOUNT_BLOCKED` with reason)."
               },
@@ -1181,15 +1792,27 @@
               "name": "Unblock User",
               "request": {
                 "method": "POST",
-                "header": [{ "key": "Content-Type", "value": "application/json" }],
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
                 "body": {
                   "mode": "raw",
                   "raw": "{\n  \"reason\": \"Issue resolved — account restored by super admin\"\n}"
                 },
                 "url": {
                   "raw": "{{apiBase}}/super-admin/users/{{userId}}/unblock",
-                  "host": ["{{apiBase}}"],
-                  "path": ["super-admin", "users", "{{userId}}", "unblock"]
+                  "host": [
+                    "{{apiBase}}"
+                  ],
+                  "path": [
+                    "super-admin",
+                    "users",
+                    "{{userId}}",
+                    "unblock"
+                  ]
                 },
                 "description": "Requires manager tier or `*`. Restores `status` to `active`. Reason is stored for audit."
               },
@@ -1201,7 +1824,7 @@
     },
     {
       "name": "Branch Store",
-      "description": "Requires Branch Store token. Login via **Auth → Branch Store** first.",
+      "description": "Peer operator APIs. Requires Branch Store token (SA-provisioned; no self-signup). Login via **Auth → Branch Store** first.\n\nChits use shared `/chits` (branch-owned create needs no agentId).",
       "item": [
         {
           "name": "Health",
@@ -1210,8 +1833,13 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/branch-store/health",
-              "host": ["{{apiBase}}"],
-              "path": ["branch-store", "health"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "branch-store",
+                "health"
+              ]
             }
           },
           "response": []
@@ -1223,10 +1851,172 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/branch-store/agents",
-              "host": ["{{apiBase}}"],
-              "path": ["branch-store", "agents"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "branch-store",
+                "agents"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "blocked",
+                  "disabled": true
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
             },
-            "description": "Agents created by this branch store. Requires `agents:read`. Used for chit create agent picker."
+            "description": "Optional convenience: agents created by this branch. Requires `agents:read`. Not required for peer chit ownership."
+          },
+          "response": []
+        },
+        {
+          "name": "List Branch Bidders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/branch-store/bidders?page=1&limit=20",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "branch-store",
+                "bidders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Bidders created by this branch and/or members of its chits. Requires `bidders:read`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Branch Bidder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/branch-store/bidders",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "branch-store",
+                "bidders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Branch Provisioned Bidder\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888811\",\n  \"aadhaarNumber\": \"555555555555\"\n}"
+            },
+            "description": "Create bidder with `createdBy` = branch. Requires `bidders:write`. Saves `{{bidderId}}`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.environment.set('bidderId', json.data.id);",
+                  "        pm.collectionVariables.set('bidderId', json.data.id);",
+                  "        console.log('bidderId saved:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Block Branch Bidder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/branch-store/bidders/{{bidderId}}/block",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "branch-store",
+                "bidders",
+                "{{bidderId}}",
+                "block"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Payment default — operator block\"\n}"
+            },
+            "description": "Only bidders created by this branch. Requires `bidders:write`."
+          },
+          "response": []
+        },
+        {
+          "name": "Unblock Branch Bidder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/branch-store/bidders/{{bidderId}}/unblock",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "branch-store",
+                "bidders",
+                "{{bidderId}}",
+                "unblock"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Issue resolved — restoring access\"\n}"
+            },
+            "description": "Requires `bidders:write`."
           },
           "response": []
         }
@@ -1234,7 +2024,7 @@
     },
     {
       "name": "Agent",
-      "description": "Requires Agent token. Login via **Auth → Agent** first.",
+      "description": "Peer operator APIs. Requires Agent token (self-signup or SA create). Login via **Auth → Agent** first.\n\nChits use shared `/chits`.",
       "item": [
         {
           "name": "Health",
@@ -1243,8 +2033,157 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/agent/health",
-              "host": ["{{apiBase}}"],
-              "path": ["agent", "health"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "agent",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Agent Bidders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/agent/bidders?page=1&limit=20",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "agent",
+                "bidders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Bidders created by this agent and/or members of its chits. Requires `bidders:read`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Agent Bidder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/agent/bidders",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "agent",
+                "bidders"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Agent Provisioned Bidder\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"9888888812\",\n  \"aadhaarNumber\": \"666666666666\"\n}"
+            },
+            "description": "Create bidder with `createdBy` = agent. Requires `bidders:write`. Saves `{{bidderId}}`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.environment.set('bidderId', json.data.id);",
+                  "        pm.collectionVariables.set('bidderId', json.data.id);",
+                  "        console.log('bidderId saved:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Block Agent Bidder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/agent/bidders/{{bidderId}}/block",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "agent",
+                "bidders",
+                "{{bidderId}}",
+                "block"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Payment default — operator block\"\n}"
+            },
+            "description": "Only bidders created by this agent. Requires `bidders:write`."
+          },
+          "response": []
+        },
+        {
+          "name": "Unblock Agent Bidder",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/agent/bidders/{{bidderId}}/unblock",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "agent",
+                "bidders",
+                "{{bidderId}}",
+                "unblock"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Issue resolved — restoring access\"\n}"
             }
           },
           "response": []
@@ -1253,7 +2192,7 @@
     },
     {
       "name": "Bidder",
-      "description": "Requires Bidder token. Login via **Auth → Bidder** first.",
+      "description": "Bidder portal. Login via **Auth → Bidder**. Use **Join Chit** for self-join; assigned chits under **Chits**.",
       "item": [
         {
           "name": "Health",
@@ -1262,9 +2201,44 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/bidder/health",
-              "host": ["{{apiBase}}"],
-              "path": ["bidder", "health"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bidder",
+                "health"
+              ]
             }
+          },
+          "response": []
+        },
+        {
+          "name": "Join Chit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/bidder/chits/{{chitId}}/join",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "bidder",
+                "chits",
+                "{{chitId}}",
+                "join"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numberOfTickets\": 1\n}"
+            },
+            "description": "Self-join an active chit with spare capacity. Requires `chits:read`."
           },
           "response": []
         }
@@ -1272,7 +2246,7 @@
     },
     {
       "name": "Chits",
-      "description": "Shared chit APIs at `/chits`.\n\n**Read** (`chits:read`): super_admin | branch_store | agent | bidder\n**Write** (`chits:write`): super_admin | branch_store | agent only\n\nBidder sees only chits where they are in `members[]` (own membership row only in detail).\n\n**Flow:**\n1. Login as Agent — create does not need `agentId`\n2. Or Super Admin / Branch Store + set `{{agentId}}`\n3. Attach bidder via `members` on create; bidder then reads with Bidder token\n4. Create Chit auto-saves `{{chitId}}`",
+      "description": "Shared chit APIs at `/chits`.\n\n**Read** (`chits:read`): super_admin | branch_store | agent | bidder\n**Write** (`chits:write`): super_admin | branch_store | agent only\n\n**Peer ownership:**\n- Agent create → `agentId=self`, no body agentId needed\n- Branch create → `branchStoreId=self`, **no agentId**\n- Super Admin create → pass `agentId` **or** `branchStoreId`\n\nIncremental members: POST/PATCH/DELETE `/chits/:id/members`\n\nBidder sees only chits where they are in `members[]`.",
       "item": [
         {
           "name": "List Chits",
@@ -1281,16 +2255,55 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/chits?page=1&limit=20",
-              "host": ["{{apiBase}}"],
-              "path": ["chits"],
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" },
-                { "key": "amountInLakhs", "value": "5", "disabled": true },
-                { "key": "status", "value": "active", "disabled": true },
-                { "key": "agentId", "value": "{{agentId}}", "disabled": true, "description": "Super admin / branch store only" },
-                { "key": "q", "value": "", "disabled": true, "description": "Search by chitCode" },
-                { "key": "includeDeleted", "value": "true", "disabled": true, "description": "Super admin only" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "amountInLakhs",
+                  "value": "5",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "disabled": true
+                },
+                {
+                  "key": "agentId",
+                  "value": "{{agentId}}",
+                  "disabled": true,
+                  "description": "Super admin only"
+                },
+                {
+                  "key": "q",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Search by chitCode"
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Super admin only"
+                },
+                {
+                  "key": "branchStoreId",
+                  "value": "{{branchStoreId}}",
+                  "disabled": true,
+                  "description": "Super admin only"
+                }
               ]
             },
             "description": "Scoped list. Agent sees own chits; branch store sees branch chits; super admin sees all."
@@ -1304,11 +2317,32 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/chits/summary",
-              "host": ["{{apiBase}}"],
-              "path": ["chits", "summary"],
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "summary"
+              ],
               "query": [
-                { "key": "agentId", "value": "{{agentId}}", "disabled": true, "description": "Super admin / branch store only" },
-                { "key": "includeDeleted", "value": "true", "disabled": true, "description": "Super admin only" }
+                {
+                  "key": "agentId",
+                  "value": "{{agentId}}",
+                  "disabled": true,
+                  "description": "Super admin only"
+                },
+                {
+                  "key": "includeDeleted",
+                  "value": "true",
+                  "disabled": true,
+                  "description": "Super admin only"
+                },
+                {
+                  "key": "branchStoreId",
+                  "value": "{{branchStoreId}}",
+                  "disabled": true,
+                  "description": "Super admin only"
+                }
               ]
             },
             "description": "Dashboard tier aggregates: `{ amountInLakhs, chitCount, bidderCount }`."
@@ -1322,8 +2356,13 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/chits/{{chitId}}",
-              "host": ["{{apiBase}}"],
-              "path": ["chits", "{{chitId}}"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}"
+              ]
             },
             "description": "Detail + members. Requires `{{chitId}}` from Create or List."
           },
@@ -1351,22 +2390,31 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"type\": \"agent_chit\",\n  \"amountInLakhs\": 5,\n  \"govtBettingAmount\": 10000,\n  \"monthlyInstallment\": 5000,\n  \"maxBidders\": 5,\n  \"totalMonths\": 20,\n  \"govtBettingUnits\": 2,\n  \"startDate\": \"2026-10-01\"\n}"
             },
             "url": {
               "raw": "{{apiBase}}/chits",
-              "host": ["{{apiBase}}"],
-              "path": ["chits"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits"
+              ]
             },
             "description": "Login as **Agent** first. `agentId` is forced to the logged-in agent. Auto-generates `chitCode`. Saves `{{chitId}}` on success."
           },
           "response": []
         },
         {
-          "name": "Create Chit (as Super Admin / Branch)",
+          "name": "Create Chit (as Branch Store)",
           "event": [
             {
               "listen": "test",
@@ -1387,17 +2435,414 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"agent_chit\",\n  \"amountInLakhs\": 5,\n  \"govtBettingAmount\": 10000,\n  \"monthlyInstallment\": 5000,\n  \"maxBidders\": 5,\n  \"totalMonths\": 20,\n  \"govtBettingUnits\": 2,\n  \"startDate\": \"2026-10-01\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/chits",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits"
+              ]
+            },
+            "description": "Login as **Branch Store**. Ownership is forced to `branchStoreId=self`; **do not** send `agentId`. Saves `{{chitId}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Chit (as Super Admin for Agent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.environment.set('chitId', json.data.id);",
+                  "        pm.collectionVariables.set('chitId', json.data.id);",
+                  "        console.log('chitId saved:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"type\": \"auction_chit\",\n  \"amountInLakhs\": 10,\n  \"govtBettingAmount\": 15000,\n  \"monthlyInstallment\": 5500,\n  \"maxBidders\": 5,\n  \"totalMonths\": 20,\n  \"govtBettingUnits\": 3,\n  \"startDate\": \"2026-10-01\",\n  \"agentId\": \"{{agentId}}\",\n  \"members\": [\n    {\n      \"bidderId\": \"{{bidderId}}\",\n      \"numberOfTickets\": 1\n    }\n  ]\n}"
             },
             "url": {
               "raw": "{{apiBase}}/chits",
-              "host": ["{{apiBase}}"],
-              "path": ["chits"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits"
+              ]
             },
-            "description": "Requires `{{agentId}}`. Branch store may only use agents they created. Optional `members` need real `{{bidderId}}` (active bidder). Remove the members array if you have no bidder id yet."
+            "description": "Login as **Super Admin**. Pass `agentId` **or** `branchStoreId` (XOR). Optional `members`. Saves `{{chitId}}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Chit (as Super Admin for Branch)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.data && json.data.id) {",
+                  "        pm.environment.set('chitId', json.data.id);",
+                  "        pm.collectionVariables.set('chitId', json.data.id);",
+                  "        console.log('chitId saved:', json.data.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"auction_chit\",\n  \"amountInLakhs\": 8,\n  \"govtBettingAmount\": 12000,\n  \"monthlyInstallment\": 5200,\n  \"maxBidders\": 5,\n  \"totalMonths\": 20,\n  \"govtBettingUnits\": 2,\n  \"startDate\": \"2026-10-01\",\n  \"branchStoreId\": \"{{branchStoreId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{apiBase}}/chits",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits"
+              ]
+            },
+            "description": "Login as **Super Admin**. Assign ownership with `branchStoreId` (omit `agentId`). Set `{{branchStoreId}}` from Create Branch Store response."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Chit Member",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/members",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "members"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bidderId\": \"{{bidderId}}\",\n  \"numberOfTickets\": 1\n}"
+            },
+            "description": "Incremental add. Requires `chits:write`."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Chit Member",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/members/{{bidderId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "members",
+                "{{bidderId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"numberOfTickets\": 2\n}"
+            },
+            "description": "Update ticket count for one member. Requires `chits:write`."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Chit Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/members/{{bidderId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "members",
+                "{{bidderId}}"
+              ]
+            },
+            "description": "Remove one member. Requires `chits:write`."
+          },
+          "response": []
+        },
+        {
+          "name": "List Installments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/installments?page=1&limit=50",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "installments"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "bidderId",
+                  "value": "{{bidderId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "paid",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Operators see all; bidder sees own installments only."
+          },
+          "response": []
+        },
+        {
+          "name": "Record Installment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/installments",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "installments"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bidderId\": \"{{bidderId}}\",\n  \"monthNumber\": 1,\n  \"amount\": 5000,\n  \"status\": \"paid\"\n}"
+            },
+            "description": "Operator records payment for a chit member. Requires `chits:write`."
+          },
+          "response": []
+        },
+        {
+          "name": "List Auction Rounds",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/auction-rounds",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "auction-rounds"
+              ]
+            },
+            "description": "Only meaningful for `auction_chit` type."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Auction Round",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/auction-rounds",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "auction-rounds"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roundNumber\": 1,\n  \"monthNumber\": 1,\n  \"opensAt\": \"2026-10-01T00:00:00.000Z\",\n  \"closesAt\": \"2026-10-07T23:59:59.000Z\"\n}"
+            },
+            "description": "Requires auction_chit. Saves `{{auctionRoundId}}`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data && json.data.id) {",
+                  "    pm.environment.set('auctionRoundId', json.data.id);",
+                  "    pm.collectionVariables.set('auctionRoundId', json.data.id);",
+                  "  }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Auction Round",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/auction-rounds/{{auctionRoundId}}",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "auction-rounds",
+                "{{auctionRoundId}}"
+              ]
+            },
+            "description": "Includes bids (bidder sees own bids only)."
+          },
+          "response": []
+        },
+        {
+          "name": "Place Bid",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/auction-rounds/{{auctionRoundId}}/bids",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "auction-rounds",
+                "{{auctionRoundId}}",
+                "bids"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 4500\n}"
+            },
+            "description": "Login as **Bidder** who is a member. Lowest amount typically wins on close."
+          },
+          "response": []
+        },
+        {
+          "name": "Close Auction Round",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/auction-rounds/{{auctionRoundId}}/close",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}",
+                "auction-rounds",
+                "{{auctionRoundId}}",
+                "close"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "description": "Operator closes round. Omit winner to auto-pick lowest bid."
           },
           "response": []
         },
@@ -1405,15 +2850,25 @@
           "name": "Update Chit",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"monthlyInstallment\": 5500,\n  \"maxBidders\": 5,\n  \"govtBettingAmount\": 12000\n}"
             },
             "url": {
               "raw": "{{apiBase}}/chits/{{chitId}}",
-              "host": ["{{apiBase}}"],
-              "path": ["chits", "{{chitId}}"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}"
+              ]
             },
             "description": "Partial update. Sending `members` replaces the full members list."
           },
@@ -1426,8 +2881,13 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/chits/{{chitId}}",
-              "host": ["{{apiBase}}"],
-              "path": ["chits", "{{chitId}}"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}"
+              ]
             },
             "description": "Soft-delete: sets `status` to `deleted`. Confirmation UI is client-side."
           },
@@ -1440,11 +2900,21 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/chits?page=1&limit=20",
-              "host": ["{{apiBase}}"],
-              "path": ["chits"],
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
               ]
             },
             "description": "Login as **Bidder** first. Returns only chits where this bidder is in `members[]`."
@@ -1458,8 +2928,13 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/chits/{{chitId}}",
-              "host": ["{{apiBase}}"],
-              "path": ["chits", "{{chitId}}"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "{{chitId}}"
+              ]
             },
             "description": "Login as **Bidder**. Detail includes only this bidder's membership row."
           },
@@ -1472,10 +2947,40 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/chits/summary",
-              "host": ["{{apiBase}}"],
-              "path": ["chits", "summary"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "chits",
+                "summary"
+              ]
             },
             "description": "Login as **Bidder**. Summary of assigned chits grouped by amount tier."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "description": "Scoped metrics. Requires `reports:read`. Super Admin sees user totals; operators see own chits/bidders.",
+      "item": [
+        {
+          "name": "Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/reports/overview",
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "reports",
+                "overview"
+              ]
+            },
+            "description": "Login as SA / Branch / Agent with `reports:read`."
           },
           "response": []
         }
@@ -1491,8 +2996,13 @@
             "header": [],
             "url": {
               "raw": "{{apiBase}}/admin/health",
-              "host": ["{{apiBase}}"],
-              "path": ["admin", "health"]
+              "host": [
+                "{{apiBase}}"
+              ],
+              "path": [
+                "admin",
+                "health"
+              ]
             },
             "description": "Alias of branch-store module. Requires Branch Store token."
           },

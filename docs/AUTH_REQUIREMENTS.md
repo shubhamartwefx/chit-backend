@@ -22,6 +22,9 @@ Corrected product rules for Saina Chit Funds (backend APIs).
 
 - **Bidder:** `/api/v1/auth/bidder/register/*` (Aadhaar OTP + DigiLocker mock)
 - **Agent:** `/api/v1/auth/agent/register/*` (same flow; creates `agent` with `AGENT_DEFAULT`)
+- **Branch store:** **no self-signup**. Branch accounts are provisioned only by Super Admin via `POST /super-admin/branch-stores`.
+
+Super Admin can also create agents and bidders via `/super-admin/agents` and `/super-admin/bidders`. Peer operators (branch / agent) can create bidders via `/branch-store/bidders` and `/agent/bidders`, and can block/unblock only bidders they created.
 
 ## Unified security APIs
 

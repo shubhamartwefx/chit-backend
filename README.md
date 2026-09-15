@@ -4,6 +4,17 @@ Saina Chit Funds API — Express + TypeScript + MongoDB (Mongoose).
 
 See **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** for architecture overview and **[docs/PERMISSIONS.md](./docs/PERMISSIONS.md)** for the RBAC permission matrix.
 
+## API docs (Swagger)
+
+With the server running (`npm run dev`):
+
+- **UI:** http://localhost:4000/api/docs  
+- **OpenAPI JSON:** http://localhost:4000/api/docs.json  
+
+1. Call **Auth → verify-otp** for a role (seed OTP `123456`)
+2. Click **Authorize** and paste `data.accessToken`
+3. Use **Try it out** on protected routes
+
 ## Quick start
 
 ```bash
@@ -17,7 +28,8 @@ npm run dev
 
 API: `http://localhost:4000`  
 Health: `GET /health`  
-API base: `/api/{API_VERSION}` (default `/api/v1`, set via `API_VERSION` in `.env`)
+API base: `/api/{API_VERSION}` (default `/api/v1`, set via `API_VERSION` in `.env`)  
+**Swagger UI:** [`http://localhost:4000/api/docs`](http://localhost:4000/api/docs) · OpenAPI JSON: `/api/docs.json`
 
 ## Scripts
 

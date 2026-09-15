@@ -59,10 +59,16 @@ Central catalog: [`src/config/constants/status-codes.ts`](../src/config/constant
 | `SCREEN_LOCK_UPDATED` | Screen lock settings updated |
 | `SCREEN_UNLOCKED` | Screen unlocked successfully |
 | `BIOMETRIC_UPDATED` | Biometric settings updated |
-| `BRANCH_STORE_CREATED` | Branch store user created successfully |
-| `AGENT_CREATED` | Agent created successfully |
-| `BIDDER_CREATED` | Bidder created successfully |
-| `STAFF_CREATED` | Super admin staff created successfully |
+| `CHIT_MEMBER_ADDED` | Chit member added successfully |
+| `CHIT_MEMBER_UPDATED` | Chit member updated successfully |
+| `CHIT_MEMBER_REMOVED` | Chit member removed successfully |
+| `INSTALLMENT_RECORDED` | Installment recorded successfully |
+| `AUCTION_ROUND_CREATED` | Auction round created successfully |
+| `AUCTION_ROUND_CLOSED` | Auction round closed successfully |
+| `BID_PLACED` | Bid placed successfully |
+| `CHIT_JOINED` | Joined chit successfully |
+| `USER_BLOCKED` | User blocked successfully |
+| `USER_UNBLOCKED` | User unblocked successfully |
 | `ROUTE_NOT_FOUND` | Route not found |
 
 ## Usage in code

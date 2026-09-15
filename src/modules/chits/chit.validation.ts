@@ -15,24 +15,61 @@ const memberInputSchema = z.object({
   numberOfTickets: z.coerce.number().int().min(1).max(100).default(1),
 });
 
-export const createChitSchema = z.object({
-  type: chitTypeSchema,
-  amountInLakhs: z.coerce.number().positive().max(1000),
-  govtBettingAmount: z.coerce.number().min(0),
-  monthlyInstallment: z.coerce.number().min(0),
-  maxBidders: z.coerce.number().int().min(1).max(500),
-  totalMonths: z.coerce.number().int().min(1).max(240),
-  govtBettingUnits: z.coerce.number().int().min(0).max(100),
-  startDate: z.coerce.date(),
-  agentId: objectIdSchema.optional(),
-  members: z.array(memberInputSchema).max(500).optional(),
-  completedMonths: z.coerce.number().int().min(0).optional(),
-  status: z
-    .enum([CHIT_STATUS.ACTIVE, CHIT_STATUS.COMPLETED, CHIT_STATUS.CANCELLED])
-    .optional(),
-});
+export const createChitSchema = z
+  .object({
+    type: chitTypeSchema,
+    amountInLakhs: z.coerce.number().positive().max(1000),
+    govtBettingAmount: z.coerce.number().min(0),
+    monthlyInstallment: z.coerce.number().min(0),
+    maxBidders: z.coerce.number().int().min(1).max(500),
+    totalMonths: z.coerce.number().int().min(1).max(240),
+    govtBettingUnits: z.coerce.number().int().min(0).max(100),
+    startDate: z.coerce.date(),
+    /** Super-admin: assign to an agent operator (XOR with branchStoreId). */
+    agentId: objectIdSchema.optional(),
+    /** Super-admin: assign to a branch operator (XOR with agentId). */
+    branchStoreId: objectIdSchema.optional(),
+    members: z.array(memberInputSchema).max(500).optional(),
+    completedMonths: z.coerce.number().int().min(0).optional(),
+    status: z
+      .enum([CHIT_STATUS.ACTIVE, CHIT_STATUS.COMPLETED, CHIT_STATUS.CANCELLED])
+      .optional(),
+  })
+  .refine(
+    (data) => !(data.agentId && data.branchStoreId),
+    {
+      message: 'Provide either agentId or branchStoreId, not both',
+      path: ['agentId'],
+    }
+  );
 
 export type CreateChitInput = z.infer<typeof createChitSchema>;
+
+export const addChitMemberSchema = z.object({
+  bidderId: objectIdSchema,
+  numberOfTickets: z.coerce.number().int().min(1).max(100).default(1),
+});
+
+export type AddChitMemberInput = z.infer<typeof addChitMemberSchema>;
+
+export const joinChitSchema = z.object({
+  numberOfTickets: z.coerce.number().int().min(1).max(100).default(1),
+});
+
+export type JoinChitInput = z.infer<typeof joinChitSchema>;
+
+export const updateChitMemberSchema = z.object({
+  numberOfTickets: z.coerce.number().int().min(1).max(100),
+});
+
+export type UpdateChitMemberInput = z.infer<typeof updateChitMemberSchema>;
+
+export const chitMemberParamsSchema = z.object({
+  id: objectIdSchema,
+  bidderId: objectIdSchema,
+});
+
+export type ChitMemberParams = z.infer<typeof chitMemberParamsSchema>;
 
 export const updateChitSchema = z
   .object({
@@ -68,6 +105,7 @@ export const listChitsQuerySchema = z.object({
     ])
     .optional(),
   agentId: objectIdSchema.optional(),
+  branchStoreId: objectIdSchema.optional(),
   includeDeleted: z
     .enum(['true', 'false'])
     .optional()
@@ -86,6 +124,7 @@ export type ChitIdParams = z.infer<typeof chitIdParamsSchema>;
 
 export const summaryQuerySchema = z.object({
   agentId: objectIdSchema.optional(),
+  branchStoreId: objectIdSchema.optional(),
   includeDeleted: z
     .enum(['true', 'false'])
     .optional()

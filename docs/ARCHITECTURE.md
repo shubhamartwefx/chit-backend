@@ -4,7 +4,8 @@
 
 **Stack:** Express.js · TypeScript · MongoDB (Mongoose)  
 **Frontend:** Next.js (`Chit_React_Next`)  
-**API base:** `/api/{API_VERSION}` (default `/api/v1`, configured via `API_VERSION` env)
+**API base:** `/api/{API_VERSION}` (default `/api/v1`, configured via `API_VERSION` env)  
+**Swagger UI:** `/api/docs` · OpenAPI JSON: `/api/docs.json`
 
 ---
 
@@ -50,9 +51,9 @@ flowchart LR
 | Role | Internal value | Login URL (FE) | Dashboard | Capabilities |
 |------|----------------|----------------|-----------|--------------|
 | **Super Admin** | `super_admin` | `/super-admin/login` | `/dashboard/*` | Tiered: `full` (`*`), `manager`, `editor` |
-| **Branch Store** | `branch_store` | `/admin/login` or `/branch-store/login` | `/admin-dashboard/*` | Subset of permissions assigned by Super Admin |
-| **Agent** | `agent` | `/agent/login` | `/agent-dashboard/*` | Fixed permission set (auto-assigned) |
-| **Bidder** | `bidder` | `/bidder/login` | `/Bidder-dashboard/*` | Fixed permission set (auto-assigned) |
+| **Branch Store** | `branch_store` | `/admin/login` or `/branch-store/login` | `/admin-dashboard/*` | Peer operator: own chits + bidders (permissions assigned by SA; **no self-signup**) |
+| **Agent** | `agent` | `/agent/login` | `/agent-dashboard/*` | Peer operator: own chits + bidders (fixed permission set; self-signup allowed) |
+| **Bidder** | `bidder` | `/bidder/login` | `/Bidder-dashboard/*` | Join/view assigned chits (fixed permission set; self-signup allowed) |
 
 See **[PERMISSIONS.md](./PERMISSIONS.md)** for the full permission matrix and route registry.
 
@@ -131,10 +132,14 @@ chit-backend/
 │   │   ├── otp/                 # OTP sessions + mock provider
 │   │   ├── chits/               # Shared chit CRUD (agent / branch / super-admin)
 │   │   ├── super-admin/         # Provisioning APIs + permission catalog
-│   │   ├── branch-store/        # Branch store APIs (scaffold)
+│   │   ├── branch-store/        # Branch peer-operator APIs (bidders + agents list)
 │   │   ├── admin/               # Deprecated alias module
-│   │   ├── agent/               # Agent-scoped APIs (scaffold)
-│   │   └── bidder/              # Bidder-scoped APIs (scaffold)
+│   │   ├── agent/               # Agent peer-operator APIs (bidders)
+│   │   ├── operator-bidders/    # Shared bidder list/create/block for branch + agent
+│   │   ├── installments/        # Chit installment payments
+│   │   ├── auctions/            # Auction rounds + bids for auction_chit
+│   │   ├── reports/             # Scoped overview metrics
+│   │   └── bidder/              # Bidder portal (join chit)
 │   ├── routes/                  # Route registry + registerRoutes(app)
 │   ├── server/                  # listenWithPortFallback
 │   ├── scripts/seed.ts
@@ -180,7 +185,15 @@ Hashed refresh tokens bound to a user + session family. Supports rotation and re
 
 ### Chit
 
-Shared domain collection for chit groups. Key fields: `chitCode` (unique), `type`, `amountInLakhs`, installment/months config, `agentId`, `branchStoreId`, `members[]` (bidder refs), soft-delete via `status: deleted`. Scoped reads/writes by role.
+Shared domain collection for chit groups. Peer operators (`agent` **or** `branch_store`) each own their chits:
+
+| Owner | `agentId` | `branchStoreId` |
+|-------|-----------|-----------------|
+| Agent | self | `null` |
+| Branch | `null` | self |
+| Super Admin create | exactly one of agent **or** branch | as chosen |
+
+Key fields: `chitCode` (unique), `type`, `amountInLakhs`, installment/months config, XOR ownership fields above, `members[]` (bidder refs), soft-delete via `status: deleted`. Scoped reads/writes by role.
 
 ### BidderSignupSession
 
@@ -214,17 +227,28 @@ See **[AUTH_REQUIREMENTS.md](./AUTH_REQUIREMENTS.md)** for role matrix.
 ### Chits (shared domain)
 
 Base: `/api/v1/chits` — read: `super_admin` | `branch_store` | `agent` | `bidder`; write: first three only.  
-Permissions: `chits:read` (list/get/summary), `chits:write` (create/update/delete).  
-Scoped by `agentId` / `branchStoreId` / `members.bidderId`; soft-delete via `status: deleted`. Bidders see only their assigned chits and own membership row in detail.
+Permissions: `chits:read` (list/get/summary), `chits:write` (create/update/delete/members).  
+**Peer ownership:** agent creates → owned by agent (`agentId=self`); branch creates → owned by branch (`branchStoreId=self`, no agent required); super admin must pass `agentId` **or** `branchStoreId`.  
+Clients use shared `/chits` only (no `/agent/chits` or `/branch-store/chits` aliases). Soft-delete via `status: deleted`. Bidders see only their assigned chits and own membership row in detail.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/chits` | List chits (scoped; filter by amount, status, agentId, q) |
+| GET | `/chits` | List chits (scoped; filter by amount, status, agentId/branchStoreId for SA, q) |
 | GET | `/chits/summary` | Aggregate counts by `amountInLakhs` (dashboard tiers) |
 | GET | `/chits/:id` | Chit detail + members |
 | POST | `/chits` | Create chit (auto `chitCode`; optional members) |
-| PATCH | `/chits/:id` | Update chit config / members |
+| PATCH | `/chits/:id` | Update chit config / full members replace |
 | DELETE | `/chits/:id` | Soft-delete chit |
+| POST | `/chits/:id/members` | Add one member (`bidderId`, `numberOfTickets`) |
+| PATCH | `/chits/:id/members/:bidderId` | Update member ticket count |
+| DELETE | `/chits/:id/members/:bidderId` | Remove member |
+| GET | `/chits/:id/installments` | List installment payments (bidder sees own only) |
+| POST | `/chits/:id/installments` | Record installment for a member (operators) |
+| GET | `/chits/:id/auction-rounds` | List auction rounds (`auction_chit` only) |
+| POST | `/chits/:id/auction-rounds` | Open a new auction round |
+| GET | `/chits/:id/auction-rounds/:roundId` | Round detail (+ bids; bidder sees own bids) |
+| POST | `/chits/:id/auction-rounds/:roundId/bids` | Bidder places/updates bid |
+| POST | `/chits/:id/auction-rounds/:roundId/close` | Close round; optional `winnerBidderId` (else lowest bid) |
 
 ### Tokens
 
@@ -235,6 +259,8 @@ Scoped by `agentId` / `branchStoreId` / `members.bidderId`; soft-delete via `sta
 ### Bidder / Agent signup endpoints (public, rate-limited)
 
 Bases: `/auth/bidder/register` and `/auth/agent/register` (same shapes; agent creates `agent` role).
+
+**Hard rule:** there is **no** `/auth/branch-store/register` (or admin register). Branch store accounts are Super Admin–provisioned only.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -265,10 +291,43 @@ KYC fields from Aadhaar are sealed server-side — `complete` only accepts `phon
 
 ### Branch Store
 
+Peer operator with the same chit/bidder powers as Agent. Accounts are **SA-provisioned only** (no self-signup).
+
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/branch-store/health` | Branch Store | Module health |
-| GET | `/branch-store/agents` | Branch Store (`agents:read`) | List agents created by this branch (for chit create picker) |
+| GET | `/branch-store/agents` | Branch Store (`agents:read`) | List agents this branch created; optional `status` / `q` |
+| GET | `/branch-store/bidders` | Branch Store (`bidders:read`) | Bidders created by this branch and/or members of its chits (`status=blocked` supported) |
+| POST | `/branch-store/bidders` | Branch Store (`bidders:write`) | Create bidder (`createdBy` = branch) |
+| POST | `/branch-store/bidders/:id/block` | Branch Store (`bidders:write`) | Block a bidder **created by** this branch |
+| POST | `/branch-store/bidders/:id/unblock` | Branch Store (`bidders:write`) | Unblock that bidder |
+
+Chit CRUD uses shared `/chits` (branch-owned; no `agentId` required on create).
+
+### Agent
+
+Peer operator (same chit/bidder powers as Branch). Self-signup and/or SA create.
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/agent/health` | Agent | Module health |
+| GET | `/agent/bidders` | Agent (`bidders:read`) | Bidders created by this agent and/or members of its chits |
+| POST | `/agent/bidders` | Agent (`bidders:write`) | Create bidder (`createdBy` = agent) |
+| POST | `/agent/bidders/:id/block` | Agent (`bidders:write`) | Block a bidder **created by** this agent |
+| POST | `/agent/bidders/:id/unblock` | Agent (`bidders:write`) | Unblock that bidder |
+
+### Bidder
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/bidder/health` | Bidder | Module health |
+| POST | `/bidder/chits/:id/join` | Bidder (`chits:read`) | Self-join an active chit with spare capacity |
+
+### Reports
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/reports/overview` | SA / Branch / Agent (`reports:read`) | Scoped metrics: chits, installments, auctions; SA also gets user counts |
 
 Deprecated aliases: `POST/GET /super-admin/admins`
 
@@ -328,9 +387,12 @@ Error:
 
 1. Real SMS OTP provider behind existing `OtpProvider` interface.
 2. ~~Super Admin: branches, chits CRUD with permission checks per route.~~ **Chits CRUD shipped** (`/api/v1/chits`).
-3. Domain modules: auctions/bids, subscriptions, invoices, reports; bidder-facing “my chits”.
-4. Permission audit log on user permission changes.
-5. Optional refresh tokens / Redis session store.
+3. ~~Peer operators (Wave A):~~ branch-owned chits, symmetric bidder APIs, incremental members, SA-only branch provisioning.
+4. ~~Account block (Wave B):~~ platform block + operator-scoped bidder block; list `status=blocked`.
+5. ~~Pay / bid / join (Wave C):~~ installments, auction rounds + bids, bidder self-join.
+6. ~~Monitoring (Wave D):~~ `GET /reports/overview`; notifications trimmed from agent/bidder defaults (catalog stubs remain for later).
+7. FE integration for peer ownership + Waves B–D screens.
+8. Optional Redis session store / permission audit log.
 
 ---
 

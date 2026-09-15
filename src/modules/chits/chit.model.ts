@@ -35,7 +35,7 @@ export interface IChit {
   endDate: Date;
   completedMonths: number;
   status: ChitStatus;
-  agentId: Types.ObjectId;
+  agentId?: Types.ObjectId | null;
   branchStoreId?: Types.ObjectId | null;
   members: IChitMember[];
   createdBy: Types.ObjectId;
@@ -87,7 +87,7 @@ const chitSchema = new Schema<IChitDocument>(
     agentId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null,
       index: true,
     },
     branchStoreId: {

@@ -3,10 +3,12 @@ import { API_MESSAGES } from '../../common/status';
 import { sendSuccessWithKey } from '../../common/response';
 import { chitService } from './chit.service';
 import {
+  AddChitMemberInput,
   CreateChitInput,
   ListChitsQueryInput,
   SummaryQueryInput,
   UpdateChitInput,
+  UpdateChitMemberInput,
 } from './chit.validation';
 
 export class ChitController {
@@ -72,6 +74,46 @@ export class ChitController {
     try {
       const data = await chitService.softDelete(req.user!, req.params.id);
       sendSuccessWithKey(res, data, 'OK', API_MESSAGES.CHIT_DELETED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async addMember(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.addMember(
+        req.user!,
+        req.params.id,
+        req.body as AddChitMemberInput
+      );
+      sendSuccessWithKey(res, data, 'CREATED', API_MESSAGES.CHIT_MEMBER_ADDED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateMember(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.updateMember(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.body as UpdateChitMemberInput
+      );
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.CHIT_MEMBER_UPDATED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async removeMember(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.removeMember(
+        req.user!,
+        req.params.id,
+        req.params.bidderId
+      );
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.CHIT_MEMBER_REMOVED);
     } catch (err) {
       next(err);
     }
