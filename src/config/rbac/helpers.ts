@@ -18,8 +18,8 @@ export function isKnownPermission(value: string): value is Permission {
   return (ALL_PERMISSIONS as readonly string[]).includes(value);
 }
 
-export function hasWildcard(permissions: readonly string[]): boolean {
-  return permissions.includes(PERMISSIONS.PLATFORM.ALL);
+export function hasWildcard(permissions?: readonly string[] | null): boolean {
+  return Array.isArray(permissions) && permissions.includes(PERMISSIONS.PLATFORM.ALL);
 }
 
 export function resolveSuperAdminTier(
@@ -131,22 +131,28 @@ export function validatePermissionsForRole(
 
 export function canLoginWithPermissions(
   role: UserRole,
-  permissions: readonly string[]
+  permissions?: readonly string[] | null
 ): boolean {
-  if (hasWildcard(permissions)) {
+  const perms = permissions ?? [];
+
+  if (hasWildcard(perms)) {
     return true;
   }
 
   const minimum = ROLE_LOGIN_MINIMUM[role];
+  if (!minimum) {
+    return false;
+  }
+
   if (role === USER_ROLES.SUPER_ADMIN) {
-    return resolveSuperAdminTier(permissions) !== null;
+    return resolveSuperAdminTier(perms) !== null;
   }
 
   if (role === USER_ROLES.BRANCH_STORE) {
-    return permissions.some((p) => (minimum as readonly string[]).includes(p));
+    return perms.some((p) => (minimum as readonly string[]).includes(p));
   }
 
-  return hasAllPermissions(permissions, minimum as Permission[]);
+  return hasAllPermissions(perms, minimum as Permission[]);
 }
 
 export function permissionsForSuperAdminTier(

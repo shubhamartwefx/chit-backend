@@ -431,7 +431,15 @@ export class BidderSignupService {
         gender: profile.gender,
         dateOfBirth: profile.dateOfBirth,
         aadhaarAddress: { ...profile.aadhaarAddress },
-        currentAddress: input.currentAddress?.trim() || null,
+        currentAddress: input.currentAddress
+          ? {
+              street: input.currentAddress.street.trim(),
+              city: input.currentAddress.city.trim(),
+              state: input.currentAddress.state.trim(),
+              pincode: input.currentAddress.pincode.trim(),
+              country: (input.currentAddress.country ?? 'India').trim(),
+            }
+          : null,
         aadhaarLast4: profile.aadhaarLast4,
         aadhaarVerifiedAt: new Date(),
         verificationMethod,

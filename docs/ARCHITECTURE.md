@@ -172,7 +172,7 @@ chit-backend/
 | `createdBy` | Provenance for admins / future agents |
 | `statusReason`, `statusChangedAt`, `statusChangedBy` | Block/unblock audit trail |
 | `gender`, `dateOfBirth`, `aadhaarAddress` | Optional KYC fields (self-registered bidders) |
-| `currentAddress`, `aadhaarLast4` | Manual current address + Aadhaar last-4 |
+| `currentAddress`, `aadhaarLast4` | Structured current address `{ street, city, state, pincode, country }` (street = Street/Area) + Aadhaar last-4 |
 | `aadhaarVerifiedAt`, `verificationMethod` | `manual` \| `digilocker` \| `admin_provisioned` |
 
 ### OtpSession
@@ -272,7 +272,7 @@ Bases: `/auth/bidder/register` and `/auth/agent/register` (same shapes; agent cr
 | GET | `/session/:sessionId` | Session status + sealed profile |
 | POST | `/complete` | Create user from sealed KYC + phone/currentAddress; return token pair |
 
-KYC fields from Aadhaar are sealed server-side — `complete` only accepts `phone` and optional `currentAddress`. Mock OTP is `MOCK_OTP` (default `123456`). DigiLocker mock uses `code=mock-digilocker-code`.
+KYC fields from Aadhaar are sealed server-side — `complete` accepts `phone`, optional structured `currentAddress` (`street`, `city`, `state`, `pincode`, `country`), and `paymentId`. Mock OTP is `MOCK_OTP` (default `123456`). DigiLocker mock uses `code=mock-digilocker-code`.
 
 `:role` ∈ `super-admin` \| `branch-store` \| `admin` (alias) \| `agent` \| `bidder`
 

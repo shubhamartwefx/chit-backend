@@ -116,8 +116,15 @@ export class ProfileService {
     }
 
     if (input.currentAddress !== undefined) {
-      const address = (input.currentAddress ?? '').trim();
-      user.currentAddress = address || null;
+      user.currentAddress = input.currentAddress
+        ? {
+            street: input.currentAddress.street.trim(),
+            city: input.currentAddress.city.trim(),
+            state: input.currentAddress.state.trim(),
+            pincode: input.currentAddress.pincode.trim(),
+            country: (input.currentAddress.country ?? 'India').trim(),
+          }
+        : null;
     }
 
     if (input.nomineeUserIds !== undefined) {

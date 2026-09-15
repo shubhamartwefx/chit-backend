@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { addressObjectSchema } from '../../common/address';
 
 export const requestAadhaarOtpSchema = z.object({
   aadhaarNumber: z
@@ -32,7 +33,8 @@ export const completeRegistrationSchema = z.object({
     .min(10)
     .max(15)
     .regex(/^\d+$/, 'Phone must contain digits only'),
-  currentAddress: z.string().trim().max(500).optional(),
+  /** Optional; when set must include street, city, state, pincode, country. */
+  currentAddress: addressObjectSchema.optional(),
   paymentId: z.string().min(4).max(128),
 });
 

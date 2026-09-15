@@ -56,7 +56,9 @@ export class AuthService {
       phone,
       aadhaarFingerprint,
       role,
-    }).select(`${extraSelect} status statusReason`);
+    }).select(
+      `${extraSelect} role permissions status statusReason statusChangedAt statusChangedBy`
+    );
 
     if (!user) {
       throw accessDenied(
@@ -66,7 +68,7 @@ export class AuthService {
 
     assertAccountCanAuthenticate(user);
 
-    if (!canLoginWithPermissions(user.role, user.permissions)) {
+    if (!canLoginWithPermissions(user.role, user.permissions ?? [])) {
       throw accessDenied(
         'Your account has no valid permissions assigned. Contact support.'
       );

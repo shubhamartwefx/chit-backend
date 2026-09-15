@@ -1,4 +1,5 @@
 import { API_BASE_PATH, API_VERSION } from '../config/constants/api-version';
+import { buildExtraOpenApiPaths } from './openapi-extra-paths';
 
 const objectId = {
   type: 'string',
@@ -25,7 +26,7 @@ const errorEnvelope = {
   },
 };
 
-const bearer = [{ BearerAuth: [] }];
+const bearer = [{ BearerAuth: [] as never[] }];
 
 /**
  * OpenAPI 3 document for Swagger UI "Try it out".
@@ -40,11 +41,17 @@ export function buildOpenApiDocument(port = 4000) {
       description: `
 Interactive API docs for **chit-backend**.
 
-## Quick test flow
-1. **Auth → Request OTP** (role slug + phone + Aadhaar)
-2. **Auth → Verify OTP** — copy \`data.accessToken\`
-3. Click **Authorize**, paste the token as Bearer
-4. Call protected endpoints
+## Login (existing users)
+1. **Auth → Request OTP** → **Verify OTP**
+2. Copy \`data.accessToken\` → **Authorize** → try protected routes
+
+## Agent / Bidder self-signup
+1. **Agent Signup** or **Bidder Signup** → Aadhaar request-otp (fresh Aadhaar)
+2. Verify OTP (\`123456\`) → save \`sessionId\`
+3. **Signup Payment** → create-order → confirm → save \`paymentId\`
+4. **…/complete** with sessionId + phone + paymentId → tokens returned
+
+There is **no** branch-store self-signup (SA provisions branches).
 
 ## Demo credentials (after \`npm run seed\`)
 | Role | Auth slug | Phone | Aadhaar | OTP |
@@ -54,6 +61,7 @@ Interactive API docs for **chit-backend**.
 | Agent | \`agent\` | 9888888882 | 222222222222 | 123456 |
 | Bidder | \`bidder\` | 9888888883 | 333333333333 | 123456 |
 
+Health: \`GET http://localhost:${port}/health\` (outside API base)  
 Base path: \`${API_BASE_PATH}\`
       `.trim(),
     },
@@ -64,8 +72,10 @@ Base path: \`${API_BASE_PATH}\`
       },
     ],
     tags: [
-      { name: 'Health' },
       { name: 'Auth' },
+      { name: 'Agent Signup', description: 'Public self-registration for agents' },
+      { name: 'Bidder Signup', description: 'Public self-registration for bidders' },
+      { name: 'Signup Payment', description: 'Demo fee before register/complete' },
       { name: 'Super Admin' },
       { name: 'Branch Store' },
       { name: 'Agent' },
@@ -1205,6 +1215,8 @@ Base path: \`${API_BASE_PATH}\`
           responses: { '200': { description: 'Metrics' } },
         },
       },
+
+      ...buildExtraOpenApiPaths(bearer),
     },
   };
 }

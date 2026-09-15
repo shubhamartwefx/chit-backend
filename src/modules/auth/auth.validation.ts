@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { addressObjectSchema } from '../../common/address';
 import { ROLE_URL_SLUGS } from '../../config/roles';
 
 export const roleParamSchema = z.object({
@@ -105,7 +106,7 @@ export const updateProfileSchema = z
       .max(15)
       .regex(/^$|^\d+$/, 'Phone must contain digits only')
       .optional(),
-    currentAddress: z.string().max(500).optional(),
+    currentAddress: addressObjectSchema.nullable().optional(),
     nomineeUserIds: z
       .array(z.string().regex(/^[a-f\d]{24}$/i, 'Invalid user id'))
       .max(2)

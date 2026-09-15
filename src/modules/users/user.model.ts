@@ -53,7 +53,7 @@ export interface IUser {
   gender?: string | null;
   dateOfBirth?: string | null;
   aadhaarAddress?: IAadhaarAddress | null;
-  currentAddress?: string | null;
+  currentAddress?: IAadhaarAddress | null;
   aadhaarLast4?: string | null;
   aadhaarVerifiedAt?: Date | null;
   verificationMethod?: VerificationMethod | null;
@@ -137,9 +137,8 @@ const userSchema = new Schema<IUserDocument>(
     gender: { type: String, default: null, trim: true },
     dateOfBirth: { type: String, default: null, trim: true },
     aadhaarAddress: { type: aadhaarAddressSchema, default: null },
-    currentAddress: { type: String, default: null, trim: true },
-    aadhaarLast4: { type: String, default: null, trim: true },
-    aadhaarVerifiedAt: { type: Date, default: null },
+    currentAddress: { type: aadhaarAddressSchema, default: null },
+    aadhaarLast4: { type: String, default: null, trim: true },    aadhaarVerifiedAt: { type: Date, default: null },
     verificationMethod: {
       type: String,
       enum: Object.values(VERIFICATION_METHODS),

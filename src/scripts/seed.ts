@@ -117,12 +117,7 @@ function kycFields(seedUser: SeedUser) {
       aadhaarAddress: { ...demo.aadhaarAddress },
       aadhaarLast4: seedUser.aadhaar.slice(-4),
       aadhaarVerifiedAt: new Date(),
-      currentAddress: [
-        demo.aadhaarAddress.street,
-        demo.aadhaarAddress.city,
-        demo.aadhaarAddress.state,
-        demo.aadhaarAddress.pincode,
-      ].join(', '),
+      currentAddress: { ...demo.aadhaarAddress },
     };
   }
 
@@ -140,7 +135,13 @@ function kycFields(seedUser: SeedUser) {
     },
     aadhaarLast4: seedUser.aadhaar.slice(-4),
     aadhaarVerifiedAt: new Date(),
-    currentAddress: '12, Demo Street, Pune, Maharashtra, 411001',
+    currentAddress: {
+      street: '12, Demo Street',
+      city: 'Pune',
+      state: 'Maharashtra',
+      pincode: '411001',
+      country: 'India',
+    },
   };
 }
 
