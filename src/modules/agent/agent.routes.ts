@@ -4,6 +4,7 @@ import {
   authenticate,
   authorize,
   authorizePermission,
+  rejectIfBlocked,
 } from '../../middlewares/auth';
 import { validate } from '../../middlewares/validate';
 import { sendSuccess } from '../../common/response';
@@ -32,6 +33,7 @@ router.get(
 
 router.post(
   '/bidders',
+  rejectIfBlocked,
   authorizePermission(PERMISSIONS.BIDDERS.WRITE),
   validate(createOperatorBidderSchema),
   (req, res, next) => agentController.createBidder(req, res, next)
@@ -39,6 +41,7 @@ router.post(
 
 router.post(
   '/bidders/:id/block',
+  rejectIfBlocked,
   authorizePermission(PERMISSIONS.BIDDERS.WRITE),
   validate(operatorBidderIdParamsSchema, 'params'),
   validate(operatorBidderStatusActionSchema),
@@ -47,6 +50,7 @@ router.post(
 
 router.post(
   '/bidders/:id/unblock',
+  rejectIfBlocked,
   authorizePermission(PERMISSIONS.BIDDERS.WRITE),
   validate(operatorBidderIdParamsSchema, 'params'),
   validate(operatorBidderStatusActionSchema),

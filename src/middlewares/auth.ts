@@ -1,12 +1,15 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
-import { assertAccountCanAuthenticate } from '../common/account-status';
+import {
+  assertAccountActiveOrBlocked,
+  assertNotBlocked,
+} from '../common/account-status';
 import {
   accessDenied,
   insufficientPermissions,
   unauthorized,
 } from '../common/errors';
-import { Permission, UserRole } from '../config/constants';
+import { Permission, UserRole, UserStatus } from '../config/constants';
 import {
   hasAllPermissions,
   hasAnyPermission,
@@ -38,8 +41,40 @@ export async function authenticate(
       return;
     }
 
-    assertAccountCanAuthenticate(account);
+    // Soft: blocked accounts may still call /me and read APIs.
+    // Mutating routes use rejectIfBlocked.
+    assertAccountActiveOrBlocked(account);
     req.user = decoded;
+    req.accountStatus = {
+      status: account.status as UserStatus,
+      statusReason: account.statusReason ?? null,
+    };
+    next();
+  } catch (err) {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'name' in err &&
+      ((err as { name?: string }).name === 'TokenExpiredError' ||
+        (err as { name?: string }).name === 'JsonWebTokenError')
+    ) {
+      next(unauthorized('Invalid or expired token'));
+      return;
+    }
+    next(err);
+  }
+}
+
+/** Block write operations for blocked accounts. */
+export function rejectIfBlocked(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void {
+  try {
+    if (req.accountStatus) {
+      assertNotBlocked(req.accountStatus);
+    }
     next();
   } catch (err) {
     next(err);

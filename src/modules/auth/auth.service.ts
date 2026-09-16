@@ -29,10 +29,13 @@ import { usesTotpLogin } from './security-policy';
 import { TokenPairMeta, tokenService } from './token.service';
 import { verifyTotpCode } from './totp.util';
 
-function assertCredentialsFormat(phone: string, aadhaar: string): void {
+function assertPhoneFormat(phone: string): void {
   if (!isValidIndianPhone(phone)) {
     throw badRequest('Enter a valid 10-digit Indian mobile number');
   }
+}
+
+function assertAadhaarFormat(aadhaar: string): void {
   if (!isValidAadhaar(aadhaar)) {
     throw badRequest('Enter a valid 12-digit Aadhaar number');
   }
@@ -42,23 +45,45 @@ export class AuthService {
   private async findActiveLoginUser(
     roleSlug: RoleUrlSlug,
     phone: string,
-    aadhaarNumber: string,
+    aadhaarNumber: string | undefined,
     extraSelect = ''
   ) {
-    assertCredentialsFormat(phone, aadhaarNumber);
+    assertPhoneFormat(phone);
     const role = urlSlugToRole(roleSlug);
-    const aadhaarFingerprint = fingerprintAadhaar(
-      aadhaarNumber,
-      env.JWT_SECRET
-    );
+    const allowPhoneOnly =
+      role === USER_ROLES.AGENT && (!aadhaarNumber || aadhaarNumber.length === 0);
 
-    const user = await User.findOne({
-      phone,
-      aadhaarFingerprint,
-      role,
-    }).select(
-      `${extraSelect} role permissions status statusReason statusChangedAt statusChangedBy`
-    );
+    if (!allowPhoneOnly) {
+      if (!aadhaarNumber) {
+        throw badRequest('Aadhaar number is required for this login portal');
+      }
+      assertAadhaarFormat(aadhaarNumber);
+    }
+
+    const selectFields = `${extraSelect} role permissions status statusReason statusChangedAt statusChangedBy aadhaarFingerprint`;
+
+    let user;
+    let aadhaarFingerprint: string;
+
+    if (allowPhoneOnly) {
+      user = await User.findOne({ phone, role }).select(selectFields);
+      if (!user?.aadhaarFingerprint) {
+        throw accessDenied(
+          'Invalid credentials for this login portal, or account does not exist for this role'
+        );
+      }
+      aadhaarFingerprint = user.aadhaarFingerprint;
+    } else {
+      aadhaarFingerprint = fingerprintAadhaar(
+        aadhaarNumber!,
+        env.JWT_SECRET
+      );
+      user = await User.findOne({
+        phone,
+        aadhaarFingerprint,
+        role,
+      }).select(selectFields);
+    }
 
     if (!user) {
       throw accessDenied(

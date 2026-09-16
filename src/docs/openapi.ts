@@ -61,6 +61,10 @@ There is **no** branch-store self-signup (SA provisions branches).
 | Agent | \`agent\` | 9888888882 | 222222222222 | 123456 |
 | Bidder | \`bidder\` | 9888888883 | 333333333333 | 123456 |
 
+**Nominee search (enrolled in seed chit \`900100200300\`):**  
+Rahul \`9777777771\` / \`444444444441\`, Sneha \`9777777772\` / \`555555555552\`, Vikram \`9777777773\` / \`666666666663\`, Meera \`9777777774\` / \`777777777774\`.  
+Seed agent is pre-linked to Rahul + Sneha as nominees.
+
 Health: \`GET http://localhost:${port}/health\` (outside API base)  
 Base path: \`${API_BASE_PATH}\`
       `.trim(),
@@ -103,6 +107,21 @@ Base path: \`${API_BASE_PATH}\`
             countryCode: { type: 'string', default: '+91', example: '+91' },
             phone: { type: 'string', example: '9999999999' },
             aadhaarNumber: { type: 'string', example: '123456789012' },
+          },
+        },
+        AgentLoginBody: {
+          type: 'object',
+          required: ['phone'],
+          description:
+            'Agent login: phone + OTP only. Optional aadhaarNumber still accepted for fingerprint match.',
+          properties: {
+            countryCode: { type: 'string', default: '+91', example: '+91' },
+            phone: { type: 'string', example: '9999999999' },
+            aadhaarNumber: {
+              type: 'string',
+              example: '123456789012',
+              description: 'Optional for agent role',
+            },
           },
         },
         CreateUserBody: {
@@ -320,7 +339,26 @@ Base path: \`${API_BASE_PATH}\`
             required: true,
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/IdentityBody' },
+                schema: {
+                  oneOf: [
+                    { $ref: '#/components/schemas/AgentLoginBody' },
+                    { $ref: '#/components/schemas/IdentityBody' },
+                  ],
+                },
+                examples: {
+                  agentPhoneOnly: {
+                    summary: 'Agent — phone + OTP only',
+                    value: { countryCode: '+91', phone: '9999999999' },
+                  },
+                  withAadhaar: {
+                    summary: 'Other roles — phone + Aadhaar',
+                    value: {
+                      countryCode: '+91',
+                      phone: '9999999999',
+                      aadhaarNumber: '123456789012',
+                    },
+                  },
+                },
               },
             },
           },
@@ -364,7 +402,12 @@ Base path: \`${API_BASE_PATH}\`
               'application/json': {
                 schema: {
                   allOf: [
-                    { $ref: '#/components/schemas/IdentityBody' },
+                    {
+                      oneOf: [
+                        { $ref: '#/components/schemas/AgentLoginBody' },
+                        { $ref: '#/components/schemas/IdentityBody' },
+                      ],
+                    },
                     {
                       type: 'object',
                       required: ['otp'],
@@ -420,7 +463,12 @@ Base path: \`${API_BASE_PATH}\`
               'application/json': {
                 schema: {
                   allOf: [
-                    { $ref: '#/components/schemas/IdentityBody' },
+                    {
+                      oneOf: [
+                        { $ref: '#/components/schemas/AgentLoginBody' },
+                        { $ref: '#/components/schemas/IdentityBody' },
+                      ],
+                    },
                     {
                       type: 'object',
                       required: ['totp'],

@@ -4,6 +4,7 @@ import {
   authenticate,
   authorize,
   authorizePermission,
+  rejectIfBlocked,
 } from '../../middlewares/auth';
 import { validate } from '../../middlewares/validate';
 import { auctionController } from '../auctions/auction.controller';
@@ -67,6 +68,7 @@ router.get(
 
 router.post(
   '/:id/members',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitIdParamsSchema, 'params'),
@@ -76,6 +78,7 @@ router.post(
 
 router.patch(
   '/:id/members/:bidderId',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitMemberParamsSchema, 'params'),
@@ -85,6 +88,7 @@ router.patch(
 
 router.delete(
   '/:id/members/:bidderId',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitMemberParamsSchema, 'params'),
@@ -102,6 +106,7 @@ router.get(
 
 router.post(
   '/:id/installments',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(installmentChitIdParamsSchema, 'params'),
@@ -120,6 +125,7 @@ router.get(
 
 router.post(
   '/:id/auction-rounds',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitIdParamsSchema, 'params'),
@@ -137,6 +143,7 @@ router.get(
 
 router.post(
   '/:id/auction-rounds/:roundId/bids',
+  rejectIfBlocked,
   authorize(USER_ROLES.BIDDER),
   authorizePermission(PERMISSIONS.CHITS.READ),
   validate(auctionRoundParamsSchema, 'params'),
@@ -146,6 +153,7 @@ router.post(
 
 router.post(
   '/:id/auction-rounds/:roundId/close',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(auctionRoundParamsSchema, 'params'),
@@ -163,6 +171,7 @@ router.get(
 
 router.post(
   '/',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(createChitSchema),
@@ -171,6 +180,7 @@ router.post(
 
 router.patch(
   '/:id',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitIdParamsSchema, 'params'),
@@ -180,6 +190,7 @@ router.patch(
 
 router.delete(
   '/:id',
+  rejectIfBlocked,
   authorize(...writeRoles),
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitIdParamsSchema, 'params'),

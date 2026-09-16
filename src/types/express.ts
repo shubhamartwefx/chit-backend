@@ -1,4 +1,4 @@
-import { UserRole } from '../config/roles';
+import { UserRole, UserStatus } from '../config/roles';
 
 export interface JwtPayload {
   sub: string;
@@ -16,6 +16,10 @@ declare global {
   namespace Express {
     interface Request {
       user?: JwtPayload;
+      accountStatus?: {
+        status: UserStatus;
+        statusReason?: string | null;
+      };
     }
   }
 }

@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import {
   fingerprintAadhaar,
   isValidAadhaar,
@@ -14,6 +15,7 @@ import {
   USER_STATUS,
 } from '../../config/roles';
 import { resolveSuperAdminTier } from '../../config/rbac';
+import { Chit, CHIT_STATUS } from '../chits/chit.model';
 import { User, type IUserDocument } from '../users/user.model';
 import type { UpdateProfileInput } from './auth.validation';
 
@@ -25,6 +27,8 @@ export type NomineeSummary = {
   aadhaarLast4: string | null;
   role: string;
 };
+
+const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
 
 function toNomineeSummary(user: IUserDocument): NomineeSummary {
   return {
@@ -38,6 +42,33 @@ function toNomineeSummary(user: IUserDocument): NomineeSummary {
 }
 
 export class ProfileService {
+  /** Nominee must be an active user enrolled in at least one non-deleted chit. */
+  private async filterEnrolledUserIds(userIds: string[]): Promise<string[]> {
+    if (!userIds.length) return [];
+    const objectIds = userIds
+      .filter((id) => OBJECT_ID_RE.test(id))
+      .map((id) => new Types.ObjectId(id));
+    if (!objectIds.length) return [];
+
+    const enrolled = await Chit.distinct('members.bidderId', {
+      status: { $ne: CHIT_STATUS.DELETED },
+      'members.bidderId': { $in: objectIds },
+    });
+
+    return enrolled.map((id) => id.toString());
+  }
+
+  private async assertEnrolledNomineeIds(userIds: string[]) {
+    const enrolled = await this.filterEnrolledUserIds(userIds);
+    const enrolledSet = new Set(enrolled);
+    const missing = userIds.filter((id) => !enrolledSet.has(id));
+    if (missing.length) {
+      throw badRequest(
+        'Nominee must have chit-fund enrollment (be a member of an active chit)'
+      );
+    }
+  }
+
   private async resolveNominees(
     user: IUserDocument
   ): Promise<NomineeSummary[]> {
@@ -79,6 +110,7 @@ export class ProfileService {
       permissions: user.permissions,
       internalRole: user.role,
       status: user.status,
+      statusReason: user.statusReason ?? null,
       lastLoginAt: user.lastLoginAt,
       totpEnabled: Boolean(user.totpEnabled),
       screenLockEnabled: Boolean(user.screenLockEnabled),
@@ -150,6 +182,8 @@ export class ProfileService {
           );
         }
 
+        await this.assertEnrolledNomineeIds(uniqueIds);
+
         const now = new Date();
         user.nominees = uniqueIds.map((id) => ({
           userId: nominees.find((n) => n._id.toString() === id)!._id,
@@ -165,11 +199,15 @@ export class ProfileService {
   async searchNominees(userId: string, q: string) {
     const query = q.replace(/\s/g, '').trim();
     if (!query) {
-      throw badRequest('Enter a phone number or Aadhaar number to search');
+      throw badRequest(
+        'Enter a user ID, phone number, or Aadhaar number to search'
+      );
     }
 
     let filter: Record<string, unknown>;
-    if (/^\d{10}$/.test(query) && isValidIndianPhone(query)) {
+    if (OBJECT_ID_RE.test(query)) {
+      filter = { _id: new Types.ObjectId(query), status: USER_STATUS.ACTIVE };
+    } else if (/^\d{10}$/.test(query) && isValidIndianPhone(query)) {
       filter = { phone: normalizePhone(query), status: USER_STATUS.ACTIVE };
     } else if (isValidAadhaar(query)) {
       filter = {
@@ -181,7 +219,7 @@ export class ProfileService {
       };
     } else {
       throw badRequest(
-        'Search with a 10-digit phone number or a 12-digit Aadhaar number'
+        'Search with a user ID, 10-digit phone number, or 12-digit Aadhaar number'
       );
     }
 
@@ -189,8 +227,15 @@ export class ProfileService {
       .select('name phone countryCode aadhaarLast4 role')
       .limit(10);
 
-    return users
-      .filter((u) => u._id.toString() !== userId)
+    const candidates = users.filter((u) => u._id.toString() !== userId);
+    if (!candidates.length) return [];
+
+    const enrolledIds = new Set(
+      await this.filterEnrolledUserIds(candidates.map((u) => u._id.toString()))
+    );
+
+    return candidates
+      .filter((u) => enrolledIds.has(u._id.toString()))
       .map(toNomineeSummary);
   }
 }

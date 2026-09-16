@@ -6,28 +6,36 @@ export const roleParamSchema = z.object({
   role: z.enum(ROLE_URL_SLUGS as [string, ...string[]]),
 });
 
-export const requestOtpSchema = z.object({
+const phoneFields = {
   countryCode: z.string().min(1).default('+91'),
   phone: z
     .string()
     .min(10)
     .max(15)
     .regex(/^\d+$/, 'Phone must contain digits only'),
-  aadhaarNumber: z
+};
+
+const optionalAadhaar = z.preprocess(
+  (val) => (val === '' || val === null || val === undefined ? undefined : val),
+  z
     .string()
-    .regex(/^\d{12}$/, 'Aadhaar must be exactly 12 digits'),
+    .regex(/^\d{12}$/, 'Aadhaar must be exactly 12 digits')
+    .optional()
+);
+
+/**
+ * Login credentials.
+ * Agent may omit aadhaarNumber (phone + OTP only).
+ * All other roles must provide aadhaarNumber (enforced in service).
+ */
+export const requestOtpSchema = z.object({
+  ...phoneFields,
+  aadhaarNumber: optionalAadhaar,
 });
 
 export const verifyOtpSchema = z.object({
-  countryCode: z.string().min(1).default('+91'),
-  phone: z
-    .string()
-    .min(10)
-    .max(15)
-    .regex(/^\d+$/, 'Phone must contain digits only'),
-  aadhaarNumber: z
-    .string()
-    .regex(/^\d{12}$/, 'Aadhaar must be exactly 12 digits'),
+  ...phoneFields,
+  aadhaarNumber: optionalAadhaar,
   otp: z.string().regex(/^\d{6}$/, 'OTP must be exactly 6 digits'),
 });
 
@@ -35,15 +43,8 @@ export type RequestOtpInput = z.infer<typeof requestOtpSchema>;
 export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
 
 export const verify2faSchema = z.object({
-  countryCode: z.string().min(1).default('+91'),
-  phone: z
-    .string()
-    .min(10)
-    .max(15)
-    .regex(/^\d+$/, 'Phone must contain digits only'),
-  aadhaarNumber: z
-    .string()
-    .regex(/^\d{12}$/, 'Aadhaar must be exactly 12 digits'),
+  ...phoneFields,
+  aadhaarNumber: optionalAadhaar,
   totp: z
     .string()
     .regex(/^\d{6}$/, 'Authenticator code must be exactly 6 digits'),
@@ -117,13 +118,16 @@ export const updateProfileSchema = z
       val.phone2 !== undefined ||
       val.currentAddress !== undefined ||
       val.nomineeUserIds !== undefined,
-    { message: 'Provide at least one of phone2, currentAddress, or nomineeUserIds' }
+    {
+      message:
+        'Provide at least one of phone2, currentAddress, or nomineeUserIds',
+    }
   );
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
 export const nomineeSearchQuerySchema = z.object({
-  q: z.string().min(10).max(20),
+  q: z.string().min(10).max(24),
 });
 
 export type NomineeSearchQuery = z.infer<typeof nomineeSearchQuerySchema>;
