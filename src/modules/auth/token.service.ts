@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { Types } from 'mongoose';
+import { assertAccountCanAuthenticate } from '../../common/account-status';
 import { accessDenied, unauthorized } from '../../common/errors';
 import { env } from '../../config/env';
 import {
@@ -11,7 +12,6 @@ import {
   ROLE_DASHBOARD_PATH,
   toClientRole,
   USER_ROLES,
-  USER_STATUS,
   UserRole,
 } from '../../config/roles';
 import { JwtPayload } from '../../types/express';
@@ -90,9 +90,7 @@ function buildUserClaims(user: IUserDocument) {
 }
 
 function assertUserCanHoldSession(user: IUserDocument): void {
-  if (user.status !== USER_STATUS.ACTIVE) {
-    throw accessDenied('Your account is inactive or blocked. Contact support.');
-  }
+  assertAccountCanAuthenticate(user);
   if (!canLoginWithPermissions(user.role, user.permissions)) {
     throw accessDenied(
       'Your account has no valid permissions assigned. Contact support.'

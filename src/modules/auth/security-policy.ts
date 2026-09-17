@@ -69,11 +69,13 @@ export function unlockMethodsForUser(user: {
   biometricEnabled?: boolean;
   pinHash?: string | null;
 }): UnlockMethod[] {
-  if (!user.screenLockEnabled) return [];
   const methods: UnlockMethod[] = [];
-  if (user.pinHash) methods.push(UNLOCK_METHODS.PIN);
+  // Demo client: lock screen unlocks with TOTP when 2FA is on (no separate screen-lock enable).
   if (isTwoFaAllowedForRole(user.role) && user.totpEnabled) {
     methods.push(UNLOCK_METHODS.TOTP);
+  }
+  if (user.screenLockEnabled && user.pinHash) {
+    methods.push(UNLOCK_METHODS.PIN);
   }
   if (user.biometricEnabled) methods.push(UNLOCK_METHODS.BIOMETRIC);
   return methods;

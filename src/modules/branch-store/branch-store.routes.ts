@@ -1,13 +1,25 @@
 import { Router } from 'express';
-import { USER_ROLES } from '../../config/roles';
-import { authenticate, authorize } from '../../middlewares/auth';
+import { PERMISSIONS, USER_ROLES } from '../../config/roles';
+import {
+  authenticate,
+  authorize,
+  authorizePermission,
+} from '../../middlewares/auth';
+import { validate } from '../../middlewares/validate';
 import { sendSuccess } from '../../common/response';
+import { branchStoreController } from './branch-store.controller';
+import {
+  createOperatorBidderSchema,
+  listOperatorAgentsQuerySchema,
+  listOperatorBiddersQuerySchema,
+  operatorBidderIdParamsSchema,
+  operatorBidderStatusActionSchema,
+} from '../operator-bidders/operator-bidder.validation';
 
 const router = Router();
 
 router.use(authenticate, authorize(USER_ROLES.BRANCH_STORE));
 
-/** Scaffold — domain APIs land here later. */
 router.get('/health', (_req, res) => {
   sendSuccess(
     res,
@@ -15,5 +27,42 @@ router.get('/health', (_req, res) => {
     'Branch Store module OK'
   );
 });
+
+router.get(
+  '/agents',
+  authorizePermission(PERMISSIONS.AGENTS.READ),
+  validate(listOperatorAgentsQuerySchema, 'query'),
+  (req, res, next) => branchStoreController.listAgents(req, res, next)
+);
+
+router.get(
+  '/bidders',
+  authorizePermission(PERMISSIONS.BIDDERS.READ),
+  validate(listOperatorBiddersQuerySchema, 'query'),
+  (req, res, next) => branchStoreController.listBidders(req, res, next)
+);
+
+router.post(
+  '/bidders',
+  authorizePermission(PERMISSIONS.BIDDERS.WRITE),
+  validate(createOperatorBidderSchema),
+  (req, res, next) => branchStoreController.createBidder(req, res, next)
+);
+
+router.post(
+  '/bidders/:id/block',
+  authorizePermission(PERMISSIONS.BIDDERS.WRITE),
+  validate(operatorBidderIdParamsSchema, 'params'),
+  validate(operatorBidderStatusActionSchema),
+  (req, res, next) => branchStoreController.blockBidder(req, res, next)
+);
+
+router.post(
+  '/bidders/:id/unblock',
+  authorizePermission(PERMISSIONS.BIDDERS.WRITE),
+  validate(operatorBidderIdParamsSchema, 'params'),
+  validate(operatorBidderStatusActionSchema),
+  (req, res, next) => branchStoreController.unblockBidder(req, res, next)
+);
 
 export default router;

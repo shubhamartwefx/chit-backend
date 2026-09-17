@@ -21,6 +21,7 @@ import {
   USER_STATUS,
 } from '../../config/roles';
 import { TokenPairMeta, tokenService } from '../auth/token.service';
+import { signupPaymentService } from '../signup-payment/signup-payment.service';
 import {
   createAadhaarKycProvider,
   type AadhaarKycProvider,
@@ -81,8 +82,12 @@ function formatSealedProfile(profile: IVerifiedAadhaarProfile) {
 
 export class AgentSignupService {
   constructor(
-    private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(),
-    private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider()
+    private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(
+      'agent'
+    ),
+    private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider(
+      'agent'
+    )
   ) {}
 
   private async assertNoExistingAgentByFingerprint(
@@ -402,6 +407,12 @@ export class AgentSignupService {
     await this.assertNoExistingAgentByFingerprint(session.aadhaarFingerprint);
     await this.assertNoExistingAgentByPhone(phone);
 
+    await signupPaymentService.consumePaidOrder({
+      role: 'agent',
+      sessionId: input.sessionId,
+      paymentId: input.paymentId,
+    });
+
     const profile = session.verifiedProfile;
     const verificationMethod =
       session.method === SIGNUP_METHODS.DIGILOCKER
@@ -422,7 +433,15 @@ export class AgentSignupService {
         gender: profile.gender,
         dateOfBirth: profile.dateOfBirth,
         aadhaarAddress: { ...profile.aadhaarAddress },
-        currentAddress: input.currentAddress?.trim() || null,
+        currentAddress: input.currentAddress
+          ? {
+              street: input.currentAddress.street.trim(),
+              city: input.currentAddress.city.trim(),
+              state: input.currentAddress.state.trim(),
+              pincode: input.currentAddress.pincode.trim(),
+              country: (input.currentAddress.country ?? 'India').trim(),
+            }
+          : null,
         aadhaarLast4: profile.aadhaarLast4,
         aadhaarVerifiedAt: new Date(),
         verificationMethod,

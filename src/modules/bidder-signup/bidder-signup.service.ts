@@ -21,6 +21,7 @@ import {
   USER_STATUS,
 } from '../../config/roles';
 import { TokenPairMeta, tokenService } from '../auth/token.service';
+import { signupPaymentService } from '../signup-payment/signup-payment.service';
 import {
   User,
   VERIFICATION_METHODS,
@@ -84,8 +85,12 @@ function formatSealedProfile(profile: IVerifiedAadhaarProfile) {
 
 export class BidderSignupService {
   constructor(
-    private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(),
-    private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider()
+    private readonly aadhaarKyc: AadhaarKycProvider = createAadhaarKycProvider(
+      'bidder'
+    ),
+    private readonly digiLocker: DigiLockerProvider = createDigiLockerProvider(
+      'bidder'
+    )
   ) {}
 
   private async assertNoExistingBidderByFingerprint(
@@ -400,6 +405,12 @@ export class BidderSignupService {
     await this.assertNoExistingBidderByFingerprint(session.aadhaarFingerprint);
     await this.assertNoExistingBidderByPhone(phone);
 
+    await signupPaymentService.consumePaidOrder({
+      role: 'bidder',
+      sessionId: input.sessionId,
+      paymentId: input.paymentId,
+    });
+
     const profile = session.verifiedProfile;
     const verificationMethod =
       session.method === SIGNUP_METHODS.DIGILOCKER
@@ -420,7 +431,15 @@ export class BidderSignupService {
         gender: profile.gender,
         dateOfBirth: profile.dateOfBirth,
         aadhaarAddress: { ...profile.aadhaarAddress },
-        currentAddress: input.currentAddress?.trim() || null,
+        currentAddress: input.currentAddress
+          ? {
+              street: input.currentAddress.street.trim(),
+              city: input.currentAddress.city.trim(),
+              state: input.currentAddress.state.trim(),
+              pincode: input.currentAddress.pincode.trim(),
+              country: (input.currentAddress.country ?? 'India').trim(),
+            }
+          : null,
         aadhaarLast4: profile.aadhaarLast4,
         aadhaarVerifiedAt: new Date(),
         verificationMethod,

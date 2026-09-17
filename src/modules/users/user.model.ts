@@ -31,23 +31,33 @@ export interface IWebAuthnCredential {
   createdAt: Date;
 }
 
+export interface INomineeLink {
+  userId: Types.ObjectId;
+  linkedAt: Date;
+}
+
 export interface IUser {
   name: string;
   countryCode: string;
   phone: string;
+  phone2?: string | null;
   aadhaarFingerprint: string;
   role: UserRole;
   permissions: string[];
   status: UserStatus;
+  statusReason?: string | null;
+  statusChangedAt?: Date | null;
+  statusChangedBy?: Types.ObjectId | null;
   createdBy?: Types.ObjectId | null;
   lastLoginAt?: Date | null;
   gender?: string | null;
   dateOfBirth?: string | null;
   aadhaarAddress?: IAadhaarAddress | null;
-  currentAddress?: string | null;
+  currentAddress?: IAadhaarAddress | null;
   aadhaarLast4?: string | null;
   aadhaarVerifiedAt?: Date | null;
   verificationMethod?: VerificationMethod | null;
+  nominees?: INomineeLink[];
   totpSecret?: string | null;
   totpPendingSecret?: string | null;
   totpEnabled?: boolean;
@@ -88,11 +98,20 @@ const webauthnCredentialSchema = new Schema<IWebAuthnCredential>(
   { _id: false }
 );
 
+const nomineeLinkSchema = new Schema<INomineeLink>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    linkedAt: { type: Date, required: true, default: Date.now },
+  },
+  { _id: false }
+);
+
 const userSchema = new Schema<IUserDocument>(
   {
     name: { type: String, required: true, trim: true },
     countryCode: { type: String, required: true, default: '+91' },
     phone: { type: String, required: true, trim: true, index: true },
+    phone2: { type: String, default: null, trim: true },
     aadhaarFingerprint: { type: String, required: true, index: true },
     role: {
       type: String,
@@ -106,19 +125,26 @@ const userSchema = new Schema<IUserDocument>(
       enum: Object.values(USER_STATUS),
       default: USER_STATUS.ACTIVE,
     },
+    statusReason: { type: String, default: null, trim: true },
+    statusChangedAt: { type: Date, default: null },
+    statusChangedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
     lastLoginAt: { type: Date, default: null },
     gender: { type: String, default: null, trim: true },
     dateOfBirth: { type: String, default: null, trim: true },
     aadhaarAddress: { type: aadhaarAddressSchema, default: null },
-    currentAddress: { type: String, default: null, trim: true },
-    aadhaarLast4: { type: String, default: null, trim: true },
-    aadhaarVerifiedAt: { type: Date, default: null },
+    currentAddress: { type: aadhaarAddressSchema, default: null },
+    aadhaarLast4: { type: String, default: null, trim: true },    aadhaarVerifiedAt: { type: Date, default: null },
     verificationMethod: {
       type: String,
       enum: Object.values(VERIFICATION_METHODS),
       default: undefined,
     },
+    nominees: { type: [nomineeLinkSchema], default: [] },
     totpSecret: { type: String, default: null, select: false },
     totpPendingSecret: { type: String, default: null, select: false },
     totpEnabled: { type: Boolean, default: false },

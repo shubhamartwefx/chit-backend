@@ -47,11 +47,13 @@ Hierarchy: `*` > manager > editor (manager satisfies editor-level checks).
 
 ### Agent (auto-assigned)
 
-- `agents:read`, `bidders:read`, `bidders:write`, `chits:read`, `reports:read`, `notifications:read`
+- `agents:read`, `bidders:read`, `bidders:write`, `chits:read`, `chits:write`, `reports:read`
 
 ### Bidder (auto-assigned)
 
-- `chits:read`, `reports:read`, `notifications:read`
+- `chits:read`, `reports:read`
+
+`notifications:*` remain in the domain catalog / branch assignable set but are **not** auto-granted until a notifications module ships.
 
 ## Route permission registry
 
@@ -67,8 +69,45 @@ Defined in [`src/config/rbac/route-permissions.ts`](../src/config/rbac/route-per
 | `GET /super-admin/bidders` | editor, manager, or `*` |
 | `POST /super-admin/staff` | `*` only |
 | `GET /super-admin/staff` | manager or `*` |
+| `GET /branch-store/agents` | `agents:read` |
+| `GET /branch-store/bidders` | `bidders:read` |
+| `POST /branch-store/bidders` | `bidders:write` |
+| `POST /branch-store/bidders/:id/block` | `bidders:write` |
+| `POST /branch-store/bidders/:id/unblock` | `bidders:write` |
+| `GET /agent/bidders` | `bidders:read` |
+| `POST /agent/bidders` | `bidders:write` |
+| `POST /agent/bidders/:id/block` | `bidders:write` |
+| `POST /agent/bidders/:id/unblock` | `bidders:write` |
+| `POST /bidder/chits/:id/join` | `chits:read` |
+| `GET /chits` | `chits:read` |
+| `GET /chits/summary` | `chits:read` |
+| `GET /chits/:id` | `chits:read` |
+| `POST /chits` | `chits:write` |
+| `PATCH /chits/:id` | `chits:write` |
+| `DELETE /chits/:id` | `chits:write` |
+| `POST /chits/:id/members` | `chits:write` |
+| `PATCH /chits/:id/members/:bidderId` | `chits:write` |
+| `DELETE /chits/:id/members/:bidderId` | `chits:write` |
+| `GET /chits/:id/installments` | `chits:read` |
+| `POST /chits/:id/installments` | `chits:write` |
+| `GET /chits/:id/auction-rounds` | `chits:read` |
+| `POST /chits/:id/auction-rounds` | `chits:write` |
+| `GET /chits/:id/auction-rounds/:roundId` | `chits:read` |
+| `POST /chits/:id/auction-rounds/:roundId/bids` | `chits:read` (bidder role) |
+| `POST /chits/:id/auction-rounds/:roundId/close` | `chits:write` |
+| `GET /reports/overview` | `reports:read` |
+| `POST /super-admin/users/:userId/block` | `platform:super_admin:manager`, `*` |
+| `POST /super-admin/users/:userId/unblock` | `platform:super_admin:manager`, `*` |
 
 Deprecated aliases `/super-admin/admins` use the same rules as `/branch-stores`.
+
+**Provisioning:** Branch store accounts are **Super Admin only** (`POST /super-admin/branch-stores`). Agent and bidder may self-signup; SA and peer operators may also create bidders. Branch assignable permissions include full domain set (`chits:*`, `bidders:*`, etc.).
+
+**Account block:** Platform can block branch/agent/bidder. Operators can block/unblock only bidders they **created** (`createdBy`). List endpoints support `status=blocked`.
+
+Chit routes at `/api/v1/chits`: **read** allows `super_admin`, `branch_store`, `agent`, and `bidder`; **write** allows the first three only. **Peer ownership:** agents → own chits (`agentId`); branch stores → own chits (`branchStoreId`, no agent required); bidders → chits where they are in `members[]`; super admin → all (create requires `agentId` **or** `branchStoreId`).
+
+Blocked users receive `403 ACCOUNT_BLOCKED` with `{ reason }` in `details` on login, refresh, and any authenticated API call.
 
 ## Middleware
 
@@ -97,6 +136,9 @@ Run once after deploy:
 
 ```bash
 npm run migrate:branch-store
+npm run migrate:agent-chits-write
 ```
+
+`migrate:agent-chits-write` grants `chits:write` to existing agent users created before that permission was added to `AGENT_DEFAULT`.
 
 Renames existing MongoDB users with `role: 'admin'` to `role: 'branch_store'`.

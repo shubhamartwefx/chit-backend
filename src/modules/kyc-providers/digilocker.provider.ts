@@ -1,5 +1,10 @@
 import { unauthorized } from '../../common/errors';
-import { IVerifiedAadhaarProfile, MOCK_AADHAAR_DEMOGRAPHICS } from './types';
+import {
+  buildMockAadhaarProfile,
+  type IVerifiedAadhaarProfile,
+  type MockAadhaarRole,
+  MOCK_AADHAAR_DEMOGRAPHICS,
+} from './types';
 
 export const MOCK_DIGILOCKER_CODE = 'mock-digilocker-code';
 
@@ -7,11 +12,14 @@ export interface DigiLockerProvider {
   buildAuthorizationUrl(state: string, redirectUri: string): string;
   exchangeAndFetchProfile(
     code: string,
-    aadhaarLast4: string
+    aadhaarLast4: string,
+    role?: MockAadhaarRole
   ): Promise<IVerifiedAadhaarProfile>;
 }
 
 export class MockDigiLockerProvider implements DigiLockerProvider {
+  constructor(private readonly role: MockAadhaarRole = 'agent') {}
+
   buildAuthorizationUrl(state: string, redirectUri: string): string {
     const url = new URL(redirectUri);
     url.searchParams.set('code', MOCK_DIGILOCKER_CODE);
@@ -21,19 +29,21 @@ export class MockDigiLockerProvider implements DigiLockerProvider {
 
   async exchangeAndFetchProfile(
     code: string,
-    aadhaarLast4: string
+    aadhaarLast4: string,
+    role?: MockAadhaarRole
   ): Promise<IVerifiedAadhaarProfile> {
     if (code !== MOCK_DIGILOCKER_CODE) {
       throw unauthorized('Invalid DigiLocker authorization code');
     }
 
-    return {
-      ...MOCK_AADHAAR_DEMOGRAPHICS,
-      aadhaarLast4,
-    };
+    return buildMockAadhaarProfile(aadhaarLast4, role ?? this.role);
   }
 }
 
-export function createDigiLockerProvider(): DigiLockerProvider {
-  return new MockDigiLockerProvider();
+export function createDigiLockerProvider(
+  role: MockAadhaarRole = 'agent'
+): DigiLockerProvider {
+  return new MockDigiLockerProvider(role);
 }
+
+export { MOCK_AADHAAR_DEMOGRAPHICS };

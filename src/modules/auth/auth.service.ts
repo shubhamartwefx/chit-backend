@@ -4,16 +4,14 @@ import {
   isValidIndianPhone,
   normalizePhone,
 } from '../../common/crypto';
+import { assertAccountCanAuthenticate } from '../../common/account-status';
 import { accessDenied, badRequest, unauthorized } from '../../common/errors';
 import { API_MESSAGES } from '../../common/status';
 import { env } from '../../config/env';
 import {
-  ROLE_DASHBOARD_PATH,
   RoleUrlSlug,
-  toClientRole,
   urlSlugToRole,
   USER_ROLES,
-  USER_STATUS,
 } from '../../config/roles';
 import {
   canLoginWithPermissions,
@@ -26,14 +24,18 @@ import {
   VerifyOtpInput,
   Verify2faInput,
 } from './auth.validation';
+import { profileService } from './profile.service';
 import { usesTotpLogin } from './security-policy';
 import { TokenPairMeta, tokenService } from './token.service';
 import { verifyTotpCode } from './totp.util';
 
-function assertCredentialsFormat(phone: string, aadhaar: string): void {
+function assertPhoneFormat(phone: string): void {
   if (!isValidIndianPhone(phone)) {
     throw badRequest('Enter a valid 10-digit Indian mobile number');
   }
+}
+
+function assertAadhaarFormat(aadhaar: string): void {
   if (!isValidAadhaar(aadhaar)) {
     throw badRequest('Enter a valid 12-digit Aadhaar number');
   }
@@ -43,21 +45,45 @@ export class AuthService {
   private async findActiveLoginUser(
     roleSlug: RoleUrlSlug,
     phone: string,
-    aadhaarNumber: string,
+    aadhaarNumber: string | undefined,
     extraSelect = ''
   ) {
-    assertCredentialsFormat(phone, aadhaarNumber);
+    assertPhoneFormat(phone);
     const role = urlSlugToRole(roleSlug);
-    const aadhaarFingerprint = fingerprintAadhaar(
-      aadhaarNumber,
-      env.JWT_SECRET
-    );
+    const allowPhoneOnly =
+      role === USER_ROLES.AGENT && (!aadhaarNumber || aadhaarNumber.length === 0);
 
-    const user = await User.findOne({
-      phone,
-      aadhaarFingerprint,
-      role,
-    }).select(extraSelect);
+    if (!allowPhoneOnly) {
+      if (!aadhaarNumber) {
+        throw badRequest('Aadhaar number is required for this login portal');
+      }
+      assertAadhaarFormat(aadhaarNumber);
+    }
+
+    const selectFields = `${extraSelect} role permissions status statusReason statusChangedAt statusChangedBy aadhaarFingerprint`;
+
+    let user;
+    let aadhaarFingerprint: string;
+
+    if (allowPhoneOnly) {
+      user = await User.findOne({ phone, role }).select(selectFields);
+      if (!user?.aadhaarFingerprint) {
+        throw accessDenied(
+          'Invalid credentials for this login portal, or account does not exist for this role'
+        );
+      }
+      aadhaarFingerprint = user.aadhaarFingerprint;
+    } else {
+      aadhaarFingerprint = fingerprintAadhaar(
+        aadhaarNumber!,
+        env.JWT_SECRET
+      );
+      user = await User.findOne({
+        phone,
+        aadhaarFingerprint,
+        role,
+      }).select(selectFields);
+    }
 
     if (!user) {
       throw accessDenied(
@@ -65,11 +91,9 @@ export class AuthService {
       );
     }
 
-    if (user.status !== USER_STATUS.ACTIVE) {
-      throw accessDenied('Your account is inactive or blocked. Contact support.');
-    }
+    assertAccountCanAuthenticate(user);
 
-    if (!canLoginWithPermissions(user.role, user.permissions)) {
+    if (!canLoginWithPermissions(user.role, user.permissions ?? [])) {
       throw accessDenied(
         'Your account has no valid permissions assigned. Contact support.'
       );
@@ -168,7 +192,7 @@ export class AuthService {
       roleSlug,
       phone,
       input.aadhaarNumber,
-      '+totpSecret totpEnabled'
+      '+totpSecret'
     );
 
     if (!usesTotpLogin(user) || !user.totpSecret) {
@@ -219,30 +243,7 @@ export class AuthService {
   }
 
   async me(userId: string) {
-    const user = await User.findById(userId).select(
-      '-aadhaarFingerprint -__v'
-    );
-    if (!user) {
-      throw unauthorized('User not found');
-    }
-    return {
-      id: user._id.toString(),
-      name: user.name,
-      phone: user.phone,
-      countryCode: user.countryCode,
-      role: toClientRole(user.role),
-      permissions: user.permissions,
-      internalRole: user.role,
-      status: user.status,
-      lastLoginAt: user.lastLoginAt,
-      totpEnabled: Boolean(user.totpEnabled),
-      screenLockEnabled: Boolean(user.screenLockEnabled),
-      biometricEnabled: Boolean(user.biometricEnabled),
-      redirectTo: ROLE_DASHBOARD_PATH[user.role],
-      ...(user.role === USER_ROLES.SUPER_ADMIN
-        ? { tier: resolveSuperAdminTier(user.permissions) }
-        : {}),
-    };
+    return profileService.formatProfile(userId);
   }
 }
 

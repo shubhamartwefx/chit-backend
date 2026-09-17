@@ -47,6 +47,9 @@ const envSchema = z.object({
   WEBAUTHN_RP_ID: z.string().default('localhost'),
   WEBAUTHN_ORIGIN: z.string().default('http://localhost:3000'),
   WEBAUTHN_RP_NAME: z.string().default('Saina Chit Funds'),
+  SIGNUP_FEE_AGENT: z.coerce.number().default(700),
+  SIGNUP_FEE_BIDDER: z.coerce.number().default(300),
+  PAYMENT_MODE: z.enum(['demo']).default('demo'),
 });
 
 const parsed = envSchema.safeParse(process.env);

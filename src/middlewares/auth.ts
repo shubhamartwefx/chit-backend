@@ -1,23 +1,28 @@
 import { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import {
+  assertAccountActiveOrBlocked,
+  assertNotBlocked,
+} from '../common/account-status';
+import {
   accessDenied,
   insufficientPermissions,
   unauthorized,
 } from '../common/errors';
-import { Permission, UserRole } from '../config/constants';
+import { Permission, UserRole, UserStatus } from '../config/constants';
 import {
   hasAllPermissions,
   hasAnyPermission,
 } from '../config/rbac';
 import { env } from '../config/env';
 import { JwtPayload } from '../types/express';
+import { User } from '../modules/users/user.model';
 
-export function authenticate(
+export async function authenticate(
   req: Request,
   _res: Response,
   next: NextFunction
-): void {
+): Promise<void> {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
     next(unauthorized('Missing or invalid Authorization header'));
@@ -27,10 +32,52 @@ export function authenticate(
   const token = header.slice(7);
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
+    const account = await User.findById(decoded.sub)
+      .select('status statusReason')
+      .lean();
+
+    if (!account) {
+      next(unauthorized('Invalid or expired token'));
+      return;
+    }
+
+    // Soft: blocked accounts may still call /me and read APIs.
+    // Mutating routes use rejectIfBlocked.
+    assertAccountActiveOrBlocked(account);
     req.user = decoded;
+    req.accountStatus = {
+      status: account.status as UserStatus,
+      statusReason: account.statusReason ?? null,
+    };
     next();
-  } catch {
-    next(unauthorized('Invalid or expired token'));
+  } catch (err) {
+    if (
+      err &&
+      typeof err === 'object' &&
+      'name' in err &&
+      ((err as { name?: string }).name === 'TokenExpiredError' ||
+        (err as { name?: string }).name === 'JsonWebTokenError')
+    ) {
+      next(unauthorized('Invalid or expired token'));
+      return;
+    }
+    next(err);
+  }
+}
+
+/** Block write operations for blocked accounts. */
+export function rejectIfBlocked(
+  req: Request,
+  _res: Response,
+  next: NextFunction
+): void {
+  try {
+    if (req.accountStatus) {
+      assertNotBlocked(req.accountStatus);
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
 }
 

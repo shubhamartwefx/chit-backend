@@ -7,6 +7,8 @@ import {
   CreateBidderInput,
   CreateBranchStoreInput,
   CreateStaffInput,
+  ListUsersQueryInput,
+  UserStatusActionInput,
   assignablePermissionsResponse,
 } from './super-admin.validation';
 
@@ -28,9 +30,11 @@ export class SuperAdminController {
     }
   }
 
-  async listBranchStores(_req: Request, res: Response, next: NextFunction) {
+  async listBranchStores(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await superAdminService.listBranchStores();
+      const data = await superAdminService.listBranchStores(
+        req.query as ListUsersQueryInput
+      );
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
@@ -43,8 +47,8 @@ export class SuperAdminController {
   }
 
   /** @deprecated Use listBranchStores */
-  async listAdmins(_req: Request, res: Response, next: NextFunction) {
-    return this.listBranchStores(_req, res, next);
+  async listAdmins(req: Request, res: Response, next: NextFunction) {
+    return this.listBranchStores(req, res, next);
   }
 
   async createAgent(req: Request, res: Response, next: NextFunction) {
@@ -59,9 +63,11 @@ export class SuperAdminController {
     }
   }
 
-  async listAgents(_req: Request, res: Response, next: NextFunction) {
+  async listAgents(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await superAdminService.listAgents();
+      const data = await superAdminService.listAgents(
+        req.query as ListUsersQueryInput
+      );
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
@@ -80,9 +86,11 @@ export class SuperAdminController {
     }
   }
 
-  async listBidders(_req: Request, res: Response, next: NextFunction) {
+  async listBidders(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await superAdminService.listBidders();
+      const data = await superAdminService.listBidders(
+        req.query as ListUsersQueryInput
+      );
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
@@ -101,9 +109,11 @@ export class SuperAdminController {
     }
   }
 
-  async listStaff(_req: Request, res: Response, next: NextFunction) {
+  async listStaff(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await superAdminService.listStaff();
+      const data = await superAdminService.listStaff(
+        req.query as ListUsersQueryInput
+      );
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
@@ -113,6 +123,32 @@ export class SuperAdminController {
   async getPermissionsCatalog(_req: Request, res: Response, next: NextFunction) {
     try {
       sendSuccessWithKey(res, assignablePermissionsResponse, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async blockUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.blockUser(
+        req.user!.sub,
+        req.params.userId,
+        req.body as UserStatusActionInput
+      );
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_BLOCKED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async unblockUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.unblockUser(
+        req.user!.sub,
+        req.params.userId,
+        req.body as UserStatusActionInput
+      );
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_UNBLOCKED);
     } catch (err) {
       next(err);
     }

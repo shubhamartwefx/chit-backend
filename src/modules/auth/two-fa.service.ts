@@ -127,8 +127,8 @@ export class ScreenLockService {
     userId: string,
     input: { pin: string; currentPin?: string; totp?: string }
   ) {
-    if (!/^\d{4,8}$/.test(input.pin)) {
-      throw badRequest('PIN must be 4–8 digits');
+    if (!/^\d{6}$/.test(input.pin)) {
+      throw badRequest('PIN must be exactly 6 digits');
     }
 
     const user = await User.findById(userId).select(
@@ -159,7 +159,7 @@ export class ScreenLockService {
   }
 
   async enable(userId: string, enabled: boolean) {
-    const user = await User.findById(userId).select('+pinHash screenLockEnabled');
+    const user = await User.findById(userId).select('+pinHash');
     if (!user) throw unauthorized('User not found');
 
     if (enabled && !user.pinHash) {
@@ -181,19 +181,6 @@ export class ScreenLockService {
     );
     if (!user) throw unauthorized('User not found');
 
-    if (!user.screenLockEnabled) {
-      throw badRequest('Screen lock is not enabled');
-    }
-
-    if (input.method === 'pin') {
-      if (!input.pin || !user.pinHash) {
-        throw unauthorized('Invalid PIN');
-      }
-      const ok = await bcrypt.compare(input.pin, user.pinHash);
-      if (!ok) throw unauthorized('Invalid PIN');
-      return { unlocked: true, method: 'pin' as const };
-    }
-
     if (input.method === 'totp') {
       if (user.role === USER_ROLES.BIDDER) {
         throw accessDenied('2FA unlock is not available for this role');
@@ -205,6 +192,18 @@ export class ScreenLockService {
         throw unauthorized('Invalid authenticator code');
       }
       return { unlocked: true, method: 'totp' as const };
+    }
+
+    if (input.method === 'pin') {
+      if (!user.screenLockEnabled) {
+        throw badRequest('Screen lock PIN is not enabled');
+      }
+      if (!input.pin || !user.pinHash) {
+        throw unauthorized('Invalid PIN');
+      }
+      const ok = await bcrypt.compare(input.pin, user.pinHash);
+      if (!ok) throw unauthorized('Invalid PIN');
+      return { unlocked: true, method: 'pin' as const };
     }
 
     throw badRequest('Unsupported unlock method');

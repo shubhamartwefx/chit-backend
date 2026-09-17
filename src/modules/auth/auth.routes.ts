@@ -5,13 +5,16 @@ import { authenticate } from '../../middlewares/auth';
 import { validate } from '../../middlewares/validate';
 import agentSignupRoutes from '../agent-signup/agent-signup.routes';
 import bidderSignupRoutes from '../bidder-signup/bidder-signup.routes';
+import signupPaymentRoutes from '../signup-payment/signup-payment.routes';
 import { authController } from './auth.controller';
 import {
+  nomineeSearchQuerySchema,
   refreshTokenSchema,
   requestOtpSchema,
   roleParamSchema,
   securityConfigureSchema,
   securityUnlockSchema,
+  updateProfileSchema,
   verify2faSchema,
   verifyOtpSchema,
 } from './auth.validation';
@@ -44,6 +47,7 @@ const refreshLimiter = rateLimit({
 
 router.use('/bidder/register', bidderSignupRoutes);
 router.use('/agent/register', agentSignupRoutes);
+router.use('/payments', signupPaymentRoutes);
 
 router.post(
   '/refresh',
@@ -54,6 +58,20 @@ router.post(
 
 router.get('/me', authenticate, (req, res, next) =>
   authController.me(req, res, next)
+);
+
+router.patch(
+  '/profile',
+  authenticate,
+  validate(updateProfileSchema),
+  (req, res, next) => authController.updateProfile(req, res, next)
+);
+
+router.get(
+  '/profile/nominee-search',
+  authenticate,
+  validate(nomineeSearchQuerySchema, 'query'),
+  (req, res, next) => authController.searchNominees(req, res, next)
 );
 
 router.post('/logout', authenticate, (req, res, next) =>

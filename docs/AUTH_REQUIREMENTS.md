@@ -22,6 +22,9 @@ Corrected product rules for Saina Chit Funds (backend APIs).
 
 - **Bidder:** `/api/v1/auth/bidder/register/*` (Aadhaar OTP + DigiLocker mock)
 - **Agent:** `/api/v1/auth/agent/register/*` (same flow; creates `agent` with `AGENT_DEFAULT`)
+- **Branch store:** **no self-signup**. Branch accounts are provisioned only by Super Admin via `POST /super-admin/branch-stores`.
+
+Super Admin can also create agents and bidders via `/super-admin/agents` and `/super-admin/bidders`. Peer operators (branch / agent) can create bidders via `/branch-store/bidders` and `/agent/bidders`, and can block/unblock only bidders they created.
 
 ## Unified security APIs
 
@@ -41,8 +44,8 @@ Login `POST /auth/:role/verify-2fa` is unchanged (used when TOTP is enabled for 
 {
   "method": "totp" | "screen_lock" | "biometric",
   "enabled": true | false,
-  "pin": "1234",
-  "currentPin": "1234",
+  "pin": "123456",
+  "currentPin": "123456",
   "totp": "123456",
   "webauthnResponse": {}
 }
@@ -56,9 +59,9 @@ Login `POST /auth/:role/verify-2fa` is unchanged (used when TOTP is enabled for 
 
 ### PIN unlock flow
 
-1. Enable: `POST /auth/security` `{ "method": "screen_lock", "enabled": true, "pin": "1234" }`
+1. Enable: `POST /auth/security` `{ "method": "screen_lock", "enabled": true, "pin": "123456" }`
 2. FE uses `inactivityMinutes` from `GET /auth/security`; on timeout show lock UI (JWT still valid)
-3. Unlock: `POST /auth/security/unlock` `{ "method": "pin", "pin": "1234" }`
+3. Unlock: `POST /auth/security/unlock` `{ "method": "pin", "pin": "123456" }`
 
 Disable screen lock clears `screenLockEnabled` only; `pinHash` is kept for faster re-enable.
 

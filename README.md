@@ -4,6 +4,17 @@ Saina Chit Funds API — Express + TypeScript + MongoDB (Mongoose).
 
 See **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** for architecture overview and **[docs/PERMISSIONS.md](./docs/PERMISSIONS.md)** for the RBAC permission matrix.
 
+## API docs (Swagger)
+
+With the server running (`npm run dev`):
+
+- **UI:** http://localhost:4000/api/docs  
+- **OpenAPI JSON:** http://localhost:4000/api/docs.json  
+
+1. Call **Auth → verify-otp** for a role (seed OTP `123456`)
+2. Click **Authorize** and paste `data.accessToken`
+3. Use **Try it out** on protected routes
+
 ## Quick start
 
 ```bash
@@ -17,7 +28,8 @@ npm run dev
 
 API: `http://localhost:4000`  
 Health: `GET /health`  
-API base: `/api/{API_VERSION}` (default `/api/v1`, set via `API_VERSION` in `.env`)
+API base: `/api/{API_VERSION}` (default `/api/v1`, set via `API_VERSION` in `.env`)  
+**Swagger UI:** [`http://localhost:4000/api/docs`](http://localhost:4000/api/docs) · OpenAPI JSON: `/api/docs.json`
 
 ## Scripts
 
@@ -68,6 +80,22 @@ Content-Type: application/json
 
 Auth URL slugs: `super-admin`, `branch-store`, `admin` (alias → branch store), `agent`, `bidder`.
 
+### Demo signup payment (agent / bidder)
+
+```http
+POST /api/v1/auth/payments/create-order
+{ "role": "agent", "sessionId": "<verified-signup-session>" }
+
+POST /api/v1/auth/payments/confirm
+{ "orderId": "order_demo_...", "paymentId": "optional" }
+
+POST /api/v1/auth/agent/register/complete
+{ "sessionId", "phone", "countryCode", "paymentId": "<from confirm>" }
+```
+
+Fees: `SIGNUP_FEE_AGENT` (700) / `SIGNUP_FEE_BIDDER` (300). `PAYMENT_MODE=demo` confirms without Razorpay.
+
+
 Use the returned `accessToken` as `Authorization: Bearer <token>`.
 
 Also store `refreshToken`. Access tokens expire quickly (default 15m). When expired:
@@ -87,17 +115,46 @@ If `request-otp` returns `requires2fa: true`, call `POST /auth/:role/verify-2fa`
 
 Public APIs under `/api/v1/auth/bidder/register` and `/api/v1/auth/agent/register` (same shapes).
 
+Mock Aadhaar KYC returns **different demographics per role** (demo only):
+
+| Role | Name | City |
+|------|------|------|
+| Agent | Rajesh Kumar | Bengaluru |
+| Bidder | Priya Sharma | Hyderabad |
+| Branch (seed / last4 `1111`) | Anil Reddy | Chennai |
+
 ```http
 POST /api/v1/auth/agent/register/aadhaar/request-otp
 { "aadhaarNumber": "354136431636" }
 
 POST /api/v1/auth/agent/register/complete
-{ "sessionId": "<id>", "countryCode": "+91", "phone": "9876501111" }
+{ "sessionId": "<id>", "countryCode": "+91", "phone": "9876501111", "paymentId": "<paid>" }
 ```
 
 ## 2FA / screen lock / biometric
 
-Authenticated under `/api/v1/auth/security` (GET status, POST configure) and `POST /auth/security/unlock`. TOTP is for super-admin, branch-store, and agent only; screen lock and biometric are available for every role. See [docs/AUTH_REQUIREMENTS.md](./docs/AUTH_REQUIREMENTS.md).
+Authenticated under `/api/v1/auth/security` (GET status, POST configure) and `POST /auth/security/unlock`. TOTP is for super-admin, branch-store, and agent only. Client demo unlocks the lock screen with **TOTP only** when 2FA is enabled — no separate screen-lock PIN enable/disable in the FE.
+
+## Profile update + nominee
+
+```http
+PATCH /api/v1/auth/profile
+Authorization: Bearer <accessToken>
+{ "phone2": "9876543210", "currentAddress": "…", "nomineeUserIds": ["<userId>"] }
+
+GET /api/v1/auth/profile/nominee-search?q=9888888883
+Authorization: Bearer <accessToken>
+```
+
+`q` is a 10-digit phone or 12-digit Aadhaar. Nominees must already exist; max 2. `GET /auth/me` returns `phone2` and resolved `nominees`.
+
+After `npm run seed`, try nominee search with:
+
+| Name | Phone | Aadhaar |
+|------|-------|---------|
+| Rahul Verma | `9777777771` | `444444444441` |
+| Sneha Iyer | `9777777772` | `555555555552` |
+| Vikram Patel | `9777777773` | `666666666663` |
 
 ## RBAC structure
 
@@ -132,6 +189,19 @@ Content-Type: application/json
 ```
 
 Deprecated alias: `POST /api/v1/super-admin/admins`
+
+## List agents / bidders / branch stores (Super Admin)
+
+```http
+GET /api/v1/super-admin/agents
+GET /api/v1/super-admin/bidders
+GET /api/v1/super-admin/branch-stores
+Authorization: Bearer <super_admin_token>
+```
+
+Optional query: `?q=<name|phone>&status=active|inactive|blocked`.
+
+Each row includes `id`, `name`, `phone`, `countryCode`, `role`, `permissions`, `status`, `aadhaarLast4`, `gender`, `dateOfBirth`, `createdAt`, `lastLoginAt`.
 
 ## Create Agent / Bidder / Super Admin staff
 
