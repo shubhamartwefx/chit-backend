@@ -17,9 +17,14 @@ import {
 } from '../auctions/auction.validation';
 import { installmentController } from '../installments/installment.controller';
 import {
+  agentTakenMonthDetailSchema,
+  bidderPaymentMonthDetailSchema,
   chitIdParamsSchema as installmentChitIdParamsSchema,
   createInstallmentSchema,
+  installmentParamsSchema,
   listInstallmentsQuerySchema,
+  skipMonthDetailSchema,
+  updateInstallmentSchema,
 } from '../installments/installment.validation';
 import { chitController } from './chit.controller';
 import {
@@ -112,6 +117,54 @@ router.post(
   validate(installmentChitIdParamsSchema, 'params'),
   validate(createInstallmentSchema),
   (req, res, next) => installmentController.create(req, res, next)
+);
+
+router.get(
+  '/:id/installments/:installmentId',
+  authorize(...readRoles),
+  authorizePermission(PERMISSIONS.CHITS.READ),
+  validate(installmentParamsSchema, 'params'),
+  (req, res, next) => installmentController.getById(req, res, next)
+);
+
+router.patch(
+  '/:id/installments/:installmentId',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(installmentParamsSchema, 'params'),
+  validate(updateInstallmentSchema),
+  (req, res, next) => installmentController.update(req, res, next)
+);
+
+router.post(
+  '/:id/month-details/bidder-payment',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(installmentChitIdParamsSchema, 'params'),
+  validate(bidderPaymentMonthDetailSchema),
+  (req, res, next) => installmentController.createBidderPayment(req, res, next)
+);
+
+router.post(
+  '/:id/month-details/agent-taken',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(installmentChitIdParamsSchema, 'params'),
+  validate(agentTakenMonthDetailSchema),
+  (req, res, next) => installmentController.createAgentTaken(req, res, next)
+);
+
+router.post(
+  '/:id/month-details/skip',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(installmentChitIdParamsSchema, 'params'),
+  validate(skipMonthDetailSchema),
+  (req, res, next) => installmentController.createSkip(req, res, next)
 );
 
 router.get(

@@ -4,6 +4,8 @@ Saina Chit Funds API — Express + TypeScript + MongoDB (Mongoose).
 
 See **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** for architecture overview and **[docs/PERMISSIONS.md](./docs/PERMISSIONS.md)** for the RBAC permission matrix.
 
+**Production deploy (EC2 + PM2):** see **[docs/DEPLOY_EC2_PM2.md](./docs/DEPLOY_EC2_PM2.md)**.
+
 ## API docs (Swagger)
 
 With the server running (`npm run dev`):
