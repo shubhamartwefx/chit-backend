@@ -14,6 +14,8 @@ import {
   ChitStatus,
   IChitDocument,
   IChitMember,
+  IMemberReport,
+  BidderReportReason,
 } from './chit.model';
 import {
   buildChitScopeFilter,
@@ -23,9 +25,15 @@ import {
 import {
   CreateChitInput,
   ListChitsQueryInput,
+  MAX_TICKETS_PER_BIDDER,
   SummaryQueryInput,
   UpdateChitInput,
 } from './chit.validation';
+import {
+  Installment,
+  INSTALLMENT_KIND,
+  INSTALLMENT_STATUS,
+} from '../installments/installment.model';
 
 type MemberInput = { bidderId: string; numberOfTickets: number };
 
@@ -133,6 +141,21 @@ async function validateAndBuildMembers(
     );
   }
 
+  for (const m of members) {
+    if (m.numberOfTickets > MAX_TICKETS_PER_BIDDER) {
+      throw badRequest(
+        `numberOfTickets cannot exceed ${MAX_TICKETS_PER_BIDDER} per bidder`
+      );
+    }
+  }
+
+  const ticketSum = members.reduce((s, m) => s + m.numberOfTickets, 0);
+  if (ticketSum > maxBidders) {
+    throw badRequest(
+      `Total tickets (${ticketSum}) exceed chit capacity (${maxBidders})`
+    );
+  }
+
   const objectIds = bidderIds.map((id) => new Types.ObjectId(id));
   const bidders = await User.find({
     _id: { $in: objectIds },
@@ -156,17 +179,58 @@ async function validateAndBuildMembers(
   }));
 }
 
+function sumTickets(
+  members: Array<{ numberOfTickets?: number }> | undefined
+): number {
+  if (!members?.length) return 0;
+  return members.reduce((s, m) => s + (m.numberOfTickets ?? 1), 0);
+}
+
+function assertTicketCapacity(
+  currentTickets: number,
+  addingTickets: number,
+  maxBidders: number
+) {
+  if (addingTickets > MAX_TICKETS_PER_BIDDER) {
+    throw badRequest(
+      `numberOfTickets cannot exceed ${MAX_TICKETS_PER_BIDDER} per bidder`
+    );
+  }
+  if (currentTickets + addingTickets > maxBidders) {
+    const remaining = Math.max(0, maxBidders - currentTickets);
+    throw badRequest(
+      remaining === 0
+        ? `Chit ticket occupancy is full (${maxBidders}/${maxBidders}). No more enrollments can happen.`
+        : `Not enough free tickets: ${remaining} remaining, requested ${addingTickets}`
+    );
+  }
+}
+
 interface PopulatedBidder {
   _id: Types.ObjectId;
   name?: string;
   phone?: string;
 }
 
-function toMemberDto(member: {
-  bidderId: Types.ObjectId | PopulatedBidder;
-  numberOfTickets: number;
-  joinedAt: Date;
-}) {
+function toMemberDto(
+  member: {
+    bidderId: Types.ObjectId | PopulatedBidder;
+    numberOfTickets: number;
+    joinedAt: Date;
+    reports?: IMemberReport[];
+  },
+  extras?: { paidMonths?: number }
+) {
+  const reports = Array.isArray(member.reports) ? member.reports : [];
+  const latest = reports.length > 0 ? reports[reports.length - 1] : null;
+  const latestReport = latest
+    ? {
+        reason: latest.reason,
+        note: latest.note ?? null,
+        createdAt: latest.createdAt,
+      }
+    : null;
+
   const bidder = member.bidderId;
   if (bidder && typeof bidder === 'object' && '_id' in bidder) {
     const populated = bidder as PopulatedBidder;
@@ -176,6 +240,8 @@ function toMemberDto(member: {
       phone: populated.phone ?? null,
       numberOfTickets: member.numberOfTickets,
       joinedAt: member.joinedAt,
+      paidMonths: extras?.paidMonths ?? 0,
+      latestReport,
     };
   }
   return {
@@ -184,6 +250,8 @@ function toMemberDto(member: {
     phone: null,
     numberOfTickets: member.numberOfTickets,
     joinedAt: member.joinedAt,
+    paidMonths: extras?.paidMonths ?? 0,
+    latestReport,
   };
 }
 
@@ -208,14 +276,82 @@ function filterMembersForActor(
   );
 }
 
+async function resolveAgentNamesById(
+  agentIds: Array<string | null | undefined>
+): Promise<Map<string, string>> {
+  const unique = [
+    ...new Set(
+      agentIds.filter((id): id is string => typeof id === 'string' && !!id)
+    ),
+  ];
+  if (unique.length === 0) return new Map();
+
+  const users = await User.find({
+    _id: { $in: unique.map((id) => new Types.ObjectId(id)) },
+  })
+    .select('name')
+    .lean();
+
+  const map = new Map<string, string>();
+  for (const u of users) {
+    if (u.name) map.set(u._id.toString(), u.name);
+  }
+  return map;
+}
+
+async function loadPaidMonthsByBidder(
+  chitId: Types.ObjectId
+): Promise<Map<string, number>> {
+  const rows = await Installment.aggregate<{
+    _id: Types.ObjectId;
+    paidMonths: number;
+  }>([
+    {
+      $match: {
+        chitId,
+        status: INSTALLMENT_STATUS.PAID,
+        kind: INSTALLMENT_KIND.BIDDER_PAYMENT,
+        bidderId: { $ne: null },
+      },
+    },
+    {
+      $group: {
+        _id: '$bidderId',
+        months: { $addToSet: '$monthNumber' },
+      },
+    },
+    {
+      $project: {
+        paidMonths: { $size: '$months' },
+      },
+    },
+  ]);
+
+  const map = new Map<string, number>();
+  for (const row of rows) {
+    if (row._id) {
+      map.set(row._id.toString(), row.paidMonths);
+    }
+  }
+  return map;
+}
+
 function toChitDto(
   chit: IChitDocument | (IChitDocument & { members?: unknown }),
-  options?: { includeMembers?: boolean; actor?: ChitActor }
+  options?: {
+    includeMembers?: boolean;
+    actor?: ChitActor;
+    agentName?: string | null;
+    paidMonthsByBidder?: Map<string, number>;
+  }
 ) {
   const completedMonths = chit.completedMonths ?? 0;
   const pendingMonths = Math.max(0, chit.totalMonths - completedMonths);
   const allMembers = Array.isArray(chit.members) ? chit.members : [];
   const visibleMembers = filterMembersForActor(allMembers, options?.actor);
+  const agentId = chit.agentId ? chit.agentId.toString() : null;
+  const ticketCount = sumTickets(allMembers);
+  const ticketsRemaining = Math.max(0, chit.maxBidders - ticketCount);
 
   const base = {
     id: chit._id.toString(),
@@ -235,8 +371,12 @@ function toChitDto(
       options?.actor?.role === USER_ROLES.BIDDER
         ? visibleMembers.length
         : allMembers.length,
+    ticketCount,
+    ticketsRemaining,
+    isTicketFull: ticketCount >= chit.maxBidders,
     status: chit.status,
-    agentId: chit.agentId ? chit.agentId.toString() : null,
+    agentId,
+    agentName: options?.agentName ?? null,
     branchStoreId: chit.branchStoreId
       ? chit.branchStoreId.toString()
       : null,
@@ -248,19 +388,44 @@ function toChitDto(
   if (options?.includeMembers) {
     return {
       ...base,
-      members: visibleMembers.map((m) =>
-        toMemberDto(
-          m as {
-            bidderId: Types.ObjectId | PopulatedBidder;
-            numberOfTickets: number;
-            joinedAt: Date;
-          }
-        )
-      ),
+      members: visibleMembers.map((m) => {
+        const typed = m as {
+          bidderId: Types.ObjectId | PopulatedBidder;
+          numberOfTickets: number;
+          joinedAt: Date;
+          reports?: IMemberReport[];
+        };
+        const bidderKey = memberBidderIdString(typed.bidderId);
+        return toMemberDto(typed, {
+          paidMonths: options.paidMonthsByBidder?.get(bidderKey) ?? 0,
+        });
+      }),
     };
   }
 
   return base;
+}
+
+async function toEnrichedChitDto(
+  chit: IChitDocument | (IChitDocument & { members?: unknown }),
+  options?: { includeMembers?: boolean; actor?: ChitActor }
+) {
+  const agentId = chit.agentId ? chit.agentId.toString() : null;
+  const agentNames = await resolveAgentNamesById([agentId]);
+  let paidMonthsByBidder: Map<string, number> | undefined;
+  if (options?.includeMembers) {
+    const rawId = chit._id;
+    const chitObjectId =
+      rawId instanceof Types.ObjectId
+        ? rawId
+        : new Types.ObjectId(String(rawId));
+    paidMonthsByBidder = await loadPaidMonthsByBidder(chitObjectId);
+  }
+  return toChitDto(chit, {
+    ...options,
+    agentName: agentId ? agentNames.get(agentId) ?? null : null,
+    paidMonthsByBidder,
+  });
 }
 
 function assertOperatorFilterAllowed(
@@ -326,13 +491,19 @@ export class ChitService {
       Chit.countDocuments(filter),
     ]);
 
+    const agentNames = await resolveAgentNamesById(
+      items.map((doc) => (doc.agentId ? doc.agentId.toString() : null))
+    );
+
     return {
-      items: items.map((doc) =>
-        toChitDto(doc as unknown as IChitDocument, {
+      items: items.map((doc) => {
+        const agentId = doc.agentId ? doc.agentId.toString() : null;
+        return toChitDto(doc as unknown as IChitDocument, {
           includeMembers: false,
           actor,
-        })
-      ),
+          agentName: agentId ? agentNames.get(agentId) ?? null : null,
+        });
+      }),
       pagination: {
         page,
         limit,
@@ -397,7 +568,7 @@ export class ChitService {
       throw notFound('Chit not found');
     }
 
-    return toChitDto(chit as unknown as IChitDocument, {
+    return toEnrichedChitDto(chit as unknown as IChitDocument, {
       includeMembers: true,
       actor,
     });
@@ -446,7 +617,7 @@ export class ChitService {
       .populate('members.bidderId', 'name phone')
       .lean();
 
-    return toChitDto(
+    return toEnrichedChitDto(
       (populated ?? created) as unknown as IChitDocument,
       { includeMembers: true, actor }
     );
@@ -517,7 +688,7 @@ export class ChitService {
       .populate('members.bidderId', 'name phone')
       .lean();
 
-    return toChitDto(
+    return toEnrichedChitDto(
       (populated ?? chit) as unknown as IChitDocument,
       { includeMembers: true, actor }
     );
@@ -562,6 +733,12 @@ export class ChitService {
       );
     }
 
+    assertTicketCapacity(
+      sumTickets(chit.members),
+      input.numberOfTickets,
+      chit.maxBidders
+    );
+
     const built = await validateAndBuildMembers([input], chit.maxBidders);
     chit.members.push(built[0]);
     await chit.save();
@@ -570,7 +747,7 @@ export class ChitService {
       .populate('members.bidderId', 'name phone')
       .lean();
 
-    return toChitDto(
+    return toEnrichedChitDto(
       (populated ?? chit) as unknown as IChitDocument,
       { includeMembers: true, actor }
     );
@@ -592,6 +769,11 @@ export class ChitService {
       throw notFound('Member not found on this chit');
     }
 
+    const othersTickets = sumTickets(
+      chit.members.filter((m) => m.bidderId.toString() !== bidderId)
+    );
+    assertTicketCapacity(othersTickets, input.numberOfTickets, chit.maxBidders);
+
     member.numberOfTickets = input.numberOfTickets;
     await chit.save();
 
@@ -599,7 +781,7 @@ export class ChitService {
       .populate('members.bidderId', 'name phone')
       .lean();
 
-    return toChitDto(
+    return toEnrichedChitDto(
       (populated ?? chit) as unknown as IChitDocument,
       { includeMembers: true, actor }
     );
@@ -625,7 +807,46 @@ export class ChitService {
       .populate('members.bidderId', 'name phone')
       .lean();
 
-    return toChitDto(
+    return toEnrichedChitDto(
+      (populated ?? chit) as unknown as IChitDocument,
+      { includeMembers: true, actor }
+    );
+  }
+
+  async reportMember(
+    actor: JwtPayload,
+    chitId: string,
+    bidderId: string,
+    input: { reason: BidderReportReason; note?: string }
+  ) {
+    const chit = await Chit.findOne(buildScopedChitByIdFilter(actor, chitId));
+    if (!chit) {
+      throw notFound('Chit not found');
+    }
+
+    const member = chit.members.find((m) => m.bidderId.toString() === bidderId);
+    if (!member) {
+      throw notFound('Member not found on this chit');
+    }
+
+    if (!Array.isArray(member.reports)) {
+      member.reports = [];
+    }
+
+    member.reports.push({
+      reason: input.reason,
+      note: input.note?.trim() ? input.note.trim() : null,
+      reportedBy: new Types.ObjectId(actor.sub),
+      createdAt: new Date(),
+    });
+
+    await chit.save();
+
+    const populated = await Chit.findById(chit._id)
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    return toEnrichedChitDto(
       (populated ?? chit) as unknown as IChitDocument,
       { includeMembers: true, actor }
     );
@@ -663,11 +884,14 @@ export class ChitService {
       throw badRequest('This chit is full');
     }
 
+    const tickets = input.numberOfTickets ?? 1;
+    assertTicketCapacity(sumTickets(chit.members), tickets, chit.maxBidders);
+
     const built = await validateAndBuildMembers(
       [
         {
           bidderId: actor.sub,
-          numberOfTickets: input.numberOfTickets ?? 1,
+          numberOfTickets: tickets,
         },
       ],
       chit.maxBidders
@@ -679,7 +903,7 @@ export class ChitService {
       .populate('members.bidderId', 'name phone')
       .lean();
 
-    return toChitDto(
+    return toEnrichedChitDto(
       (populated ?? chit) as unknown as IChitDocument,
       { includeMembers: true, actor }
     );

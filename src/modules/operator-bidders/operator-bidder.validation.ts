@@ -52,3 +52,11 @@ export const operatorBidderStatusActionSchema = z.object({
 export type OperatorBidderStatusActionInput = z.infer<
   typeof operatorBidderStatusActionSchema
 >;
+
+export const updateOperatorBidderSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+});
+
+export type UpdateOperatorBidderInput = z.infer<
+  typeof updateOperatorBidderSchema
+>;

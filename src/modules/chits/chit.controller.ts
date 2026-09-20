@@ -9,6 +9,7 @@ import {
   SummaryQueryInput,
   UpdateChitInput,
   UpdateChitMemberInput,
+  ReportChitMemberInput,
 } from './chit.validation';
 
 export class ChitController {
@@ -114,6 +115,20 @@ export class ChitController {
         req.params.bidderId
       );
       sendSuccessWithKey(res, data, 'OK', API_MESSAGES.CHIT_MEMBER_REMOVED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async reportMember(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.reportMember(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.body as ReportChitMemberInput
+      );
+      sendSuccessWithKey(res, data, 'CREATED', API_MESSAGES.CHIT_MEMBER_REPORTED);
     } catch (err) {
       next(err);
     }

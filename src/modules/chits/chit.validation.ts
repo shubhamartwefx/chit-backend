@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CHIT_STATUS, CHIT_TYPES } from './chit.model';
+import { BIDDER_REPORT_REASONS, CHIT_STATUS, CHIT_TYPES } from './chit.model';
 
 const objectIdSchema = z
   .string()
@@ -10,9 +10,16 @@ const chitTypeSchema = z.enum([
   CHIT_TYPES.AUCTION_CHIT,
 ]);
 
+const MAX_TICKETS_PER_BIDDER = 3;
+
 const memberInputSchema = z.object({
   bidderId: objectIdSchema,
-  numberOfTickets: z.coerce.number().int().min(1).max(100).default(1),
+  numberOfTickets: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_TICKETS_PER_BIDDER)
+    .default(1),
 });
 
 export const createChitSchema = z
@@ -47,22 +54,46 @@ export type CreateChitInput = z.infer<typeof createChitSchema>;
 
 export const addChitMemberSchema = z.object({
   bidderId: objectIdSchema,
-  numberOfTickets: z.coerce.number().int().min(1).max(100).default(1),
+  numberOfTickets: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_TICKETS_PER_BIDDER)
+    .default(1),
 });
 
 export type AddChitMemberInput = z.infer<typeof addChitMemberSchema>;
 
 export const joinChitSchema = z.object({
-  numberOfTickets: z.coerce.number().int().min(1).max(100).default(1),
+  numberOfTickets: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(MAX_TICKETS_PER_BIDDER)
+    .default(1),
 });
 
 export type JoinChitInput = z.infer<typeof joinChitSchema>;
 
 export const updateChitMemberSchema = z.object({
-  numberOfTickets: z.coerce.number().int().min(1).max(100),
+  numberOfTickets: z.coerce.number().int().min(1).max(MAX_TICKETS_PER_BIDDER),
 });
 
 export type UpdateChitMemberInput = z.infer<typeof updateChitMemberSchema>;
+
+export const reportChitMemberSchema = z.object({
+  reason: z.enum([
+    BIDDER_REPORT_REASONS.NOT_PAYING_PROPERLY,
+    BIDDER_REPORT_REASONS.AMOUNT_TAKE_AND_RUNAWAY,
+    BIDDER_REPORT_REASONS.NOT_RESPONDING,
+    BIDDER_REPORT_REASONS.CHECK_BONES_TWICE,
+  ]),
+  note: z.string().trim().max(500).optional(),
+});
+
+export type ReportChitMemberInput = z.infer<typeof reportChitMemberSchema>;
+
+export { MAX_TICKETS_PER_BIDDER };
 
 export const chitMemberParamsSchema = z.object({
   id: objectIdSchema,

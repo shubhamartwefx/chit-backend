@@ -14,6 +14,7 @@ import {
   listOperatorBiddersQuerySchema,
   operatorBidderIdParamsSchema,
   operatorBidderStatusActionSchema,
+  updateOperatorBidderSchema,
 } from '../operator-bidders/operator-bidder.validation';
 
 const router = Router();
@@ -37,6 +38,22 @@ router.post(
   authorizePermission(PERMISSIONS.BIDDERS.WRITE),
   validate(createOperatorBidderSchema),
   (req, res, next) => agentController.createBidder(req, res, next)
+);
+
+router.patch(
+  '/bidders/:id',
+  rejectIfBlocked,
+  authorizePermission(PERMISSIONS.BIDDERS.WRITE),
+  validate(operatorBidderIdParamsSchema, 'params'),
+  validate(updateOperatorBidderSchema),
+  (req, res, next) => agentController.updateBidder(req, res, next)
+);
+
+router.get(
+  '/bidders/:id/reports',
+  authorizePermission(PERMISSIONS.BIDDERS.READ),
+  validate(operatorBidderIdParamsSchema, 'params'),
+  (req, res, next) => agentController.listBidderReports(req, res, next)
 );
 
 router.post(

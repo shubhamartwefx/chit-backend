@@ -68,7 +68,12 @@ export class BranchStoreService {
     bidderId: string,
     input: OperatorBidderStatusActionInput
   ) {
-    return operatorBidderService.blockBidder(branchStoreId, bidderId, input);
+    return operatorBidderService.blockBidder(
+      branchStoreId,
+      USER_ROLES.BRANCH_STORE,
+      bidderId,
+      input
+    );
   }
 
   async unblockBidder(
@@ -76,7 +81,12 @@ export class BranchStoreService {
     bidderId: string,
     input: OperatorBidderStatusActionInput
   ) {
-    return operatorBidderService.unblockBidder(branchStoreId, bidderId, input);
+    return operatorBidderService.unblockBidder(
+      branchStoreId,
+      USER_ROLES.BRANCH_STORE,
+      bidderId,
+      input
+    );
   }
 }
 
