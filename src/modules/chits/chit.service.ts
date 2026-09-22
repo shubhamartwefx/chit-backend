@@ -37,6 +37,24 @@ import {
 
 type MemberInput = { bidderId: string; numberOfTickets: number };
 
+function findMemberReportIndex(
+  reports: IMemberReport[],
+  reportId: string
+): number {
+  const byOid = reports.findIndex(
+    (r) => r._id && r._id.toString() === reportId
+  );
+  if (byOid >= 0) return byOid;
+
+  const ts = Number(reportId);
+  if (!Number.isNaN(ts) && reportId.trim() !== '') {
+    return reports.findIndex(
+      (r) => new Date(r.createdAt).getTime() === ts
+    );
+  }
+  return -1;
+}
+
 function addMonths(date: Date, months: number): Date {
   const result = new Date(date.getTime());
   result.setUTCMonth(result.getUTCMonth() + months);
@@ -853,6 +871,72 @@ export class ChitService {
       (populated ?? chit) as unknown as IChitDocument,
       { includeMembers: true, actor }
     );
+  }
+
+  async updateMemberReport(
+    actor: JwtPayload,
+    chitId: string,
+    bidderId: string,
+    reportId: string,
+    input: { reason: BidderReportReason; note?: string }
+  ) {
+    const chit = await Chit.findOne(buildScopedChitByIdFilter(actor, chitId));
+    if (!chit) throw notFound('Chit not found');
+
+    const member = chit.members.find((m) => m.bidderId.toString() === bidderId);
+    if (!member) throw notFound('Member not found on this chit');
+    if (!Array.isArray(member.reports) || member.reports.length === 0) {
+      throw notFound('Report not found');
+    }
+
+    const index = findMemberReportIndex(member.reports, reportId);
+    if (index < 0) throw notFound('Report not found');
+
+    member.reports[index].reason = input.reason;
+    member.reports[index].note = input.note?.trim()
+      ? input.note.trim()
+      : null;
+    chit.markModified('members');
+    await chit.save();
+
+    const populated = await Chit.findById(chit._id)
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    return toEnrichedChitDto(
+      (populated ?? chit) as unknown as IChitDocument,
+      { includeMembers: true, actor }
+    );
+  }
+
+  async deleteMemberReport(
+    actor: JwtPayload,
+    chitId: string,
+    bidderId: string,
+    reportId: string
+  ) {
+    const chit = await Chit.findOne(buildScopedChitByIdFilter(actor, chitId));
+    if (!chit) throw notFound('Chit not found');
+
+    const member = chit.members.find((m) => m.bidderId.toString() === bidderId);
+    if (!member) throw notFound('Member not found on this chit');
+    if (!Array.isArray(member.reports) || member.reports.length === 0) {
+      throw notFound('Report not found');
+    }
+
+    const index = findMemberReportIndex(member.reports, reportId);
+    if (index < 0) throw notFound('Report not found');
+
+    member.reports.splice(index, 1);
+    chit.markModified('members');
+    await chit.save();
+
+    return {
+      chitId: chit._id.toString(),
+      bidderId,
+      reportId,
+      deleted: true,
+    };
   }
 
   /**

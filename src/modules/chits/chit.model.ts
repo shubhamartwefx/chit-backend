@@ -27,6 +27,7 @@ export type BidderReportReason =
   (typeof BIDDER_REPORT_REASONS)[keyof typeof BIDDER_REPORT_REASONS];
 
 export interface IMemberReport {
+  _id?: Types.ObjectId;
   reason: BidderReportReason;
   note?: string | null;
   reportedBy: Types.ObjectId;
@@ -80,7 +81,7 @@ const memberReportSchema = new Schema<IMemberReport>(
     },
     createdAt: { type: Date, required: true, default: Date.now },
   },
-  { _id: false }
+  { _id: true }
 );
 
 const chitMemberSchema = new Schema<IChitMember>(

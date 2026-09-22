@@ -2,6 +2,7 @@ import { operatorBidderService } from '../operator-bidders/operator-bidder.servi
 import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
+  ListOperatorReportsQueryInput,
   OperatorBidderStatusActionInput,
   UpdateOperatorBidderInput,
 } from '../operator-bidders/operator-bidder.validation';
@@ -60,6 +61,14 @@ export class AgentService {
       agentId,
       USER_ROLES.AGENT,
       bidderId
+    );
+  }
+
+  async listReports(agentId: string, query: ListOperatorReportsQueryInput) {
+    return operatorBidderService.listOperatorReports(
+      agentId,
+      USER_ROLES.AGENT,
+      query
     );
   }
 }

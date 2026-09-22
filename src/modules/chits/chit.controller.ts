@@ -133,6 +133,35 @@ export class ChitController {
       next(err);
     }
   }
+
+  async updateMemberReport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.updateMemberReport(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.params.reportId,
+        req.body as ReportChitMemberInput
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Report updated');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteMemberReport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.deleteMemberReport(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.params.reportId
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Report deleted');
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const chitController = new ChitController();

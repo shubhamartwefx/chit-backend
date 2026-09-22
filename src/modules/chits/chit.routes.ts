@@ -37,6 +37,8 @@ import {
   updateChitMemberSchema,
   updateChitSchema,
   reportChitMemberSchema,
+  updateChitMemberReportSchema,
+  chitMemberReportParamsSchema,
 } from './chit.validation';
 
 const router = Router();
@@ -109,6 +111,25 @@ router.post(
   validate(chitMemberParamsSchema, 'params'),
   validate(reportChitMemberSchema),
   (req, res, next) => chitController.reportMember(req, res, next)
+);
+
+router.patch(
+  '/:id/members/:bidderId/reports/:reportId',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(chitMemberReportParamsSchema, 'params'),
+  validate(updateChitMemberReportSchema),
+  (req, res, next) => chitController.updateMemberReport(req, res, next)
+);
+
+router.delete(
+  '/:id/members/:bidderId/reports/:reportId',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(chitMemberReportParamsSchema, 'params'),
+  (req, res, next) => chitController.deleteMemberReport(req, res, next)
 );
 
 router.get(

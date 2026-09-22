@@ -5,6 +5,7 @@ import { agentService } from './agent.service';
 import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
+  ListOperatorReportsQueryInput,
   OperatorBidderStatusActionInput,
   UpdateOperatorBidderInput,
 } from '../operator-bidders/operator-bidder.validation';
@@ -78,6 +79,18 @@ export class AgentController {
       const data = await agentService.listBidderReports(
         req.user!.sub,
         req.params.id
+      );
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listReports(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await agentService.listReports(
+        req.user!.sub,
+        req.query as unknown as ListOperatorReportsQueryInput
       );
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {

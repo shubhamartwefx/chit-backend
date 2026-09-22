@@ -19,6 +19,7 @@ import { User } from '../users/user.model';
 import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
+  ListOperatorReportsQueryInput,
   OperatorBidderStatusActionInput,
 } from './operator-bidder.validation';
 
@@ -506,6 +507,165 @@ export class OperatorBidderService {
       bidderId,
       total: items.length,
       items,
+    };
+  }
+
+  async listOperatorReports(
+    operatorId: string,
+    operatorRole: typeof USER_ROLES.AGENT | typeof USER_ROLES.BRANCH_STORE,
+    query: ListOperatorReportsQueryInput
+  ) {
+    const operatorOid = new Types.ObjectId(operatorId);
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+    const chitOwnerFilter =
+      operatorRole === USER_ROLES.AGENT
+        ? { agentId: operatorOid }
+        : { branchStoreId: operatorOid };
+
+    const chits = await Chit.find({
+      ...chitOwnerFilter,
+      status: { $ne: CHIT_STATUS.DELETED },
+      'members.reports.0': { $exists: true },
+    })
+      .select('_id chitCode members')
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    type FlatReport = {
+      id: string;
+      reportId: string;
+      bidderId: string;
+      bidderName: string | null;
+      bidderPhone: string | null;
+      chitId: string;
+      chitCode: string;
+      reason: string;
+      note: string | null;
+      reportedBy: string | null;
+      reportedByName: string | null;
+      createdAt: Date;
+      reportCountForBidder: number;
+    };
+
+    const flat: FlatReport[] = [];
+    const bidderReportTotals = new Map<string, number>();
+
+    for (const chit of chits) {
+      for (const member of chit.members ?? []) {
+        const reports = Array.isArray(member.reports) ? member.reports : [];
+        if (reports.length === 0) continue;
+
+        const bidder = member.bidderId as
+          | Types.ObjectId
+          | { _id: Types.ObjectId; name?: string; phone?: string };
+        const bidderId =
+          bidder && typeof bidder === 'object' && '_id' in bidder
+            ? bidder._id.toString()
+            : (bidder as Types.ObjectId).toString();
+        const bidderName =
+          bidder && typeof bidder === 'object' && 'name' in bidder
+            ? bidder.name ?? null
+            : null;
+        const bidderPhone =
+          bidder && typeof bidder === 'object' && 'phone' in bidder
+            ? bidder.phone ?? null
+            : null;
+
+        bidderReportTotals.set(
+          bidderId,
+          (bidderReportTotals.get(bidderId) ?? 0) + reports.length
+        );
+
+        for (const report of reports) {
+          const reportWithId = report as typeof report & {
+            _id?: Types.ObjectId;
+          };
+          const reportId = reportWithId._id
+            ? reportWithId._id.toString()
+            : String(new Date(report.createdAt).getTime());
+          flat.push({
+            id: `${chit._id.toString()}-${bidderId}-${reportId}`,
+            reportId,
+            bidderId,
+            bidderName,
+            bidderPhone,
+            chitId: chit._id.toString(),
+            chitCode: chit.chitCode,
+            reason: report.reason,
+            note: report.note ?? null,
+            reportedBy: report.reportedBy
+              ? report.reportedBy.toString()
+              : null,
+            reportedByName: null,
+            createdAt: report.createdAt,
+            reportCountForBidder: 0,
+          });
+        }
+      }
+    }
+
+    for (const item of flat) {
+      item.reportCountForBidder = bidderReportTotals.get(item.bidderId) ?? 1;
+    }
+
+    flat.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    const reporterIds = flat
+      .map((item) => item.reportedBy)
+      .filter((id): id is string => typeof id === 'string' && !!id);
+    const uniqueReporterIds = [...new Set(reporterIds)];
+    if (uniqueReporterIds.length > 0) {
+      const reporters = await User.find({
+        _id: { $in: uniqueReporterIds.map((id) => new Types.ObjectId(id)) },
+      })
+        .select('name')
+        .lean();
+      const nameById = new Map<string, string>();
+      for (const user of reporters) {
+        if (user.name) nameById.set(user._id.toString(), user.name);
+      }
+      for (const item of flat) {
+        if (item.reportedBy) {
+          item.reportedByName = nameById.get(item.reportedBy) ?? null;
+        }
+      }
+    }
+
+    const q = query.q?.trim().toLowerCase() ?? '';
+    const qDigits = q.replace(/\D/g, '');
+    const filtered = q
+      ? flat.filter((item) => {
+          const name = (item.bidderName || '').toLowerCase();
+          const reporter = (item.reportedByName || '').toLowerCase();
+          const phone = (item.bidderPhone || '').replace(/\D/g, '');
+          const id = item.bidderId.toLowerCase();
+          const chit = (item.chitCode || '').toLowerCase();
+          return (
+            name.includes(q) ||
+            reporter.includes(q) ||
+            id.includes(q) ||
+            chit.includes(q) ||
+            (qDigits.length > 0 && phone.includes(qDigits))
+          );
+        })
+      : flat;
+
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const items = filtered.slice(start, start + limit);
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
     };
   }
 }

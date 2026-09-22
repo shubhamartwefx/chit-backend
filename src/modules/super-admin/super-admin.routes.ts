@@ -21,6 +21,14 @@ import {
   userIdParamsSchema,
   userStatusActionSchema,
 } from './super-admin.validation';
+import { subscriptionPlanController } from '../subscription-plans/subscription-plan.controller';
+import {
+  bulkUpsertSubscriptionPlansSchema,
+  createSubscriptionPlanSchema,
+  listSubscriptionPlansQuerySchema,
+  subscriptionPlanIdParamsSchema,
+  updateSubscriptionPlanSchema,
+} from '../subscription-plans/subscription-plan.validation';
 
 const router = Router();
 
@@ -119,6 +127,42 @@ router.post(
   validate(userIdParamsSchema, 'params'),
   validate(userStatusActionSchema),
   (req, res, next) => superAdminController.unblockUser(req, res, next)
+);
+
+router.get(
+  '/subscription-plans',
+  authorizeIf(canListPlatformUsers),
+  validate(listSubscriptionPlansQuerySchema, 'query'),
+  (req, res, next) => subscriptionPlanController.list(req, res, next)
+);
+
+router.post(
+  '/subscription-plans',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(createSubscriptionPlanSchema),
+  (req, res, next) => subscriptionPlanController.create(req, res, next)
+);
+
+router.put(
+  '/subscription-plans',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(bulkUpsertSubscriptionPlansSchema),
+  (req, res, next) => subscriptionPlanController.bulkUpsert(req, res, next)
+);
+
+router.patch(
+  '/subscription-plans/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(subscriptionPlanIdParamsSchema, 'params'),
+  validate(updateSubscriptionPlanSchema),
+  (req, res, next) => subscriptionPlanController.update(req, res, next)
+);
+
+router.delete(
+  '/subscription-plans/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(subscriptionPlanIdParamsSchema, 'params'),
+  (req, res, next) => subscriptionPlanController.remove(req, res, next)
 );
 
 export default router;

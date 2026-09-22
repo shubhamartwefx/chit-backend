@@ -93,6 +93,12 @@ export const reportChitMemberSchema = z.object({
 
 export type ReportChitMemberInput = z.infer<typeof reportChitMemberSchema>;
 
+export const updateChitMemberReportSchema = reportChitMemberSchema;
+
+export type UpdateChitMemberReportInput = z.infer<
+  typeof updateChitMemberReportSchema
+>;
+
 export { MAX_TICKETS_PER_BIDDER };
 
 export const chitMemberParamsSchema = z.object({
@@ -101,6 +107,16 @@ export const chitMemberParamsSchema = z.object({
 });
 
 export type ChitMemberParams = z.infer<typeof chitMemberParamsSchema>;
+
+export const chitMemberReportParamsSchema = z.object({
+  id: objectIdSchema,
+  bidderId: objectIdSchema,
+  reportId: z.string().min(1).max(80),
+});
+
+export type ChitMemberReportParams = z.infer<
+  typeof chitMemberReportParamsSchema
+>;
 
 export const updateChitSchema = z
   .object({

@@ -22,6 +22,15 @@ import {
   CHIT_TYPES,
 } from '../modules/chits/chit.model';
 import { Installment } from '../modules/installments/installment.model';
+import {
+  SUBSCRIPTION_PLAN_AUDIENCES,
+  SUBSCRIPTION_PLAN_STATUS,
+  SubscriptionPlan,
+} from '../modules/subscription-plans/subscription-plan.model';
+import {
+  TUTORIAL_STATUS,
+  Tutorial,
+} from '../modules/tutorials/tutorial.model';
 
 interface SeedUser {
   key: string;
@@ -422,6 +431,189 @@ async function seedNomineeEnrollment(usersByKey: Map<string, IUserDocument>) {
   return { agent, rahul, sneha, vikram, meera, bidder, enrolledMock };
 }
 
+const SEED_AGENT_PLANS = [
+  {
+    title: 'Silver plan',
+    subtitle: "You ll get a all details",
+    price: 5000,
+    features: [
+      'Up to 3',
+      'analytics',
+      '9-hour support',
+      'add Chit List',
+      'Month Details',
+      'notification',
+      'Pending Month Details',
+      'Complete Month Details',
+      'Chit Tankan person',
+      'Subscriber Details',
+      'Last month take an amount',
+      'Balance amount',
+    ],
+    icon: 'mdi:rocket',
+    bgClass: 'bg-warning bg-opacity-10 text-warning',
+    colorClass: 'text-warning',
+    btnType: 'a' as const,
+    btnClass: 'btn btn-outline-primary w-100 rounded-2 fw-medium',
+    sortOrder: 0,
+  },
+  {
+    title: 'Basic personal',
+    subtitle: "You ll get a all details",
+    price: 7000,
+    features: [
+      'Up to 5',
+      'analytics',
+      '9-hour support',
+      'add Chit List',
+      'Month Details',
+      'notification',
+      'Pending Month Details',
+      'Complete Month Details',
+      'Chit Tankan person',
+      'Subscriber Details',
+      'Last month take an amount',
+      'Balance amount',
+    ],
+    icon: 'mdi:account-supervisor',
+    bgClass: 'bg-primary bg-opacity-10 text-primary',
+    colorClass: 'text-primary',
+    btnType: 'link' as const,
+    btnClass: 'btn btn-primary w-100 rounded-2',
+    cardBorder: 'border-primary border shadow-none',
+    sortOrder: 1,
+  },
+  {
+    title: 'Startup',
+    subtitle: "You ll get a all details",
+    price: 10000,
+    features: [
+      'Up to 10',
+      'analytics',
+      '9-hour support',
+      'add Chit List',
+      'Month Details',
+      'notification',
+      'Pending Month Details',
+      'Complete Month Details',
+      'Chit Tankan person',
+      'Subscriber Details',
+      'Last month take an amount',
+      'Balance amount',
+    ],
+    icon: 'mdi:office-building',
+    bgClass: 'bg-info bg-opacity-10 text-info',
+    colorClass: 'text-info',
+    btnType: 'a' as const,
+    btnClass: 'btn btn-outline-primary w-100 rounded-2 fw-medium',
+    sortOrder: 2,
+  },
+];
+
+const SEED_TUTORIALS = [
+  {
+    title: 'Messages',
+    category: 'Getting Started',
+    content: 'Check and manage your messages.',
+    video: 'https://www.youtube.com/embed/3JZ_D3ELwOQ',
+  },
+  {
+    title: 'New Chit',
+    category: 'Chit Management',
+    content:
+      'Learn how to create a new chit step by step — amount, government betting amount, monthly installment and start date auto-calculate the number of bidders and the deadline.',
+    video: 'https://www.youtube.com/embed/0vGx9Y9hK0Y',
+  },
+  {
+    title: 'Add Bidders',
+    category: 'Chit Management',
+    content:
+      'Search a bidder by ID or phone number, pick how many chit slots (1–10) they hold, and add them straight into the chit’s bidder list.',
+    video: 'https://www.youtube.com/embed/0vGx9Y9hK0Y',
+  },
+  {
+    title: 'Month Details & Collections',
+    category: 'Chit Management',
+    content:
+      'Record a bidder-taken or agent-taken payment for the month, or skip the month with a reason — every entry lands in the Month Details table.',
+    video: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+  },
+  {
+    title: 'Bidder List & Search',
+    category: 'Bidder Management',
+    content:
+      'Search, verify and review every bidder registered under your agency from one table.',
+    video: 'https://www.youtube.com/embed/3JZ_D3ELwOQ',
+  },
+  {
+    title: 'Subscription Plans',
+    category: 'Payments & Subscription',
+    content:
+      'Compare the Silver, Basic and Startup plans and upgrade instantly with secure Razorpay checkout.',
+    video: 'https://www.youtube.com/embed/tgbNymZ7vqY',
+  },
+  {
+    title: 'Profile',
+    category: 'Account & Settings',
+    content: 'Manage your profile settings and info.',
+    video: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+  },
+  {
+    title: 'Settings',
+    category: 'Account & Settings',
+    content: 'Update your preferences and account settings.',
+    video: 'https://www.youtube.com/embed/tgbNymZ7vqY',
+  },
+  {
+    title: 'Two-Factor Authentication',
+    category: 'Account & Settings',
+    content:
+      'Secure your account with Google Authenticator — scan the QR code, then verify a 6-digit code to turn it on.',
+    video: 'https://www.youtube.com/embed/0vGx9Y9hK0Y',
+  },
+];
+
+async function seedSubscriptionPlans(createdBy: Types.ObjectId) {
+  const existing = await SubscriptionPlan.countDocuments({
+    audience: SUBSCRIPTION_PLAN_AUDIENCES.AGENT,
+    status: { $ne: SUBSCRIPTION_PLAN_STATUS.DELETED },
+  });
+  if (existing > 0) {
+    console.log(`[skip] subscription plans already present (${existing})`);
+    return;
+  }
+  await SubscriptionPlan.insertMany(
+    SEED_AGENT_PLANS.map((p) => ({
+      audience: SUBSCRIPTION_PLAN_AUDIENCES.AGENT,
+      ...p,
+      billingPeriod: 'year',
+      cardBorder: 'cardBorder' in p ? p.cardBorder ?? null : null,
+      status: SUBSCRIPTION_PLAN_STATUS.ACTIVE,
+      createdBy,
+    }))
+  );
+  console.log(`[created] ${SEED_AGENT_PLANS.length} agent subscription plans`);
+}
+
+async function seedTutorials(createdBy: Types.ObjectId) {
+  const existing = await Tutorial.countDocuments({
+    status: { $ne: TUTORIAL_STATUS.DELETED },
+  });
+  if (existing > 0) {
+    console.log(`[skip] tutorials already present (${existing})`);
+    return;
+  }
+  await Tutorial.insertMany(
+    SEED_TUTORIALS.map((t, index) => ({
+      ...t,
+      sortOrder: index,
+      status: TUTORIAL_STATUS.ACTIVE,
+      createdBy,
+    }))
+  );
+  console.log(`[created] ${SEED_TUTORIALS.length} tutorials`);
+}
+
 async function seed() {
   await connectDatabase();
 
@@ -450,6 +642,9 @@ async function seed() {
   }
 
   const linked = await seedNomineeEnrollment(usersByKey);
+
+  await seedSubscriptionPlans(agent._id);
+  await seedTutorials(agent._id);
 
   console.log('\nDemo credentials (mock OTP):');
   for (const seedUser of SEED_USERS.filter((u) => !u.key.startsWith('mock_bidder_'))) {
