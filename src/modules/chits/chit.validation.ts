@@ -10,7 +10,7 @@ const chitTypeSchema = z.enum([
   CHIT_TYPES.AUCTION_CHIT,
 ]);
 
-const MAX_TICKETS_PER_BIDDER = 3;
+const MAX_TICKETS_PER_BIDDER = 5;
 
 const memberInputSchema = z.object({
   bidderId: objectIdSchema,

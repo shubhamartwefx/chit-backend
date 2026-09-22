@@ -452,6 +452,7 @@ export class OperatorBidderService {
       reason: string;
       note: string | null;
       reportedBy: string | null;
+      reportedByName: string | null;
       createdAt: Date;
     }> = [];
 
@@ -469,6 +470,7 @@ export class OperatorBidderService {
           reportedBy: report.reportedBy
             ? report.reportedBy.toString()
             : null,
+          reportedByName: null,
           createdAt: report.createdAt,
         });
       }
@@ -478,6 +480,27 @@ export class OperatorBidderService {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+
+    const reporterIds = items
+      .map((item) => item.reportedBy)
+      .filter((id): id is string => typeof id === 'string' && !!id);
+    const uniqueReporterIds = [...new Set(reporterIds)];
+    if (uniqueReporterIds.length > 0) {
+      const reporters = await User.find({
+        _id: { $in: uniqueReporterIds.map((id) => new Types.ObjectId(id)) },
+      })
+        .select('name')
+        .lean();
+      const nameById = new Map<string, string>();
+      for (const user of reporters) {
+        if (user.name) nameById.set(user._id.toString(), user.name);
+      }
+      for (const item of items) {
+        if (item.reportedBy) {
+          item.reportedByName = nameById.get(item.reportedBy) ?? null;
+        }
+      }
+    }
 
     return {
       bidderId,

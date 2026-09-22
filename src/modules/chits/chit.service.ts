@@ -230,6 +230,7 @@ function toMemberDto(
         createdAt: latest.createdAt,
       }
     : null;
+  const reportCount = reports.length;
 
   const bidder = member.bidderId;
   if (bidder && typeof bidder === 'object' && '_id' in bidder) {
@@ -242,6 +243,7 @@ function toMemberDto(
       joinedAt: member.joinedAt,
       paidMonths: extras?.paidMonths ?? 0,
       latestReport,
+      reportCount,
     };
   }
   return {
@@ -252,6 +254,7 @@ function toMemberDto(
     joinedAt: member.joinedAt,
     paidMonths: extras?.paidMonths ?? 0,
     latestReport,
+    reportCount,
   };
 }
 

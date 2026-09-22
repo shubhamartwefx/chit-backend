@@ -90,7 +90,7 @@ const chitMemberSchema = new Schema<IChitMember>(
       ref: 'User',
       required: true,
     },
-    numberOfTickets: { type: Number, required: true, min: 1, max: 3, default: 1 },
+    numberOfTickets: { type: Number, required: true, min: 1, max: 5, default: 1 },
     joinedAt: { type: Date, required: true, default: Date.now },
     reports: { type: [memberReportSchema], default: [] },
   },
