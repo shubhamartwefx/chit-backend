@@ -6,7 +6,6 @@ import {
   CreateOperatorBidderInput,
   ListOperatorAgentsQueryInput,
   ListOperatorBiddersQueryInput,
-  OperatorBidderStatusActionInput,
 } from '../operator-bidders/operator-bidder.validation';
 
 export class BranchStoreController {
@@ -41,32 +40,6 @@ export class BranchStoreController {
         req.body as CreateOperatorBidderInput
       );
       sendSuccessWithKey(res, data, 'CREATED', API_MESSAGES.BIDDER_CREATED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async blockBidder(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await branchStoreService.blockBidder(
-        req.user!.sub,
-        req.params.id,
-        req.body as OperatorBidderStatusActionInput
-      );
-      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_BLOCKED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async unblockBidder(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await branchStoreService.unblockBidder(
-        req.user!.sub,
-        req.params.id,
-        req.body as OperatorBidderStatusActionInput
-      );
-      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_UNBLOCKED);
     } catch (err) {
       next(err);
     }

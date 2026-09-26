@@ -29,6 +29,13 @@ import {
   subscriptionPlanIdParamsSchema,
   updateSubscriptionPlanSchema,
 } from '../subscription-plans/subscription-plan.validation';
+import { tutorialController } from '../tutorials/tutorial.controller';
+import {
+  createTutorialSchema,
+  listTutorialsQuerySchema,
+  tutorialIdParamsSchema,
+  updateTutorialSchema,
+} from '../tutorials/tutorial.validation';
 
 const router = Router();
 
@@ -163,6 +170,42 @@ router.delete(
   authorizeIf(canCreateBranchStoreUser),
   validate(subscriptionPlanIdParamsSchema, 'params'),
   (req, res, next) => subscriptionPlanController.remove(req, res, next)
+);
+
+router.get(
+  '/tutorials',
+  authorizeIf(canListPlatformUsers),
+  validate(listTutorialsQuerySchema, 'query'),
+  (req, res, next) => tutorialController.list(req, res, next)
+);
+
+router.post(
+  '/tutorials',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(createTutorialSchema),
+  (req, res, next) => tutorialController.create(req, res, next)
+);
+
+router.get(
+  '/tutorials/:id',
+  authorizeIf(canListPlatformUsers),
+  validate(tutorialIdParamsSchema, 'params'),
+  (req, res, next) => tutorialController.getById(req, res, next)
+);
+
+router.patch(
+  '/tutorials/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(tutorialIdParamsSchema, 'params'),
+  validate(updateTutorialSchema),
+  (req, res, next) => tutorialController.update(req, res, next)
+);
+
+router.delete(
+  '/tutorials/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(tutorialIdParamsSchema, 'params'),
+  (req, res, next) => tutorialController.remove(req, res, next)
 );
 
 export default router;

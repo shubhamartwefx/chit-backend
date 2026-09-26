@@ -12,9 +12,12 @@ import {
   createOperatorBidderSchema,
   listOperatorAgentsQuerySchema,
   listOperatorBiddersQuerySchema,
-  operatorBidderIdParamsSchema,
-  operatorBidderStatusActionSchema,
 } from '../operator-bidders/operator-bidder.validation';
+import { tutorialController } from '../tutorials/tutorial.controller';
+import {
+  listTutorialsQuerySchema,
+  tutorialIdParamsSchema,
+} from '../tutorials/tutorial.validation';
 
 const router = Router();
 
@@ -49,20 +52,18 @@ router.post(
   (req, res, next) => branchStoreController.createBidder(req, res, next)
 );
 
-router.post(
-  '/bidders/:id/block',
-  authorizePermission(PERMISSIONS.BIDDERS.WRITE),
-  validate(operatorBidderIdParamsSchema, 'params'),
-  validate(operatorBidderStatusActionSchema),
-  (req, res, next) => branchStoreController.blockBidder(req, res, next)
+router.get(
+  '/tutorials',
+  authorizePermission(PERMISSIONS.CHITS.READ),
+  validate(listTutorialsQuerySchema, 'query'),
+  (req, res, next) => tutorialController.list(req, res, next)
 );
 
-router.post(
-  '/bidders/:id/unblock',
-  authorizePermission(PERMISSIONS.BIDDERS.WRITE),
-  validate(operatorBidderIdParamsSchema, 'params'),
-  validate(operatorBidderStatusActionSchema),
-  (req, res, next) => branchStoreController.unblockBidder(req, res, next)
+router.get(
+  '/tutorials/:id',
+  authorizePermission(PERMISSIONS.CHITS.READ),
+  validate(tutorialIdParamsSchema, 'params'),
+  (req, res, next) => tutorialController.getById(req, res, next)
 );
 
 export default router;

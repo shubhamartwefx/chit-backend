@@ -2,8 +2,10 @@ import { Types } from 'mongoose';
 import { notFound } from '../../common/errors';
 import {
   DEFAULT_TUTORIAL_VIDEO,
+  TUTORIAL_LANGUAGES,
   TUTORIAL_STATUS,
   Tutorial,
+  TutorialLanguage,
   ITutorialDocument,
 } from './tutorial.model';
 import {
@@ -19,6 +21,7 @@ function toDto(doc: ITutorialDocument) {
     category: doc.category,
     content: doc.content,
     video: doc.video,
+    language: doc.language,
     sortOrder: doc.sortOrder,
     status: doc.status,
     createdBy: doc.createdBy.toString(),
@@ -56,6 +59,9 @@ export class TutorialService {
     const filter: Record<string, unknown> = {
       status: { $ne: TUTORIAL_STATUS.DELETED },
     };
+    if (query.language) {
+      filter.language = query.language;
+    }
     if (query.category?.trim()) {
       filter.category = query.category.trim();
     }
@@ -93,11 +99,13 @@ export class TutorialService {
   }
 
   async create(actorId: string, input: CreateTutorialInput) {
+    const language = (input.language ?? TUTORIAL_LANGUAGES.EN) as TutorialLanguage;
     const doc = await Tutorial.create({
       title: input.title.trim(),
       category: input.category.trim(),
       content: input.content?.trim() || 'No description added yet.',
       video: normalizeYoutubeEmbed(input.video || DEFAULT_TUTORIAL_VIDEO),
+      language,
       sortOrder: input.sortOrder ?? 0,
       status: TUTORIAL_STATUS.ACTIVE,
       createdBy: new Types.ObjectId(actorId),
@@ -114,6 +122,9 @@ export class TutorialService {
     }
     if (input.video !== undefined) {
       doc.video = normalizeYoutubeEmbed(input.video || DEFAULT_TUTORIAL_VIDEO);
+    }
+    if (input.language !== undefined) {
+      doc.language = input.language as TutorialLanguage;
     }
     if (input.sortOrder !== undefined) doc.sortOrder = input.sortOrder;
     await doc.save();

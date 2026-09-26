@@ -606,6 +606,7 @@ async function seedTutorials(createdBy: Types.ObjectId) {
   await Tutorial.insertMany(
     SEED_TUTORIALS.map((t, index) => ({
       ...t,
+      language: 'en',
       sortOrder: index,
       status: TUTORIAL_STATUS.ACTIVE,
       createdBy,

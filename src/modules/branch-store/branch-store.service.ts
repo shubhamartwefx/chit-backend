@@ -6,7 +6,6 @@ import {
   CreateOperatorBidderInput,
   ListOperatorAgentsQueryInput,
   ListOperatorBiddersQueryInput,
-  OperatorBidderStatusActionInput,
 } from '../operator-bidders/operator-bidder.validation';
 
 export class BranchStoreService {
@@ -61,32 +60,6 @@ export class BranchStoreService {
     input: CreateOperatorBidderInput
   ) {
     return operatorBidderService.create(branchStoreId, input);
-  }
-
-  async blockBidder(
-    branchStoreId: string,
-    bidderId: string,
-    input: OperatorBidderStatusActionInput
-  ) {
-    return operatorBidderService.blockBidder(
-      branchStoreId,
-      USER_ROLES.BRANCH_STORE,
-      bidderId,
-      input
-    );
-  }
-
-  async unblockBidder(
-    branchStoreId: string,
-    bidderId: string,
-    input: OperatorBidderStatusActionInput
-  ) {
-    return operatorBidderService.unblockBidder(
-      branchStoreId,
-      USER_ROLES.BRANCH_STORE,
-      bidderId,
-      input
-    );
   }
 }
 

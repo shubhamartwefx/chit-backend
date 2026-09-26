@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TUTORIAL_LANGUAGE_VALUES } from './tutorial.model';
 
 const objectIdSchema = z
   .string()
@@ -9,6 +10,7 @@ export const createTutorialSchema = z.object({
   category: z.string().trim().min(1).max(120),
   content: z.string().trim().max(5000).optional(),
   video: z.string().trim().max(500).optional(),
+  language: z.enum(TUTORIAL_LANGUAGE_VALUES as [string, ...string[]]).optional().default('en'),
   sortOrder: z.coerce.number().int().optional().default(0),
 });
 
@@ -24,6 +26,7 @@ export type UpdateTutorialInput = z.infer<typeof updateTutorialSchema>;
 export const listTutorialsQuerySchema = z.object({
   q: z.string().trim().max(80).optional(),
   category: z.string().trim().max(120).optional(),
+  language: z.enum(TUTORIAL_LANGUAGE_VALUES as [string, ...string[]]).optional(),
   page: z.coerce.number().int().min(1).optional().default(1),
   limit: z.coerce.number().int().min(1).max(200).optional().default(100),
 });

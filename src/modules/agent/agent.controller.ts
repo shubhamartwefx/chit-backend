@@ -6,7 +6,6 @@ import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
   ListOperatorReportsQueryInput,
-  OperatorBidderStatusActionInput,
   UpdateOperatorBidderInput,
 } from '../operator-bidders/operator-bidder.validation';
 
@@ -48,27 +47,10 @@ export class AgentController {
     }
   }
 
-  async blockBidder(req: Request, res: Response, next: NextFunction) {
+  async getBidder(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await agentService.blockBidder(
-        req.user!.sub,
-        req.params.id,
-        req.body as OperatorBidderStatusActionInput
-      );
-      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_BLOCKED);
-    } catch (err) {
-      next(err);
-    }
-  }
-
-  async unblockBidder(req: Request, res: Response, next: NextFunction) {
-    try {
-      const data = await agentService.unblockBidder(
-        req.user!.sub,
-        req.params.id,
-        req.body as OperatorBidderStatusActionInput
-      );
-      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_UNBLOCKED);
+      const data = await agentService.getBidder(req.user!.sub, req.params.id);
+      sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
     }

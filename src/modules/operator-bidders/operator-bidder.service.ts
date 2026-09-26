@@ -13,14 +13,16 @@ import {
   USER_STATUS,
   UserRole,
 } from '../../config/roles';
-import { tokenService } from '../auth/token.service';
 import { Chit, CHIT_STATUS } from '../chits/chit.model';
+import {
+  Installment,
+  INSTALLMENT_STATUS,
+} from '../installments/installment.model';
 import { User } from '../users/user.model';
 import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
   ListOperatorReportsQueryInput,
-  OperatorBidderStatusActionInput,
 } from './operator-bidder.validation';
 
 function assertIdentity(phone: string, aadhaarNumber: string): string {
@@ -56,6 +58,9 @@ function formatBidder(
     chitCount?: number;
     reportCount?: number;
     chitIds?: string[];
+    ticketCount?: number;
+    paidMonths?: number;
+    totalMonths?: number;
   }
 ) {
   const createdBy = user.createdBy?.toString() ?? null;
@@ -81,31 +86,44 @@ function formatBidder(
     lastLoginAt: user.lastLoginAt ?? null,
     aadhaarVerified,
     aadhaarStatus: aadhaarVerified ? ('verified' as const) : ('pending' as const),
-    canBlock: Boolean(
-      (extras?.operatorId && createdBy === extras.operatorId) ||
-        (extras?.chitCount != null && extras.chitCount > 0)
-    ),
     chitCount: extras?.chitCount ?? 0,
     reportCount: extras?.reportCount ?? 0,
     chitIds: extras?.chitIds ?? [],
+    ticketCount: extras?.ticketCount ?? 0,
+    paidMonths: extras?.paidMonths ?? 0,
+    totalMonths: extras?.totalMonths ?? 0,
   };
 }
+
+type BidderStats = {
+  chitCount: number;
+  reportCount: number;
+  chitIds: string[];
+  ticketCount: number;
+  paidMonths: number;
+  totalMonths: number;
+};
 
 async function loadBidderStatsForOperator(
   operatorId: string,
   operatorRole: typeof USER_ROLES.AGENT | typeof USER_ROLES.BRANCH_STORE,
   bidderIds: string[]
-): Promise<Map<string, { chitCount: number; reportCount: number; chitIds: string[] }>> {
-  const map = new Map<
-    string,
-    { chitCount: number; reportCount: number; chitIds: string[] }
-  >();
+): Promise<Map<string, BidderStats>> {
+  const map = new Map<string, BidderStats>();
   for (const id of bidderIds) {
-    map.set(id, { chitCount: 0, reportCount: 0, chitIds: [] });
+    map.set(id, {
+      chitCount: 0,
+      reportCount: 0,
+      chitIds: [],
+      ticketCount: 0,
+      paidMonths: 0,
+      totalMonths: 0,
+    });
   }
   if (bidderIds.length === 0) return map;
 
   const operatorOid = new Types.ObjectId(operatorId);
+  const bidderOids = bidderIds.map((id) => new Types.ObjectId(id));
   const chitOwnerFilter =
     operatorRole === USER_ROLES.AGENT
       ? { agentId: operatorOid }
@@ -114,24 +132,66 @@ async function loadBidderStatsForOperator(
   const chits = await Chit.find({
     ...chitOwnerFilter,
     status: { $ne: CHIT_STATUS.DELETED },
-    'members.bidderId': {
-      $in: bidderIds.map((id) => new Types.ObjectId(id)),
-    },
+    'members.bidderId': { $in: bidderOids },
   })
-    .select('_id members.bidderId members.reports')
+    .select(
+      '_id totalMonths members.bidderId members.reports members.numberOfTickets'
+    )
     .lean();
 
+  const chitIds: Types.ObjectId[] = [];
   for (const chit of chits) {
     const chitId = chit._id.toString();
+    const duration = Number(chit.totalMonths) || 0;
+    chitIds.push(chit._id);
     for (const member of chit.members ?? []) {
       const bidderId = member.bidderId.toString();
       const entry = map.get(bidderId);
       if (!entry) continue;
       entry.chitCount += 1;
       entry.chitIds.push(chitId);
+      entry.ticketCount += member.numberOfTickets ?? 1;
+      entry.totalMonths += duration;
       entry.reportCount += Array.isArray(member.reports)
         ? member.reports.length
         : 0;
+    }
+  }
+
+  if (chitIds.length > 0) {
+    const paidRows = await Installment.aggregate<{
+      _id: Types.ObjectId;
+      paidMonths: number;
+    }>([
+      {
+        $match: {
+          chitId: { $in: chitIds },
+          bidderId: { $in: bidderOids },
+          status: INSTALLMENT_STATUS.PAID,
+          kind: 'bidder_payment',
+        },
+      },
+      {
+        $group: {
+          _id: '$bidderId',
+          months: {
+            $addToSet: {
+              chitId: '$chitId',
+              month: '$monthNumber',
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          paidMonths: { $size: '$months' },
+        },
+      },
+    ]);
+
+    for (const row of paidRows) {
+      const entry = map.get(row._id.toString());
+      if (entry) entry.paidMonths = row.paidMonths ?? 0;
     }
   }
 
@@ -141,7 +201,7 @@ async function loadBidderStatsForOperator(
 /**
  * Peer-operator bidder APIs shared by branch_store and agent.
  * List = bidders created by the operator OR members of the operator's chits.
- * Block/unblock = only bidders the operator created (createdBy).
+ * Blocking is super-admin only (see /super-admin/users/:userId/block).
  */
 export class OperatorBidderService {
   async create(operatorId: string, input: CreateOperatorBidderInput) {
@@ -231,6 +291,9 @@ export class OperatorBidderService {
             chitCount: s?.chitCount ?? 0,
             reportCount: s?.reportCount ?? 0,
             chitIds: s?.chitIds ?? [],
+            ticketCount: s?.ticketCount ?? 0,
+            paidMonths: s?.paidMonths ?? 0,
+            totalMonths: s?.totalMonths ?? 0,
           });
         }),
         pagination: {
@@ -315,6 +378,9 @@ export class OperatorBidderService {
           chitCount: s?.chitCount ?? 0,
           reportCount: s?.reportCount ?? 0,
           chitIds: s?.chitIds ?? [],
+          ticketCount: s?.ticketCount ?? 0,
+          paidMonths: s?.paidMonths ?? 0,
+          totalMonths: s?.totalMonths ?? 0,
         });
       }),
       pagination: {
@@ -366,52 +432,114 @@ export class OperatorBidderService {
     return user;
   }
 
-  async blockBidder(
+  async getById(
     operatorId: string,
     operatorRole: typeof USER_ROLES.AGENT | typeof USER_ROLES.BRANCH_STORE,
-    bidderId: string,
-    input: OperatorBidderStatusActionInput
+    bidderId: string
   ) {
     const user = await this.loadScopedBidder(operatorId, operatorRole, bidderId);
+    const statsMap = await loadBidderStatsForOperator(
+      operatorId,
+      operatorRole,
+      [bidderId]
+    );
+    const stats = statsMap.get(bidderId) ?? {
+      chitCount: 0,
+      reportCount: 0,
+      chitIds: [] as string[],
+      ticketCount: 0,
+      paidMonths: 0,
+      totalMonths: 0,
+    };
 
-    if (user.status === USER_STATUS.BLOCKED) {
-      throw conflict('Bidder is already blocked');
+    const operatorOid = new Types.ObjectId(operatorId);
+    const chitOwnerFilter =
+      operatorRole === USER_ROLES.AGENT
+        ? { agentId: operatorOid }
+        : { branchStoreId: operatorOid };
+
+    const chits = await Chit.find({
+      ...chitOwnerFilter,
+      status: { $ne: CHIT_STATUS.DELETED },
+      'members.bidderId': new Types.ObjectId(bidderId),
+    })
+      .select('_id chitCode amountInLakhs members.bidderId members.numberOfTickets')
+      .lean();
+
+    const amountBuckets = new Map<
+      number,
+      { amountInLakhs: number; chitIds: string[]; chitCodes: string[]; ticketCount: number }
+    >();
+
+    for (const chit of chits) {
+      const amount = chit.amountInLakhs;
+      const member = (chit.members ?? []).find(
+        (m) => m.bidderId.toString() === bidderId
+      );
+      const tickets = member?.numberOfTickets ?? 1;
+      const existing = amountBuckets.get(amount) ?? {
+        amountInLakhs: amount,
+        chitIds: [],
+        chitCodes: [],
+        ticketCount: 0,
+      };
+      existing.chitIds.push(chit._id.toString());
+      existing.chitCodes.push(chit.chitCode);
+      existing.ticketCount += tickets;
+      amountBuckets.set(amount, existing);
     }
 
-    user.status = USER_STATUS.BLOCKED;
-    user.statusReason = input.reason.trim();
-    user.statusChangedAt = new Date();
-    user.statusChangedBy = new Types.ObjectId(operatorId);
-    await user.save();
+    const nomineeIds = (user.nominees ?? []).map((n) => n.userId);
+    const nomineeUsers =
+      nomineeIds.length > 0
+        ? await User.find({ _id: { $in: nomineeIds } })
+            .select('name')
+            .lean()
+        : [];
+    const nominees = (user.nominees ?? []).map((link) => {
+      const nom = nomineeUsers.find(
+        (u) => u._id.toString() === link.userId.toString()
+      );
+      return {
+        id: link.userId.toString(),
+        name: nom?.name ?? null,
+        linkedAt: link.linkedAt,
+      };
+    });
 
-    const revokedSessions =
-      await tokenService.revokeAllSessionsForUser(bidderId);
+    const address = user.currentAddress ?? user.aadhaarAddress ?? null;
 
     return {
-      ...formatBidder(user, { operatorId, chitCount: 1 }),
-      revokedSessions,
+      ...formatBidder(user, {
+        operatorId,
+        chitCount: stats.chitCount,
+        reportCount: stats.reportCount,
+        chitIds: stats.chitIds,
+        ticketCount: stats.ticketCount,
+        paidMonths: stats.paidMonths,
+        totalMonths: stats.totalMonths,
+      }),
+      phone2: user.phone2 ?? null,
+      aadhaarLast4: user.aadhaarLast4 ?? null,
+      address: address
+        ? {
+            street: address.street ?? '',
+            city: address.city ?? '',
+            state: address.state ?? '',
+            pincode: address.pincode ?? '',
+            country: address.country ?? '',
+          }
+        : null,
+      nominees,
+      chits: chits.map((c) => ({
+        id: c._id.toString(),
+        chitCode: c.chitCode,
+        amountInLakhs: c.amountInLakhs,
+      })),
+      chitsByAmount: Array.from(amountBuckets.values()).sort(
+        (a, b) => b.amountInLakhs - a.amountInLakhs
+      ),
     };
-  }
-
-  async unblockBidder(
-    operatorId: string,
-    operatorRole: typeof USER_ROLES.AGENT | typeof USER_ROLES.BRANCH_STORE,
-    bidderId: string,
-    input: OperatorBidderStatusActionInput
-  ) {
-    const user = await this.loadScopedBidder(operatorId, operatorRole, bidderId);
-
-    if (user.status !== USER_STATUS.BLOCKED) {
-      throw conflict('Bidder is not blocked');
-    }
-
-    user.status = USER_STATUS.ACTIVE;
-    user.statusReason = input.reason.trim();
-    user.statusChangedAt = new Date();
-    user.statusChangedBy = new Types.ObjectId(operatorId);
-    await user.save();
-
-    return formatBidder(user, { operatorId, chitCount: 1 });
   }
 
   async updateBidder(

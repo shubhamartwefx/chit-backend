@@ -8,6 +8,22 @@ export const TUTORIAL_STATUS = {
 export type TutorialStatus =
   (typeof TUTORIAL_STATUS)[keyof typeof TUTORIAL_STATUS];
 
+export const TUTORIAL_LANGUAGES = {
+  EN: 'en',
+  KN: 'kn',
+  TA: 'ta',
+  TE: 'te',
+  ML: 'ml',
+  HI: 'hi',
+} as const;
+
+export type TutorialLanguage =
+  (typeof TUTORIAL_LANGUAGES)[keyof typeof TUTORIAL_LANGUAGES];
+
+export const TUTORIAL_LANGUAGE_VALUES = Object.values(
+  TUTORIAL_LANGUAGES
+) as TutorialLanguage[];
+
 export const DEFAULT_TUTORIAL_VIDEO =
   'https://www.youtube.com/embed/dQw4w9WgXcQ';
 
@@ -16,6 +32,7 @@ export interface ITutorial {
   category: string;
   content: string;
   video: string;
+  language: TutorialLanguage;
   sortOrder: number;
   status: TutorialStatus;
   createdBy: Types.ObjectId;
@@ -33,6 +50,13 @@ const tutorialSchema = new Schema<ITutorialDocument>(
     category: { type: String, required: true, trim: true, maxlength: 120 },
     content: { type: String, required: true, trim: true, maxlength: 5000 },
     video: { type: String, required: true, trim: true, maxlength: 500 },
+    language: {
+      type: String,
+      enum: TUTORIAL_LANGUAGE_VALUES,
+      required: true,
+      default: TUTORIAL_LANGUAGES.EN,
+      index: true,
+    },
     sortOrder: { type: Number, required: true, default: 0 },
     status: {
       type: String,
@@ -50,6 +74,7 @@ const tutorialSchema = new Schema<ITutorialDocument>(
   { timestamps: true }
 );
 
+tutorialSchema.index({ status: 1, language: 1, sortOrder: 1 });
 tutorialSchema.index({ status: 1, category: 1, sortOrder: 1 });
 tutorialSchema.index({ title: 'text', content: 'text', category: 'text' });
 

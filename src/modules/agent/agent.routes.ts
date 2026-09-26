@@ -14,7 +14,6 @@ import {
   listOperatorBiddersQuerySchema,
   listOperatorReportsQuerySchema,
   operatorBidderIdParamsSchema,
-  operatorBidderStatusActionSchema,
   updateOperatorBidderSchema,
 } from '../operator-bidders/operator-bidder.validation';
 import { promotionPdfController } from '../promotion-pdfs/promotion-pdf.controller';
@@ -28,10 +27,8 @@ import { subscriptionPlanController } from '../subscription-plans/subscription-p
 import { listSubscriptionPlansQuerySchema } from '../subscription-plans/subscription-plan.validation';
 import { tutorialController } from '../tutorials/tutorial.controller';
 import {
-  createTutorialSchema,
   listTutorialsQuerySchema,
   tutorialIdParamsSchema,
-  updateTutorialSchema,
 } from '../tutorials/tutorial.validation';
 import { calendarEventController } from '../calendar-events/calendar-event.controller';
 import {
@@ -80,22 +77,11 @@ router.get(
   (req, res, next) => agentController.listBidderReports(req, res, next)
 );
 
-router.post(
-  '/bidders/:id/block',
-  rejectIfBlocked,
-  authorizePermission(PERMISSIONS.BIDDERS.WRITE),
+router.get(
+  '/bidders/:id',
+  authorizePermission(PERMISSIONS.BIDDERS.READ),
   validate(operatorBidderIdParamsSchema, 'params'),
-  validate(operatorBidderStatusActionSchema),
-  (req, res, next) => agentController.blockBidder(req, res, next)
-);
-
-router.post(
-  '/bidders/:id/unblock',
-  rejectIfBlocked,
-  authorizePermission(PERMISSIONS.BIDDERS.WRITE),
-  validate(operatorBidderIdParamsSchema, 'params'),
-  validate(operatorBidderStatusActionSchema),
-  (req, res, next) => agentController.unblockBidder(req, res, next)
+  (req, res, next) => agentController.getBidder(req, res, next)
 );
 
 router.get(
@@ -158,36 +144,11 @@ router.get(
   (req, res, next) => tutorialController.list(req, res, next)
 );
 
-router.post(
-  '/tutorials',
-  rejectIfBlocked,
-  authorizePermission(PERMISSIONS.CHITS.WRITE),
-  validate(createTutorialSchema),
-  (req, res, next) => tutorialController.create(req, res, next)
-);
-
 router.get(
   '/tutorials/:id',
   authorizePermission(PERMISSIONS.CHITS.READ),
   validate(tutorialIdParamsSchema, 'params'),
   (req, res, next) => tutorialController.getById(req, res, next)
-);
-
-router.patch(
-  '/tutorials/:id',
-  rejectIfBlocked,
-  authorizePermission(PERMISSIONS.CHITS.WRITE),
-  validate(tutorialIdParamsSchema, 'params'),
-  validate(updateTutorialSchema),
-  (req, res, next) => tutorialController.update(req, res, next)
-);
-
-router.delete(
-  '/tutorials/:id',
-  rejectIfBlocked,
-  authorizePermission(PERMISSIONS.CHITS.WRITE),
-  validate(tutorialIdParamsSchema, 'params'),
-  (req, res, next) => tutorialController.remove(req, res, next)
 );
 
 router.get(
