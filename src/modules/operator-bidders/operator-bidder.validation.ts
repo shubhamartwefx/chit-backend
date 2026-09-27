@@ -32,6 +32,18 @@ export type ListOperatorBiddersQueryInput = z.infer<
   typeof listOperatorBiddersQuerySchema
 >;
 
+export const listOperatorReportsQuerySchema = z.object({
+  q: z.string().max(80).optional(),
+  /** Comma-separated reporter (agent) user ids. */
+  reportedBy: z.string().max(2000).optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+});
+
+export type ListOperatorReportsQueryInput = z.infer<
+  typeof listOperatorReportsQuerySchema
+>;
+
 export const listOperatorAgentsQuerySchema = z.object({
   q: z.string().max(80).optional(),
   status: z.enum(['active', 'inactive', 'blocked']).optional(),
@@ -51,4 +63,12 @@ export const operatorBidderStatusActionSchema = z.object({
 
 export type OperatorBidderStatusActionInput = z.infer<
   typeof operatorBidderStatusActionSchema
+>;
+
+export const updateOperatorBidderSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+});
+
+export type UpdateOperatorBidderInput = z.infer<
+  typeof updateOperatorBidderSchema
 >;

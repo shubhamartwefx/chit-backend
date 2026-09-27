@@ -13,14 +13,33 @@ import {
 } from '../../config/rbac';
 import { superAdminController } from './super-admin.controller';
 import {
+  assignBidderAgentSchema,
   createAgentSchema,
   createBidderSchema,
   createBranchStoreSchema,
   createStaffSchema,
   listUsersQuerySchema,
+  resourceIdParamsSchema,
+  updateUserProfileSchema,
   userIdParamsSchema,
   userStatusActionSchema,
 } from './super-admin.validation';
+import { subscriptionPlanController } from '../subscription-plans/subscription-plan.controller';
+import {
+  bulkUpsertSubscriptionPlansSchema,
+  createSubscriptionPlanSchema,
+  listSubscriptionPlansQuerySchema,
+  subscriptionPlanIdParamsSchema,
+  updateSubscriptionPlanSchema,
+} from '../subscription-plans/subscription-plan.validation';
+import { tutorialController } from '../tutorials/tutorial.controller';
+import {
+  createTutorialSchema,
+  listTutorialsQuerySchema,
+  tutorialIdParamsSchema,
+  updateTutorialSchema,
+} from '../tutorials/tutorial.validation';
+import { listOperatorReportsQuerySchema } from '../operator-bidders/operator-bidder.validation';
 
 const router = Router();
 
@@ -44,6 +63,13 @@ router.get(
   (req, res, next) => superAdminController.listBranchStores(req, res, next)
 );
 
+router.get(
+  '/branch-stores/:id',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.getBranchStore(req, res, next)
+);
+
 router.post(
   '/agents',
   authorizeIf(canCreateBranchStoreUser),
@@ -58,6 +84,21 @@ router.get(
   (req, res, next) => superAdminController.listAgents(req, res, next)
 );
 
+router.get(
+  '/agents/:id',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.getAgent(req, res, next)
+);
+
+router.patch(
+  '/agents/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(resourceIdParamsSchema, 'params'),
+  validate(updateUserProfileSchema),
+  (req, res, next) => superAdminController.updateAgent(req, res, next)
+);
+
 router.post(
   '/bidders',
   authorizeIf(canCreateBranchStoreUser),
@@ -70,6 +111,43 @@ router.get(
   authorizeIf(canListPlatformUsers),
   validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listBidders(req, res, next)
+);
+
+router.get(
+  '/bidders/:id/reports',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.listBidderReports(req, res, next)
+);
+
+router.patch(
+  '/bidders/:id/assign-agent',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(resourceIdParamsSchema, 'params'),
+  validate(assignBidderAgentSchema),
+  (req, res, next) => superAdminController.assignBidderToAgent(req, res, next)
+);
+
+router.get(
+  '/bidders/:id',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.getBidder(req, res, next)
+);
+
+router.patch(
+  '/bidders/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(resourceIdParamsSchema, 'params'),
+  validate(updateUserProfileSchema),
+  (req, res, next) => superAdminController.updateBidder(req, res, next)
+);
+
+router.get(
+  '/reports',
+  authorizeIf(canListPlatformUsers),
+  validate(listOperatorReportsQuerySchema, 'query'),
+  (req, res, next) => superAdminController.listReports(req, res, next)
 );
 
 router.post(
@@ -119,6 +197,78 @@ router.post(
   validate(userIdParamsSchema, 'params'),
   validate(userStatusActionSchema),
   (req, res, next) => superAdminController.unblockUser(req, res, next)
+);
+
+router.get(
+  '/subscription-plans',
+  authorizeIf(canListPlatformUsers),
+  validate(listSubscriptionPlansQuerySchema, 'query'),
+  (req, res, next) => subscriptionPlanController.list(req, res, next)
+);
+
+router.post(
+  '/subscription-plans',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(createSubscriptionPlanSchema),
+  (req, res, next) => subscriptionPlanController.create(req, res, next)
+);
+
+router.put(
+  '/subscription-plans',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(bulkUpsertSubscriptionPlansSchema),
+  (req, res, next) => subscriptionPlanController.bulkUpsert(req, res, next)
+);
+
+router.patch(
+  '/subscription-plans/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(subscriptionPlanIdParamsSchema, 'params'),
+  validate(updateSubscriptionPlanSchema),
+  (req, res, next) => subscriptionPlanController.update(req, res, next)
+);
+
+router.delete(
+  '/subscription-plans/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(subscriptionPlanIdParamsSchema, 'params'),
+  (req, res, next) => subscriptionPlanController.remove(req, res, next)
+);
+
+router.get(
+  '/tutorials',
+  authorizeIf(canListPlatformUsers),
+  validate(listTutorialsQuerySchema, 'query'),
+  (req, res, next) => tutorialController.list(req, res, next)
+);
+
+router.post(
+  '/tutorials',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(createTutorialSchema),
+  (req, res, next) => tutorialController.create(req, res, next)
+);
+
+router.get(
+  '/tutorials/:id',
+  authorizeIf(canListPlatformUsers),
+  validate(tutorialIdParamsSchema, 'params'),
+  (req, res, next) => tutorialController.getById(req, res, next)
+);
+
+router.patch(
+  '/tutorials/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(tutorialIdParamsSchema, 'params'),
+  validate(updateTutorialSchema),
+  (req, res, next) => tutorialController.update(req, res, next)
+);
+
+router.delete(
+  '/tutorials/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(tutorialIdParamsSchema, 'params'),
+  (req, res, next) => tutorialController.remove(req, res, next)
 );
 
 export default router;

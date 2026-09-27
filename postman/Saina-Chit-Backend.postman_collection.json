@@ -2691,9 +2691,103 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"bidderId\": \"{{bidderId}}\",\n  \"monthNumber\": 1,\n  \"amount\": 5000,\n  \"status\": \"paid\"\n}"
+              "raw": "{\n  \"bidderId\": \"{{bidderId}}\",\n  \"monthNumber\": 1,\n  \"amount\": 5000,\n  \"balanceAmount\": 1000,\n  \"status\": \"paid\"\n}"
             },
-            "description": "Operator records payment for a chit member. Requires `chits:write`."
+            "description": "Operator records payment for a chit member. Optional balanceAmount. Requires `chits:write`."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Installment By Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/installments/{{installmentId}}",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}", "installments", "{{installmentId}}"]
+            },
+            "description": "Fetch a single installment for edit prefill."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Installment",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/installments/{{installmentId}}",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}", "installments", "{{installmentId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"amount\": 5500,\n  \"balanceAmount\": 500,\n  \"status\": \"paid\",\n  \"note\": \"Adjusted\"\n}"
+            },
+            "description": "Edit amount, balanceAmount, status, paidAt, note, or skipReason."
+          },
+          "response": []
+        },
+        {
+          "name": "Month Detail — Bidder Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/month-details/bidder-payment",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}", "month-details", "bidder-payment"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bidderId\": \"{{bidderId}}\",\n  \"monthNumber\": 1,\n  \"amount\": 5000,\n  \"balanceAmount\": 1000,\n  \"status\": \"paid\",\n  \"unpaidBidderIds\": []\n}"
+            },
+            "description": "Record bidder-taken payment with optional unpaidBidderIds (pending rows)."
+          },
+          "response": []
+        },
+        {
+          "name": "Month Detail — Agent Taken",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/month-details/agent-taken",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}", "month-details", "agent-taken"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthNumber\": 2,\n  \"amount\": 5000,\n  \"balanceAmount\": 1000,\n  \"unpaidBidderIds\": []\n}"
+            },
+            "description": "Agent takes the month pot. Bumps completedMonths. Optional unpaidBidderIds."
+          },
+          "response": []
+        },
+        {
+          "name": "Month Detail — Skip",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{apiBase}}/chits/{{chitId}}/month-details/skip",
+              "host": ["{{apiBase}}"],
+              "path": ["chits", "{{chitId}}", "month-details", "skip"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"monthNumber\": 3,\n  \"skipReason\": \"Festival\",\n  \"amount\": 0\n}"
+            },
+            "description": "Skip a month with reason. Bumps completedMonths."
           },
           "response": []
         },

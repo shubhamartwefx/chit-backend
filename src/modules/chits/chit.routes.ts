@@ -17,9 +17,14 @@ import {
 } from '../auctions/auction.validation';
 import { installmentController } from '../installments/installment.controller';
 import {
+  agentTakenMonthDetailSchema,
+  bidderPaymentMonthDetailSchema,
   chitIdParamsSchema as installmentChitIdParamsSchema,
   createInstallmentSchema,
+  installmentParamsSchema,
   listInstallmentsQuerySchema,
+  skipMonthDetailSchema,
+  updateInstallmentSchema,
 } from '../installments/installment.validation';
 import { chitController } from './chit.controller';
 import {
@@ -31,6 +36,10 @@ import {
   summaryQuerySchema,
   updateChitMemberSchema,
   updateChitSchema,
+  reportChitMemberSchema,
+  transferChitMemberSchema,
+  updateChitMemberReportSchema,
+  chitMemberReportParamsSchema,
 } from './chit.validation';
 
 const router = Router();
@@ -95,6 +104,45 @@ router.delete(
   (req, res, next) => chitController.removeMember(req, res, next)
 );
 
+router.post(
+  '/:id/members/:bidderId/transfer',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(chitMemberParamsSchema, 'params'),
+  validate(transferChitMemberSchema),
+  (req, res, next) => chitController.transferMember(req, res, next)
+);
+
+router.post(
+  '/:id/members/:bidderId/reports',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(chitMemberParamsSchema, 'params'),
+  validate(reportChitMemberSchema),
+  (req, res, next) => chitController.reportMember(req, res, next)
+);
+
+router.patch(
+  '/:id/members/:bidderId/reports/:reportId',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(chitMemberReportParamsSchema, 'params'),
+  validate(updateChitMemberReportSchema),
+  (req, res, next) => chitController.updateMemberReport(req, res, next)
+);
+
+router.delete(
+  '/:id/members/:bidderId/reports/:reportId',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(chitMemberReportParamsSchema, 'params'),
+  (req, res, next) => chitController.deleteMemberReport(req, res, next)
+);
+
 router.get(
   '/:id/installments',
   authorize(...readRoles),
@@ -112,6 +160,54 @@ router.post(
   validate(installmentChitIdParamsSchema, 'params'),
   validate(createInstallmentSchema),
   (req, res, next) => installmentController.create(req, res, next)
+);
+
+router.get(
+  '/:id/installments/:installmentId',
+  authorize(...readRoles),
+  authorizePermission(PERMISSIONS.CHITS.READ),
+  validate(installmentParamsSchema, 'params'),
+  (req, res, next) => installmentController.getById(req, res, next)
+);
+
+router.patch(
+  '/:id/installments/:installmentId',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(installmentParamsSchema, 'params'),
+  validate(updateInstallmentSchema),
+  (req, res, next) => installmentController.update(req, res, next)
+);
+
+router.post(
+  '/:id/month-details/bidder-payment',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(installmentChitIdParamsSchema, 'params'),
+  validate(bidderPaymentMonthDetailSchema),
+  (req, res, next) => installmentController.createBidderPayment(req, res, next)
+);
+
+router.post(
+  '/:id/month-details/agent-taken',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(installmentChitIdParamsSchema, 'params'),
+  validate(agentTakenMonthDetailSchema),
+  (req, res, next) => installmentController.createAgentTaken(req, res, next)
+);
+
+router.post(
+  '/:id/month-details/skip',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(installmentChitIdParamsSchema, 'params'),
+  validate(skipMonthDetailSchema),
+  (req, res, next) => installmentController.createSkip(req, res, next)
 );
 
 router.get(

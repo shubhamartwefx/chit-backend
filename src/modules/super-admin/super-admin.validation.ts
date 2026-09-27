@@ -79,6 +79,50 @@ export const userIdParamsSchema = z.object({
 
 export type UserIdParams = z.infer<typeof userIdParamsSchema>;
 
+export const resourceIdParamsSchema = z.object({
+  id: objectIdSchema,
+});
+
+export type ResourceIdParams = z.infer<typeof resourceIdParamsSchema>;
+
+export const assignBidderAgentSchema = z.object({
+  agentId: objectIdSchema,
+});
+
+export type AssignBidderAgentInput = z.infer<typeof assignBidderAgentSchema>;
+
+export const updateUserProfileSchema = z
+  .object({
+    phone2: z
+      .string()
+      .max(15)
+      .regex(/^$|^\d+$/, 'Phone must contain digits only')
+      .optional(),
+    currentAddress: z
+      .object({
+        street: z.string().trim().min(1).max(300).optional(),
+        city: z.string().trim().min(1).max(100).optional(),
+        state: z.string().trim().min(1).max(100).optional(),
+        pincode: z
+          .string()
+          .trim()
+          .regex(/^\d{6}$/, 'Pincode must be 6 digits')
+          .optional(),
+        country: z.string().trim().min(1).max(100).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .refine((val) => val.phone2 !== undefined || val.currentAddress !== undefined, {
+    message: 'Provide at least one of phone2 or currentAddress',
+  });
+
+export type UpdateUserProfileInput = z.infer<typeof updateUserProfileSchema>;
+
+export const updateAgentProfileSchema = updateUserProfileSchema;
+export type UpdateAgentProfileInput = UpdateUserProfileInput;
+
 export const userStatusActionSchema = z.object({
   reason: z.string().min(5).max(500),
 });

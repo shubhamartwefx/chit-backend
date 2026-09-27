@@ -2,7 +2,8 @@ import { operatorBidderService } from '../operator-bidders/operator-bidder.servi
 import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
-  OperatorBidderStatusActionInput,
+  ListOperatorReportsQueryInput,
+  UpdateOperatorBidderInput,
 } from '../operator-bidders/operator-bidder.validation';
 import { USER_ROLES } from '../../config/roles';
 
@@ -15,20 +16,37 @@ export class AgentService {
     return operatorBidderService.create(agentId, input);
   }
 
-  async blockBidder(
+  async updateBidder(
     agentId: string,
     bidderId: string,
-    input: OperatorBidderStatusActionInput
+    input: UpdateOperatorBidderInput
   ) {
-    return operatorBidderService.blockBidder(agentId, bidderId, input);
+    return operatorBidderService.updateBidder(
+      agentId,
+      USER_ROLES.AGENT,
+      bidderId,
+      input
+    );
   }
 
-  async unblockBidder(
-    agentId: string,
-    bidderId: string,
-    input: OperatorBidderStatusActionInput
-  ) {
-    return operatorBidderService.unblockBidder(agentId, bidderId, input);
+  async getBidder(agentId: string, bidderId: string) {
+    return operatorBidderService.getById(agentId, USER_ROLES.AGENT, bidderId);
+  }
+
+  async listBidderReports(agentId: string, bidderId: string) {
+    return operatorBidderService.listBidderReports(
+      agentId,
+      USER_ROLES.AGENT,
+      bidderId
+    );
+  }
+
+  async listReports(agentId: string, query: ListOperatorReportsQueryInput) {
+    return operatorBidderService.listOperatorReports(
+      agentId,
+      USER_ROLES.AGENT,
+      query
+    );
   }
 }
 

@@ -242,6 +242,7 @@ Clients use shared `/chits` only (no `/agent/chits` or `/branch-store/chits` ali
 | POST | `/chits/:id/members` | Add one member (`bidderId`, `numberOfTickets`) |
 | PATCH | `/chits/:id/members/:bidderId` | Update member ticket count |
 | DELETE | `/chits/:id/members/:bidderId` | Remove member |
+| POST | `/chits/:id/members/:bidderId/transfer` | Move `numberOfTickets` from this bidder to `toBidderId` (atomic; source removed at 0 tickets; installment history stays) |
 | GET | `/chits/:id/installments` | List installment payments (bidder sees own only) |
 | POST | `/chits/:id/installments` | Record installment for a member (operators) |
 | GET | `/chits/:id/auction-rounds` | List auction rounds (`auction_chit` only) |

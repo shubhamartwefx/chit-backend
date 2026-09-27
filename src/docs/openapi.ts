@@ -240,6 +240,7 @@ Base path: \`${API_BASE_PATH}\`
             bidderId: objectId,
             monthNumber: { type: 'integer', example: 1 },
             amount: { type: 'number', example: 5000 },
+            balanceAmount: { type: 'number', example: 1000 },
             status: {
               type: 'string',
               enum: ['pending', 'paid', 'overdue', 'waived'],
@@ -247,6 +248,48 @@ Base path: \`${API_BASE_PATH}\`
             },
             paidAt: { type: 'string', format: 'date-time' },
             note: { type: 'string' },
+            unpaidBidderIds: {
+              type: 'array',
+              items: objectId,
+            },
+          },
+        },
+        AgentTakenBody: {
+          type: 'object',
+          required: ['monthNumber'],
+          properties: {
+            monthNumber: { type: 'integer', example: 1 },
+            amount: { type: 'number', example: 5000 },
+            balanceAmount: { type: 'number', example: 1000 },
+            paidAt: { type: 'string', format: 'date-time' },
+            note: { type: 'string' },
+            unpaidBidderIds: { type: 'array', items: objectId },
+          },
+        },
+        SkipMonthBody: {
+          type: 'object',
+          required: ['monthNumber', 'skipReason'],
+          properties: {
+            monthNumber: { type: 'integer', example: 1 },
+            skipReason: { type: 'string', example: 'Festival' },
+            amount: { type: 'number', example: 0 },
+            balanceAmount: { type: 'number', example: 0 },
+            skippedAt: { type: 'string', format: 'date-time' },
+            note: { type: 'string' },
+          },
+        },
+        UpdateInstallmentBody: {
+          type: 'object',
+          properties: {
+            amount: { type: 'number' },
+            balanceAmount: { type: 'number' },
+            status: {
+              type: 'string',
+              enum: ['pending', 'paid', 'overdue', 'waived'],
+            },
+            paidAt: { type: 'string', format: 'date-time', nullable: true },
+            note: { type: 'string', nullable: true },
+            skipReason: { type: 'string', nullable: true },
           },
         },
         AuctionRoundBody: {
@@ -1142,6 +1185,107 @@ Base path: \`${API_BASE_PATH}\`
             },
           },
           responses: { '201': { description: 'Recorded' } },
+        },
+      },
+
+      '/chits/{id}/installments/{installmentId}': {
+        get: {
+          tags: ['Installments'],
+          summary: 'Get installment by id',
+          security: bearer,
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: objectId },
+            {
+              name: 'installmentId',
+              in: 'path',
+              required: true,
+              schema: objectId,
+            },
+          ],
+          responses: { '200': { description: 'Installment' } },
+        },
+        patch: {
+          tags: ['Installments'],
+          summary: 'Update installment',
+          security: bearer,
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: objectId },
+            {
+              name: 'installmentId',
+              in: 'path',
+              required: true,
+              schema: objectId,
+            },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/UpdateInstallmentBody' },
+              },
+            },
+          },
+          responses: { '200': { description: 'Updated' } },
+        },
+      },
+
+      '/chits/{id}/month-details/bidder-payment': {
+        post: {
+          tags: ['Installments'],
+          summary: 'Record bidder-taken month payment (+ optional unpaid)',
+          security: bearer,
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: objectId },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/InstallmentBody' },
+              },
+            },
+          },
+          responses: { '201': { description: 'Recorded' } },
+        },
+      },
+
+      '/chits/{id}/month-details/agent-taken': {
+        post: {
+          tags: ['Installments'],
+          summary: 'Record agent-taken month (bumps completedMonths)',
+          security: bearer,
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: objectId },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/AgentTakenBody' },
+              },
+            },
+          },
+          responses: { '201': { description: 'Recorded' } },
+        },
+      },
+
+      '/chits/{id}/month-details/skip': {
+        post: {
+          tags: ['Installments'],
+          summary: 'Skip a month with reason (bumps completedMonths)',
+          security: bearer,
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: objectId },
+          ],
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/SkipMonthBody' },
+              },
+            },
+          },
+          responses: { '201': { description: 'Skipped' } },
         },
       },
 

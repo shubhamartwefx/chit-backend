@@ -5,7 +5,8 @@ import { agentService } from './agent.service';
 import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
-  OperatorBidderStatusActionInput,
+  ListOperatorReportsQueryInput,
+  UpdateOperatorBidderInput,
 } from '../operator-bidders/operator-bidder.validation';
 
 export class AgentController {
@@ -33,27 +34,47 @@ export class AgentController {
     }
   }
 
-  async blockBidder(req: Request, res: Response, next: NextFunction) {
+  async updateBidder(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await agentService.blockBidder(
+      const data = await agentService.updateBidder(
         req.user!.sub,
         req.params.id,
-        req.body as OperatorBidderStatusActionInput
+        req.body as UpdateOperatorBidderInput
       );
-      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_BLOCKED);
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.BIDDER_UPDATED);
     } catch (err) {
       next(err);
     }
   }
 
-  async unblockBidder(req: Request, res: Response, next: NextFunction) {
+  async getBidder(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await agentService.unblockBidder(
+      const data = await agentService.getBidder(req.user!.sub, req.params.id);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listBidderReports(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await agentService.listBidderReports(
         req.user!.sub,
-        req.params.id,
-        req.body as OperatorBidderStatusActionInput
+        req.params.id
       );
-      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.USER_UNBLOCKED);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listReports(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await agentService.listReports(
+        req.user!.sub,
+        req.query as unknown as ListOperatorReportsQueryInput
+      );
+      sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
     }

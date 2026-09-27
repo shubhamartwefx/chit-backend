@@ -16,10 +16,29 @@ export const CHIT_STATUS = {
 
 export type ChitStatus = (typeof CHIT_STATUS)[keyof typeof CHIT_STATUS];
 
+export const BIDDER_REPORT_REASONS = {
+  NOT_PAYING_PROPERLY: 'not_paying_properly',
+  AMOUNT_TAKE_AND_RUNAWAY: 'amount_take_and_runaway',
+  NOT_RESPONDING: 'not_responding',
+  CHECK_BONES_TWICE: 'check_bones_twice',
+} as const;
+
+export type BidderReportReason =
+  (typeof BIDDER_REPORT_REASONS)[keyof typeof BIDDER_REPORT_REASONS];
+
+export interface IMemberReport {
+  _id?: Types.ObjectId;
+  reason: BidderReportReason;
+  note?: string | null;
+  reportedBy: Types.ObjectId;
+  createdAt: Date;
+}
+
 export interface IChitMember {
   bidderId: Types.ObjectId;
   numberOfTickets: number;
   joinedAt: Date;
+  reports?: IMemberReport[];
 }
 
 export interface IChit {
@@ -47,6 +66,24 @@ export interface IChitDocument extends IChit, Document {
   updatedAt: Date;
 }
 
+const memberReportSchema = new Schema<IMemberReport>(
+  {
+    reason: {
+      type: String,
+      enum: Object.values(BIDDER_REPORT_REASONS),
+      required: true,
+    },
+    note: { type: String, default: null, maxlength: 500 },
+    reportedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    createdAt: { type: Date, required: true, default: Date.now },
+  },
+  { _id: true }
+);
+
 const chitMemberSchema = new Schema<IChitMember>(
   {
     bidderId: {
@@ -54,8 +91,9 @@ const chitMemberSchema = new Schema<IChitMember>(
       ref: 'User',
       required: true,
     },
-    numberOfTickets: { type: Number, required: true, min: 1, default: 1 },
+    numberOfTickets: { type: Number, required: true, min: 1, max: 5, default: 1 },
     joinedAt: { type: Date, required: true, default: Date.now },
+    reports: { type: [memberReportSchema], default: [] },
   },
   { _id: false }
 );

@@ -9,6 +9,8 @@ import {
   SummaryQueryInput,
   UpdateChitInput,
   UpdateChitMemberInput,
+  ReportChitMemberInput,
+  TransferChitMemberInput,
 } from './chit.validation';
 
 export class ChitController {
@@ -114,6 +116,63 @@ export class ChitController {
         req.params.bidderId
       );
       sendSuccessWithKey(res, data, 'OK', API_MESSAGES.CHIT_MEMBER_REMOVED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async transferMember(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.transferMember(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.body as TransferChitMemberInput
+      );
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.CHIT_MEMBER_TRANSFERRED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async reportMember(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.reportMember(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.body as ReportChitMemberInput
+      );
+      sendSuccessWithKey(res, data, 'CREATED', API_MESSAGES.CHIT_MEMBER_REPORTED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateMemberReport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.updateMemberReport(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.params.reportId,
+        req.body as ReportChitMemberInput
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Report updated');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteMemberReport(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.deleteMemberReport(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.params.reportId
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Report deleted');
     } catch (err) {
       next(err);
     }
