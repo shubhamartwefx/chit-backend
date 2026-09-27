@@ -34,6 +34,8 @@ export type ListOperatorBiddersQueryInput = z.infer<
 
 export const listOperatorReportsQuerySchema = z.object({
   q: z.string().max(80).optional(),
+  /** Comma-separated reporter (agent) user ids. */
+  reportedBy: z.string().max(2000).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(50),
 });

@@ -88,6 +88,7 @@ Defined in [`src/config/rbac/route-permissions.ts`](../src/config/rbac/route-per
 | `POST /chits/:id/members` | `chits:write` |
 | `PATCH /chits/:id/members/:bidderId` | `chits:write` |
 | `DELETE /chits/:id/members/:bidderId` | `chits:write` |
+| `POST /chits/:id/members/:bidderId/transfer` | `chits:write` |
 | `GET /chits/:id/installments` | `chits:read` |
 | `POST /chits/:id/installments` | `chits:write` |
 | `GET /chits/:id/auction-rounds` | `chits:read` |

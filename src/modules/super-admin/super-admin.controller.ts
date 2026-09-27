@@ -3,14 +3,17 @@ import { API_MESSAGES } from '../../common/status';
 import { sendSuccessWithKey } from '../../common/response';
 import { superAdminService } from './super-admin.service';
 import {
+  AssignBidderAgentInput,
   CreateAgentInput,
   CreateBidderInput,
   CreateBranchStoreInput,
   CreateStaffInput,
   ListUsersQueryInput,
+  UpdateUserProfileInput,
   UserStatusActionInput,
   assignablePermissionsResponse,
 } from './super-admin.validation';
+import { ListOperatorReportsQueryInput } from '../operator-bidders/operator-bidder.validation';
 
 export class SuperAdminController {
   async createBranchStore(req: Request, res: Response, next: NextFunction) {
@@ -74,6 +77,77 @@ export class SuperAdminController {
     }
   }
 
+  async getAgent(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.getAgentById(req.params.id);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateAgent(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.updateAgentProfile(
+        req.params.id,
+        req.body as UpdateUserProfileInput
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Agent profile updated');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateBidder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.updateBidderProfile(
+        req.params.id,
+        req.body as UpdateUserProfileInput
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Bidder profile updated');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getBranchStore(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.getBranchStoreById(req.params.id);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getBidder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.getBidderById(req.params.id);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listBidderReports(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.listBidderReports(req.params.id);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listReports(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.listReports(
+        req.query as unknown as ListOperatorReportsQueryInput
+      );
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async createBidder(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await superAdminService.createBidder(
@@ -92,6 +166,19 @@ export class SuperAdminController {
         req.query as ListUsersQueryInput
       );
       sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async assignBidderToAgent(req: Request, res: Response, next: NextFunction) {
+    try {
+      const body = req.body as AssignBidderAgentInput;
+      const data = await superAdminService.assignBidderToAgent(
+        req.params.id,
+        body.agentId
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Bidder assigned to agent');
     } catch (err) {
       next(err);
     }

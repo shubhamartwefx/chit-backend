@@ -13,11 +13,14 @@ import {
 } from '../../config/rbac';
 import { superAdminController } from './super-admin.controller';
 import {
+  assignBidderAgentSchema,
   createAgentSchema,
   createBidderSchema,
   createBranchStoreSchema,
   createStaffSchema,
   listUsersQuerySchema,
+  resourceIdParamsSchema,
+  updateUserProfileSchema,
   userIdParamsSchema,
   userStatusActionSchema,
 } from './super-admin.validation';
@@ -36,6 +39,7 @@ import {
   tutorialIdParamsSchema,
   updateTutorialSchema,
 } from '../tutorials/tutorial.validation';
+import { listOperatorReportsQuerySchema } from '../operator-bidders/operator-bidder.validation';
 
 const router = Router();
 
@@ -59,6 +63,13 @@ router.get(
   (req, res, next) => superAdminController.listBranchStores(req, res, next)
 );
 
+router.get(
+  '/branch-stores/:id',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.getBranchStore(req, res, next)
+);
+
 router.post(
   '/agents',
   authorizeIf(canCreateBranchStoreUser),
@@ -73,6 +84,21 @@ router.get(
   (req, res, next) => superAdminController.listAgents(req, res, next)
 );
 
+router.get(
+  '/agents/:id',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.getAgent(req, res, next)
+);
+
+router.patch(
+  '/agents/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(resourceIdParamsSchema, 'params'),
+  validate(updateUserProfileSchema),
+  (req, res, next) => superAdminController.updateAgent(req, res, next)
+);
+
 router.post(
   '/bidders',
   authorizeIf(canCreateBranchStoreUser),
@@ -85,6 +111,43 @@ router.get(
   authorizeIf(canListPlatformUsers),
   validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listBidders(req, res, next)
+);
+
+router.get(
+  '/bidders/:id/reports',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.listBidderReports(req, res, next)
+);
+
+router.patch(
+  '/bidders/:id/assign-agent',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(resourceIdParamsSchema, 'params'),
+  validate(assignBidderAgentSchema),
+  (req, res, next) => superAdminController.assignBidderToAgent(req, res, next)
+);
+
+router.get(
+  '/bidders/:id',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.getBidder(req, res, next)
+);
+
+router.patch(
+  '/bidders/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(resourceIdParamsSchema, 'params'),
+  validate(updateUserProfileSchema),
+  (req, res, next) => superAdminController.updateBidder(req, res, next)
+);
+
+router.get(
+  '/reports',
+  authorizeIf(canListPlatformUsers),
+  validate(listOperatorReportsQuerySchema, 'query'),
+  (req, res, next) => superAdminController.listReports(req, res, next)
 );
 
 router.post(

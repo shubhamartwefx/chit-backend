@@ -198,12 +198,103 @@ async function loadBidderStatsForOperator(
   return map;
 }
 
+async function loadBidderStatsPlatform(
+  bidderIds: string[]
+): Promise<Map<string, BidderStats>> {
+  const map = new Map<string, BidderStats>();
+  for (const id of bidderIds) {
+    map.set(id, {
+      chitCount: 0,
+      reportCount: 0,
+      chitIds: [],
+      ticketCount: 0,
+      paidMonths: 0,
+      totalMonths: 0,
+    });
+  }
+  if (bidderIds.length === 0) return map;
+
+  const bidderOids = bidderIds.map((id) => new Types.ObjectId(id));
+
+  const chits = await Chit.find({
+    status: { $ne: CHIT_STATUS.DELETED },
+    'members.bidderId': { $in: bidderOids },
+  })
+    .select(
+      '_id totalMonths members.bidderId members.reports members.numberOfTickets'
+    )
+    .lean();
+
+  const chitIds: Types.ObjectId[] = [];
+  for (const chit of chits) {
+    const chitId = chit._id.toString();
+    const duration = Number(chit.totalMonths) || 0;
+    chitIds.push(chit._id);
+    for (const member of chit.members ?? []) {
+      const bidderId = member.bidderId.toString();
+      const entry = map.get(bidderId);
+      if (!entry) continue;
+      entry.chitCount += 1;
+      entry.chitIds.push(chitId);
+      entry.ticketCount += member.numberOfTickets ?? 1;
+      entry.totalMonths += duration;
+      entry.reportCount += Array.isArray(member.reports)
+        ? member.reports.length
+        : 0;
+    }
+  }
+
+  if (chitIds.length > 0) {
+    const paidRows = await Installment.aggregate<{
+      _id: Types.ObjectId;
+      paidMonths: number;
+    }>([
+      {
+        $match: {
+          chitId: { $in: chitIds },
+          bidderId: { $in: bidderOids },
+          status: INSTALLMENT_STATUS.PAID,
+          kind: 'bidder_payment',
+        },
+      },
+      {
+        $group: {
+          _id: '$bidderId',
+          months: {
+            $addToSet: {
+              chitId: '$chitId',
+              month: '$monthNumber',
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          paidMonths: { $size: '$months' },
+        },
+      },
+    ]);
+
+    for (const row of paidRows) {
+      const entry = map.get(row._id.toString());
+      if (entry) entry.paidMonths = row.paidMonths ?? 0;
+    }
+  }
+
+  return map;
+}
+
 /**
  * Peer-operator bidder APIs shared by branch_store and agent.
  * List = bidders created by the operator OR members of the operator's chits.
  * Blocking is super-admin only (see /super-admin/users/:userId/block).
  */
 export class OperatorBidderService {
+  /** Platform-wide bidder chit/report stats for super-admin lists. */
+  async getPlatformStatsForBidders(bidderIds: string[]) {
+    return loadBidderStatsPlatform(bidderIds);
+  }
+
   async create(operatorId: string, input: CreateOperatorBidderInput) {
     const phone = normalizePhone(input.phone);
     const aadhaarFingerprint = assertIdentity(phone, input.aadhaarNumber);
@@ -781,6 +872,352 @@ export class OperatorBidderService {
           );
         })
       : flat;
+
+    const total = filtered.length;
+    const start = (page - 1) * limit;
+    const items = filtered.slice(start, start + limit);
+
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
+  }
+
+  /** Platform-wide bidder detail (super-admin). No operator scoping. */
+  async getByIdPlatform(bidderId: string) {
+    const user = await User.findById(bidderId);
+    if (!user || user.role !== USER_ROLES.BIDDER) {
+      throw notFound('Bidder not found');
+    }
+
+    const statsMap = await loadBidderStatsPlatform([bidderId]);
+    const stats = statsMap.get(bidderId) ?? {
+      chitCount: 0,
+      reportCount: 0,
+      chitIds: [] as string[],
+      ticketCount: 0,
+      paidMonths: 0,
+      totalMonths: 0,
+    };
+
+    const chits = await Chit.find({
+      status: { $ne: CHIT_STATUS.DELETED },
+      'members.bidderId': new Types.ObjectId(bidderId),
+    })
+      .select('_id chitCode amountInLakhs members.bidderId members.numberOfTickets')
+      .lean();
+
+    const amountBuckets = new Map<
+      number,
+      { amountInLakhs: number; chitIds: string[]; chitCodes: string[]; ticketCount: number }
+    >();
+
+    for (const chit of chits) {
+      const amount = chit.amountInLakhs;
+      const member = (chit.members ?? []).find(
+        (m) => m.bidderId.toString() === bidderId
+      );
+      const tickets = member?.numberOfTickets ?? 1;
+      const existing = amountBuckets.get(amount) ?? {
+        amountInLakhs: amount,
+        chitIds: [],
+        chitCodes: [],
+        ticketCount: 0,
+      };
+      existing.chitIds.push(chit._id.toString());
+      existing.chitCodes.push(chit.chitCode);
+      existing.ticketCount += tickets;
+      amountBuckets.set(amount, existing);
+    }
+
+    const nomineeIds = (user.nominees ?? []).map((n) => n.userId);
+    const nomineeUsers =
+      nomineeIds.length > 0
+        ? await User.find({ _id: { $in: nomineeIds } })
+            .select('name role')
+            .lean()
+        : [];
+    const nominees = (user.nominees ?? []).map((link) => {
+      const nom = nomineeUsers.find(
+        (u) => u._id.toString() === link.userId.toString()
+      );
+      return {
+        id: link.userId.toString(),
+        name: nom?.name ?? null,
+        role: nom?.role ?? null,
+        linkedAt: link.linkedAt,
+      };
+    });
+
+    const address = user.currentAddress ?? user.aadhaarAddress ?? null;
+
+    return {
+      ...formatBidder(user, {
+        chitCount: stats.chitCount,
+        reportCount: stats.reportCount,
+        chitIds: stats.chitIds,
+        ticketCount: stats.ticketCount,
+        paidMonths: stats.paidMonths,
+        totalMonths: stats.totalMonths,
+      }),
+      phone2: user.phone2 ?? null,
+      aadhaarLast4: user.aadhaarLast4 ?? null,
+      address: address
+        ? {
+            street: address.street ?? '',
+            city: address.city ?? '',
+            state: address.state ?? '',
+            pincode: address.pincode ?? '',
+            country: address.country ?? '',
+          }
+        : null,
+      nominees,
+      chits: chits.map((c) => {
+        const member = (c.members ?? []).find(
+          (m) => m.bidderId.toString() === bidderId
+        );
+        return {
+          id: c._id.toString(),
+          chitCode: c.chitCode,
+          amountInLakhs: c.amountInLakhs,
+          numberOfTickets: member?.numberOfTickets ?? 1,
+          bidderCount: (c.members ?? []).length,
+        };
+      }),
+      chitsByAmount: Array.from(amountBuckets.values()).sort(
+        (a, b) => b.amountInLakhs - a.amountInLakhs
+      ),
+    };
+  }
+
+  async listBidderReportsPlatform(bidderId: string) {
+    const user = await User.findById(bidderId);
+    if (!user || user.role !== USER_ROLES.BIDDER) {
+      throw notFound('Bidder not found');
+    }
+
+    const chits = await Chit.find({
+      status: { $ne: CHIT_STATUS.DELETED },
+      'members.bidderId': new Types.ObjectId(bidderId),
+    })
+      .select('_id chitCode members')
+      .lean();
+
+    const items: Array<{
+      chitId: string;
+      chitCode: string;
+      reason: string;
+      note: string | null;
+      reportedBy: string | null;
+      reportedByName: string | null;
+      createdAt: Date;
+    }> = [];
+
+    for (const chit of chits) {
+      const member = (chit.members ?? []).find(
+        (m) => m.bidderId.toString() === bidderId
+      );
+      if (!member || !Array.isArray(member.reports)) continue;
+      for (const report of member.reports) {
+        items.push({
+          chitId: chit._id.toString(),
+          chitCode: chit.chitCode,
+          reason: report.reason,
+          note: report.note ?? null,
+          reportedBy: report.reportedBy
+            ? report.reportedBy.toString()
+            : null,
+          reportedByName: null,
+          createdAt: report.createdAt,
+        });
+      }
+    }
+
+    items.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    const reporterIds = items
+      .map((item) => item.reportedBy)
+      .filter((id): id is string => typeof id === 'string' && !!id);
+    const uniqueReporterIds = [...new Set(reporterIds)];
+    if (uniqueReporterIds.length > 0) {
+      const reporters = await User.find({
+        _id: { $in: uniqueReporterIds.map((id) => new Types.ObjectId(id)) },
+      })
+        .select('name')
+        .lean();
+      const nameById = new Map<string, string>();
+      for (const reporter of reporters) {
+        if (reporter.name) nameById.set(reporter._id.toString(), reporter.name);
+      }
+      for (const item of items) {
+        if (item.reportedBy) {
+          item.reportedByName = nameById.get(item.reportedBy) ?? null;
+        }
+      }
+    }
+
+    return {
+      bidderId,
+      total: items.length,
+      items,
+    };
+  }
+
+  /** Platform-wide member reports list (super-admin). */
+  async listPlatformReports(query: ListOperatorReportsQueryInput) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 50;
+
+    const chits = await Chit.find({
+      status: { $ne: CHIT_STATUS.DELETED },
+      'members.reports.0': { $exists: true },
+    })
+      .select('_id chitCode members')
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    type FlatReport = {
+      id: string;
+      reportId: string;
+      bidderId: string;
+      bidderName: string | null;
+      bidderPhone: string | null;
+      chitId: string;
+      chitCode: string;
+      reason: string;
+      note: string | null;
+      reportedBy: string | null;
+      reportedByName: string | null;
+      createdAt: Date;
+      reportCountForBidder: number;
+    };
+
+    const flat: FlatReport[] = [];
+    const bidderReportTotals = new Map<string, number>();
+
+    for (const chit of chits) {
+      for (const member of chit.members ?? []) {
+        const reports = Array.isArray(member.reports) ? member.reports : [];
+        if (reports.length === 0) continue;
+
+        const bidder = member.bidderId as
+          | Types.ObjectId
+          | { _id: Types.ObjectId; name?: string; phone?: string };
+        const bidderId =
+          bidder && typeof bidder === 'object' && '_id' in bidder
+            ? bidder._id.toString()
+            : (bidder as Types.ObjectId).toString();
+        const bidderName =
+          bidder && typeof bidder === 'object' && 'name' in bidder
+            ? bidder.name ?? null
+            : null;
+        const bidderPhone =
+          bidder && typeof bidder === 'object' && 'phone' in bidder
+            ? bidder.phone ?? null
+            : null;
+
+        bidderReportTotals.set(
+          bidderId,
+          (bidderReportTotals.get(bidderId) ?? 0) + reports.length
+        );
+
+        for (const report of reports) {
+          const reportWithId = report as typeof report & {
+            _id?: Types.ObjectId;
+          };
+          const reportId = reportWithId._id
+            ? reportWithId._id.toString()
+            : String(new Date(report.createdAt).getTime());
+          flat.push({
+            id: `${chit._id.toString()}-${bidderId}-${reportId}`,
+            reportId,
+            bidderId,
+            bidderName,
+            bidderPhone,
+            chitId: chit._id.toString(),
+            chitCode: chit.chitCode,
+            reason: report.reason,
+            note: report.note ?? null,
+            reportedBy: report.reportedBy
+              ? report.reportedBy.toString()
+              : null,
+            reportedByName: null,
+            createdAt: report.createdAt,
+            reportCountForBidder: 0,
+          });
+        }
+      }
+    }
+
+    for (const item of flat) {
+      item.reportCountForBidder = bidderReportTotals.get(item.bidderId) ?? 1;
+    }
+
+    flat.sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    const reporterIds = flat
+      .map((item) => item.reportedBy)
+      .filter((id): id is string => typeof id === 'string' && !!id);
+    const uniqueReporterIds = [...new Set(reporterIds)];
+    if (uniqueReporterIds.length > 0) {
+      const reporters = await User.find({
+        _id: { $in: uniqueReporterIds.map((id) => new Types.ObjectId(id)) },
+      })
+        .select('name')
+        .lean();
+      const nameById = new Map<string, string>();
+      for (const reporter of reporters) {
+        if (reporter.name) nameById.set(reporter._id.toString(), reporter.name);
+      }
+      for (const item of flat) {
+        if (item.reportedBy) {
+          item.reportedByName = nameById.get(item.reportedBy) ?? null;
+        }
+      }
+    }
+
+    const reporterFilter = new Set(
+      (query.reportedBy ?? '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    );
+    const byReporter =
+      reporterFilter.size > 0
+        ? flat.filter(
+            (item) => !!item.reportedBy && reporterFilter.has(item.reportedBy)
+          )
+        : flat;
+
+    const q = query.q?.trim().toLowerCase() ?? '';
+    const qDigits = q.replace(/\D/g, '');
+    const filtered = q
+      ? byReporter.filter((item) => {
+          const name = (item.bidderName || '').toLowerCase();
+          const reporter = (item.reportedByName || '').toLowerCase();
+          const phone = (item.bidderPhone || '').replace(/\D/g, '');
+          const id = item.bidderId.toLowerCase();
+          const chit = (item.chitCode || '').toLowerCase();
+          return (
+            name.includes(q) ||
+            reporter.includes(q) ||
+            id.includes(q) ||
+            chit.includes(q) ||
+            (qDigits.length > 0 && phone.includes(qDigits))
+          );
+        })
+      : byReporter;
 
     const total = filtered.length;
     const start = (page - 1) * limit;

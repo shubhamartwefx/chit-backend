@@ -27,6 +27,7 @@ import {
   ListChitsQueryInput,
   MAX_TICKETS_PER_BIDDER,
   SummaryQueryInput,
+  TransferChitMemberInput,
   UpdateChitInput,
 } from './chit.validation';
 import {
@@ -820,6 +821,82 @@ export class ChitService {
     );
     if (chit.members.length === before) {
       throw notFound('Member not found on this chit');
+    }
+
+    await chit.save();
+
+    const populated = await Chit.findById(chit._id)
+      .populate('members.bidderId', 'name phone')
+      .lean();
+
+    return toEnrichedChitDto(
+      (populated ?? chit) as unknown as IChitDocument,
+      { includeMembers: true, actor }
+    );
+  }
+
+  async transferMember(
+    actor: JwtPayload,
+    chitId: string,
+    fromBidderId: string,
+    input: TransferChitMemberInput
+  ) {
+    if (input.toBidderId === fromBidderId) {
+      throw badRequest('Cannot transfer tickets to the same bidder');
+    }
+
+    const chit = await Chit.findOne(buildScopedChitByIdFilter(actor, chitId));
+    if (!chit) {
+      throw notFound('Chit not found');
+    }
+
+    const source = chit.members.find(
+      (m) => m.bidderId.toString() === fromBidderId
+    );
+    if (!source) {
+      throw notFound('Member not found on this chit');
+    }
+
+    const sourceTickets = source.numberOfTickets ?? 1;
+    if (input.numberOfTickets > sourceTickets) {
+      throw badRequest(
+        `Bidder holds only ${sourceTickets} ticket(s) on this chit`
+      );
+    }
+
+    const removeSource = sourceTickets === input.numberOfTickets;
+    const target = chit.members.find(
+      (m) => m.bidderId.toString() === input.toBidderId
+    );
+
+    if (target) {
+      const nextTickets = (target.numberOfTickets ?? 1) + input.numberOfTickets;
+      if (nextTickets > MAX_TICKETS_PER_BIDDER) {
+        throw badRequest(
+          `numberOfTickets cannot exceed ${MAX_TICKETS_PER_BIDDER} per bidder`
+        );
+      }
+      target.numberOfTickets = nextTickets;
+    } else {
+      const membersAfter = chit.members.length + 1 - (removeSource ? 1 : 0);
+      if (membersAfter > chit.maxBidders) {
+        throw badRequest(
+          `Cannot add member: chit already has maxBidders (${chit.maxBidders})`
+        );
+      }
+      const built = await validateAndBuildMembers(
+        [{ bidderId: input.toBidderId, numberOfTickets: input.numberOfTickets }],
+        chit.maxBidders
+      );
+      chit.members.push(built[0]);
+    }
+
+    if (removeSource) {
+      chit.members = chit.members.filter(
+        (m) => m.bidderId.toString() !== fromBidderId
+      );
+    } else {
+      source.numberOfTickets = sourceTickets - input.numberOfTickets;
     }
 
     await chit.save();

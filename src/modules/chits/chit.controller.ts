@@ -10,6 +10,7 @@ import {
   UpdateChitInput,
   UpdateChitMemberInput,
   ReportChitMemberInput,
+  TransferChitMemberInput,
 } from './chit.validation';
 
 export class ChitController {
@@ -115,6 +116,20 @@ export class ChitController {
         req.params.bidderId
       );
       sendSuccessWithKey(res, data, 'OK', API_MESSAGES.CHIT_MEMBER_REMOVED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async transferMember(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await chitService.transferMember(
+        req.user!,
+        req.params.id,
+        req.params.bidderId,
+        req.body as TransferChitMemberInput
+      );
+      sendSuccessWithKey(res, data, 'OK', API_MESSAGES.CHIT_MEMBER_TRANSFERRED);
     } catch (err) {
       next(err);
     }

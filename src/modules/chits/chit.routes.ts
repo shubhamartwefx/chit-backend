@@ -37,6 +37,7 @@ import {
   updateChitMemberSchema,
   updateChitSchema,
   reportChitMemberSchema,
+  transferChitMemberSchema,
   updateChitMemberReportSchema,
   chitMemberReportParamsSchema,
 } from './chit.validation';
@@ -101,6 +102,16 @@ router.delete(
   authorizePermission(PERMISSIONS.CHITS.WRITE),
   validate(chitMemberParamsSchema, 'params'),
   (req, res, next) => chitController.removeMember(req, res, next)
+);
+
+router.post(
+  '/:id/members/:bidderId/transfer',
+  rejectIfBlocked,
+  authorize(...writeRoles),
+  authorizePermission(PERMISSIONS.CHITS.WRITE),
+  validate(chitMemberParamsSchema, 'params'),
+  validate(transferChitMemberSchema),
+  (req, res, next) => chitController.transferMember(req, res, next)
 );
 
 router.post(

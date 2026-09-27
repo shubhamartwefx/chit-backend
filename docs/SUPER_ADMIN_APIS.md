@@ -56,8 +56,16 @@ Role: `super_admin`
 |--------|------|--------|
 | GET | `/permissions` | Permission catalog |
 | POST / GET | `/branch-stores` | Create / list branch stores |
-| POST / GET | `/agents` | Create / list agents |
-| POST / GET | `/bidders` | Create / list bidders |
+| GET | `/branch-stores/:id` | Branch store detail + chit summary |
+| POST / GET | `/agents` | Create / list agents (list includes `chitCount`, `reportCount`) |
+| GET | `/agents/:id` | Agent detail: profile, `aadhaarVerified`/`aadhaarStatus`, `nominees[{ id, name, role }]`, `chits[{ id, chitCode, amountInLakhs, bidderCount, ticketCount }]` |
+| PATCH | `/agents/:id` | Body `{ phone2?, currentAddress?: { street?, city?, state?, pincode?, country? } }` — admin edit of agent profile; address is merged into the existing one; returns the agent detail |
+| POST / GET | `/bidders` | Create / list bidders (list includes `agentName`/`createdByName`, `chitCount`, `reportCount`) |
+| GET | `/bidders/:id` | Bidder detail (platform scope); `chits[]` include this bidder's `numberOfTickets` and `bidderCount`; nominees include `role` |
+| PATCH | `/bidders/:id` | Body `{ phone2?, currentAddress?: { street?, city?, state?, pincode?, country? } }` — address merged over the existing one |
+| GET | `/bidders/:id/reports` | Reports for that bidder |
+| PATCH | `/bidders/:id/assign-agent` | Body `{ agentId }` — set ownership (`createdBy`) to an agent |
+| GET | `/reports` | Platform-wide member reports list. Query: `q`, `page`, `limit`, `reportedBy` (comma-separated agent ids; filters by reporter) |
 | POST / GET | `/staff` | Create / list super-admin staff |
 | POST / GET | `/admins` | Deprecated aliases for branch-stores |
 | POST | `/users/:userId/block` | Body: `{ reason }` — cannot block self / other super-admins |

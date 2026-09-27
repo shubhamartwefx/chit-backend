@@ -93,6 +93,7 @@ export const API_MESSAGES = {
   CHIT_MEMBER_ADDED: 'Chit member added successfully',
   CHIT_MEMBER_UPDATED: 'Chit member updated successfully',
   CHIT_MEMBER_REMOVED: 'Chit member removed successfully',
+  CHIT_MEMBER_TRANSFERRED: 'Chit tickets transferred successfully',
   CHIT_MEMBER_REPORTED: 'Bidder reported successfully',
   INSTALLMENT_RECORDED: 'Installment recorded successfully',
   INSTALLMENT_UPDATED: 'Installment updated successfully',

@@ -81,6 +81,15 @@ export const updateChitMemberSchema = z.object({
 
 export type UpdateChitMemberInput = z.infer<typeof updateChitMemberSchema>;
 
+export const transferChitMemberSchema = z
+  .object({
+    toBidderId: objectIdSchema,
+    numberOfTickets: z.coerce.number().int().min(1).max(MAX_TICKETS_PER_BIDDER),
+  })
+  .strict();
+
+export type TransferChitMemberInput = z.infer<typeof transferChitMemberSchema>;
+
 export const reportChitMemberSchema = z.object({
   reason: z.enum([
     BIDDER_REPORT_REASONS.NOT_PAYING_PROPERLY,
