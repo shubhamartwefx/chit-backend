@@ -106,6 +106,7 @@ export const API_MESSAGES = {
   CHIT_JOINED: 'Joined chit successfully',
   USER_BLOCKED: 'User blocked successfully',
   USER_UNBLOCKED: 'User unblocked successfully',
+  SUBSCRIPTION_PURCHASED: 'Subscription plan purchased successfully',
   ROUTE_NOT_FOUND: 'Route not found',
 } as const;
 

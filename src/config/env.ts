@@ -50,6 +50,8 @@ const envSchema = z.object({
   SIGNUP_FEE_AGENT: z.coerce.number().default(700),
   SIGNUP_FEE_BIDDER: z.coerce.number().default(300),
   PAYMENT_MODE: z.enum(['demo']).default('demo'),
+  /** GST rate applied to invoices; listed prices are treated as tax-inclusive. */
+  INVOICE_GST_PERCENT: z.coerce.number().min(0).max(100).default(18),
 });
 
 const parsed = envSchema.safeParse(process.env);

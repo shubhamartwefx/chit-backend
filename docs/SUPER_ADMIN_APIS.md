@@ -81,7 +81,7 @@ Role: `super_admin`
 | PATCH | `/subscription-plans/:id` |
 | DELETE | `/subscription-plans/:id` |
 
-Agent portal is **read-only**: `GET /agent/subscription-plans`.
+Agent portal lists plans via `GET /agent/subscription-plans` and buys one via `POST /agent/subscriptions` (demo payment); invoices via `GET /agent/invoices`.
 
 ---
 

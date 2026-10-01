@@ -78,6 +78,10 @@ Defined in [`src/config/rbac/route-permissions.ts`](../src/config/rbac/route-per
 | `POST /agent/bidders` | `bidders:write` |
 | `POST /agent/bidders/:id/block` | `bidders:write` |
 | `POST /agent/bidders/:id/unblock` | `bidders:write` |
+| `GET /agent/subscriptions/current` | _(agent role only)_ |
+| `POST /agent/subscriptions` | _(agent role only)_ |
+| `GET /agent/invoices` | _(agent role only)_ |
+| `GET /agent/invoices/:id` | _(agent role only)_ |
 | `POST /bidder/chits/:id/join` | `chits:read` |
 | `GET /chits` | `chits:read` |
 | `GET /chits/summary` | `chits:read` |
