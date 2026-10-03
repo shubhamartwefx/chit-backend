@@ -15,6 +15,26 @@ import {
   UpdateSubscriptionPlanInput,
 } from './subscription-plan.validation';
 
+const UP_TO_CHITS_PATTERN = /up\s*to\s*(\d+)/i;
+
+/** Reads the chit allowance from feature text such as "Up to 3". */
+export function deriveTotalChitsFromFeatures(features: string[] | undefined): number {
+  for (const feature of features ?? []) {
+    const match = UP_TO_CHITS_PATTERN.exec(feature);
+    if (match) return Number(match[1]);
+  }
+  return 0;
+}
+
+export function resolvePlanTotalChits(
+  plan: Pick<ISubscriptionPlanDocument, 'totalChits' | 'features'>
+): number {
+  if (typeof plan.totalChits === 'number' && plan.totalChits > 0) {
+    return plan.totalChits;
+  }
+  return deriveTotalChitsFromFeatures(plan.features);
+}
+
 function toDto(doc: ISubscriptionPlanDocument) {
   return {
     id: doc._id.toString(),
@@ -24,6 +44,7 @@ function toDto(doc: ISubscriptionPlanDocument) {
     price: doc.price,
     billingPeriod: doc.billingPeriod,
     features: doc.features,
+    totalChits: resolvePlanTotalChits(doc),
     icon: doc.icon,
     bgClass: doc.bgClass,
     colorClass: doc.colorClass,
@@ -74,6 +95,8 @@ export class SubscriptionPlanService {
       billingPeriod:
         input.billingPeriod ?? SUBSCRIPTION_BILLING_PERIODS.YEAR,
       features: input.features,
+      totalChits:
+        input.totalChits ?? deriveTotalChitsFromFeatures(input.features),
       icon: input.icon,
       bgClass: input.bgClass,
       colorClass: input.colorClass,
@@ -97,6 +120,11 @@ export class SubscriptionPlanService {
       doc.billingPeriod = input.billingPeriod;
     }
     if (input.features !== undefined) doc.features = input.features;
+    if (input.totalChits !== undefined) {
+      doc.totalChits = input.totalChits;
+    } else if (input.features !== undefined) {
+      doc.totalChits = deriveTotalChitsFromFeatures(input.features);
+    }
     if (input.icon !== undefined) doc.icon = input.icon;
     if (input.bgClass !== undefined) doc.bgClass = input.bgClass;
     if (input.colorClass !== undefined) doc.colorClass = input.colorClass;
@@ -145,6 +173,7 @@ export class SubscriptionPlanService {
         billingPeriod:
           p.billingPeriod ?? SUBSCRIPTION_BILLING_PERIODS.YEAR,
         features: p.features,
+        totalChits: p.totalChits ?? deriveTotalChitsFromFeatures(p.features),
         icon: p.icon,
         bgClass: p.bgClass,
         colorClass: p.colorClass,

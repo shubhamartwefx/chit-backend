@@ -316,8 +316,10 @@ Peer operator (same chit/bidder powers as Branch). Self-signup and/or SA create.
 | POST | `/agent/bidders` | Agent (`bidders:write`) | Create bidder (`createdBy` = agent) |
 | POST | `/agent/bidders/:id/block` | Agent (`bidders:write`) | Block a bidder **created by** this agent |
 | POST | `/agent/bidders/:id/unblock` | Agent (`bidders:write`) | Unblock that bidder |
-| GET | `/agent/subscriptions/current` | Agent | Active plan (`current`) and queued periods (`upcoming`) |
-| POST | `/agent/subscriptions` | Agent | Buy `{ planId }` (demo payment, confirmed immediately); queues after an active plan; creates a subscription invoice |
+| GET | `/agent/subscriptions` | Agent | Subscription history, newest first (`status` active / expired / upgraded, `expiringSoon`, `daysRemaining`) |
+| GET | `/agent/subscriptions/current` | Agent | Active plan, `subscribedPlanId`, chit usage (`totalChits`, `usedChits`, `remainingChits`, `limitReached`), `expiringSoon`, and `upgradeOptions` (price difference per higher plan) |
+| POST | `/agent/subscriptions/create-order` | Agent | `{ planId }` → order with server-side amount: full price when no active plan, price difference for an upgrade (expiry kept). 409 same plan, 400 downgrade |
+| POST | `/agent/subscriptions/confirm` | Agent | `{ orderId, paymentId }` after Razorpay checkout (demo: no signature check). New plan: validity `SUBSCRIPTION_VALIDITY_DAYS` + `SUBSCRIPTION_GRACE_DAYS` (365 + 30). Upgrade: old plan → `upgraded`, new plan inherits expiry. Creates the invoice; idempotent |
 | GET | `/agent/invoices` | Agent | Own invoices (`?q=` order/invoice number or plan); signup DigiLocker/Aadhaar verification fee + subscriptions; GST from `INVOICE_GST_PERCENT` (prices tax-inclusive) |
 | GET | `/agent/invoices/:id` | Agent | One own invoice with bill-to details |
 

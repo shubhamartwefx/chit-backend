@@ -81,7 +81,7 @@ Role: `super_admin`
 | PATCH | `/subscription-plans/:id` |
 | DELETE | `/subscription-plans/:id` |
 
-Agent portal lists plans via `GET /agent/subscription-plans` and buys one via `POST /agent/subscriptions` (demo payment); invoices via `GET /agent/invoices`.
+Each plan carries `totalChits` (the agent's active-chit limit). When omitted on create/update/bulk it is derived from the first feature matching "Up to N". Agent portal lists plans via `GET /agent/subscription-plans` and buys or upgrades one via `POST /agent/subscriptions/create-order` + `POST /agent/subscriptions/confirm` (Razorpay checkout, demo confirm); invoices via `GET /agent/invoices`.
 
 ---
 
@@ -148,7 +148,10 @@ Backend CRUD exists. Wire `chits.artwefx` PricePlanList to `/super-admin/subscri
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/agent/bidders/:id` | Profile (name, phones, address, nominees, aadhaar flags) + `chitIds` / counts / amount-bucket summary |
+| GET | `/agent/bidders/:id` | Profile (name, phones, address, nominees, aadhaar flags) + `chitIds` / counts / amount-bucket summary; `chits[].numberOfTickets` = this bidder's tickets on each chit |
+| PATCH | `/agent/bidders/:id` | Edit profile: any of `name`, `phone2` (10-digit, `""` clears), `currentAddress {street (Area), city (District), state, pincode, country?}`; returns the GET detail |
+| GET | `/agent/bidders?q=` | `q` also accepts the display id `BD-XXXX-XXXX` (last 8 hex of `_id`), looked up globally like an exact phone |
+| (existing) | `POST /chits/:id/members/:bidderId/transfer` | Bidder Details "move": `{ toBidderId, numberOfTickets }` |
 | (existing) | `GET /agent/bidders/:id/reports` | Reports for that bidder |
 | (existing) | `GET /chits/:id` (+ installments) | Drive Bidder Details chit tabs |
 

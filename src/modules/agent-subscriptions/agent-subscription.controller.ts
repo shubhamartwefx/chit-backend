@@ -1,17 +1,46 @@
 import { NextFunction, Request, Response } from 'express';
 import { sendSuccessWithKey } from '../../common/response';
 import { API_MESSAGES } from '../../common/status';
+import { AGENT_SUBSCRIPTION_KINDS } from './agent-subscription.model';
 import { agentSubscriptionService } from './agent-subscription.service';
-import { PurchaseAgentSubscriptionInput } from './agent-subscription.validation';
+import {
+  ConfirmAgentSubscriptionInput,
+  CreateAgentSubscriptionOrderInput,
+} from './agent-subscription.validation';
 
 export class AgentSubscriptionController {
-  async purchase(req: Request, res: Response, next: NextFunction) {
+  async createOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await agentSubscriptionService.purchase(
+      const data = await agentSubscriptionService.createOrder(
         req.user!.sub,
-        req.body as PurchaseAgentSubscriptionInput
+        req.body as CreateAgentSubscriptionOrderInput
       );
-      sendSuccessWithKey(res, data, 'CREATED', API_MESSAGES.SUBSCRIPTION_PURCHASED);
+      sendSuccessWithKey(res, data, 'CREATED', API_MESSAGES.SUBSCRIPTION_ORDER_CREATED);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async confirm(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await agentSubscriptionService.confirm(
+        req.user!.sub,
+        req.body as ConfirmAgentSubscriptionInput
+      );
+      const message =
+        data.kind === AGENT_SUBSCRIPTION_KINDS.UPGRADE
+          ? API_MESSAGES.SUBSCRIPTION_UPGRADED
+          : API_MESSAGES.SUBSCRIPTION_PURCHASED;
+      sendSuccessWithKey(res, data, 'OK', message);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async listHistory(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await agentSubscriptionService.listHistory(req.user!.sub);
+      sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
     }

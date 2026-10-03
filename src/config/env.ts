@@ -52,6 +52,9 @@ const envSchema = z.object({
   PAYMENT_MODE: z.enum(['demo']).default('demo'),
   /** GST rate applied to invoices; listed prices are treated as tax-inclusive. */
   INVOICE_GST_PERCENT: z.coerce.number().min(0).max(100).default(18),
+  SUBSCRIPTION_VALIDITY_DAYS: z.coerce.number().int().min(1).default(365),
+  SUBSCRIPTION_GRACE_DAYS: z.coerce.number().int().min(0).default(30),
+  SUBSCRIPTION_EXPIRING_SOON_DAYS: z.coerce.number().int().min(0).default(30),
 });
 
 const parsed = envSchema.safeParse(process.env);

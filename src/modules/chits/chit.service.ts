@@ -35,6 +35,7 @@ import {
   INSTALLMENT_KIND,
   INSTALLMENT_STATUS,
 } from '../installments/installment.model';
+import { agentSubscriptionService } from '../agent-subscriptions/agent-subscription.service';
 
 type MemberInput = { bidderId: string; numberOfTickets: number };
 
@@ -601,6 +602,10 @@ export class ChitService {
       agentId: input.agentId,
       branchStoreId: input.branchStoreId,
     });
+
+    if (agentId && actor.role === USER_ROLES.AGENT) {
+      await agentSubscriptionService.assertCanCreateChit(agentId.toString());
+    }
 
     const maxBidders = input.maxBidders;
     const members = await validateAndBuildMembers(input.members, maxBidders);

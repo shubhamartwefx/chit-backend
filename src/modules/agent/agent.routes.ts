@@ -26,7 +26,10 @@ import {
 import { subscriptionPlanController } from '../subscription-plans/subscription-plan.controller';
 import { listSubscriptionPlansQuerySchema } from '../subscription-plans/subscription-plan.validation';
 import { agentSubscriptionController } from '../agent-subscriptions/agent-subscription.controller';
-import { purchaseAgentSubscriptionSchema } from '../agent-subscriptions/agent-subscription.validation';
+import {
+  confirmAgentSubscriptionSchema,
+  createAgentSubscriptionOrderSchema,
+} from '../agent-subscriptions/agent-subscription.validation';
 import { invoiceController } from '../invoices/invoice.controller';
 import {
   invoiceIdParamsSchema,
@@ -105,15 +108,26 @@ router.get(
   (req, res, next) => subscriptionPlanController.list(req, res, next)
 );
 
+router.get('/subscriptions', (req, res, next) =>
+  agentSubscriptionController.listHistory(req, res, next)
+);
+
 router.get('/subscriptions/current', (req, res, next) =>
   agentSubscriptionController.getCurrent(req, res, next)
 );
 
 router.post(
-  '/subscriptions',
+  '/subscriptions/create-order',
   rejectIfBlocked,
-  validate(purchaseAgentSubscriptionSchema),
-  (req, res, next) => agentSubscriptionController.purchase(req, res, next)
+  validate(createAgentSubscriptionOrderSchema),
+  (req, res, next) => agentSubscriptionController.createOrder(req, res, next)
+);
+
+router.post(
+  '/subscriptions/confirm',
+  rejectIfBlocked,
+  validate(confirmAgentSubscriptionSchema),
+  (req, res, next) => agentSubscriptionController.confirm(req, res, next)
 );
 
 router.get(

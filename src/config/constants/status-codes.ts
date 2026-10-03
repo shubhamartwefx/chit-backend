@@ -107,6 +107,13 @@ export const API_MESSAGES = {
   USER_BLOCKED: 'User blocked successfully',
   USER_UNBLOCKED: 'User unblocked successfully',
   SUBSCRIPTION_PURCHASED: 'Subscription plan purchased successfully',
+  SUBSCRIPTION_UPGRADED: 'Subscription plan upgraded successfully',
+  SUBSCRIPTION_ORDER_CREATED: 'Subscription payment order created',
+  SUBSCRIPTION_ALREADY_SUBSCRIBED: 'This plan is already subscribed',
+  SUBSCRIPTION_DOWNGRADE_BLOCKED:
+    'Downgrade is not available while your current plan is active',
+  SUBSCRIPTION_REQUIRED: 'Buy a subscription plan to create chits',
+  SUBSCRIPTION_LIMIT_REACHED: 'Please upgrade your plan to create chits',
   ROUTE_NOT_FOUND: 'Route not found',
 } as const;
 
