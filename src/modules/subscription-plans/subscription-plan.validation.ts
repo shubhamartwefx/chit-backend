@@ -26,6 +26,7 @@ const planInputSchema = z.object({
     .optional()
     .default(SUBSCRIPTION_BILLING_PERIODS.YEAR),
   features: z.array(z.string().trim().min(1).max(200)).min(1).max(100),
+  totalChits: z.coerce.number().int().min(0).max(10000).optional(),
   icon: z.string().trim().min(1).max(80),
   bgClass: z.string().trim().min(1).max(120),
   colorClass: z.string().trim().min(1).max(80),

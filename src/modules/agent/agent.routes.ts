@@ -25,6 +25,16 @@ import {
 } from '../promotion-pdfs/promotion-pdf.validation';
 import { subscriptionPlanController } from '../subscription-plans/subscription-plan.controller';
 import { listSubscriptionPlansQuerySchema } from '../subscription-plans/subscription-plan.validation';
+import { agentSubscriptionController } from '../agent-subscriptions/agent-subscription.controller';
+import {
+  confirmAgentSubscriptionSchema,
+  createAgentSubscriptionOrderSchema,
+} from '../agent-subscriptions/agent-subscription.validation';
+import { invoiceController } from '../invoices/invoice.controller';
+import {
+  invoiceIdParamsSchema,
+  listInvoicesQuerySchema,
+} from '../invoices/invoice.validation';
 import { tutorialController } from '../tutorials/tutorial.controller';
 import {
   listTutorialsQuerySchema,
@@ -96,6 +106,40 @@ router.get(
   authorizePermission(PERMISSIONS.CHITS.READ),
   validate(listSubscriptionPlansQuerySchema, 'query'),
   (req, res, next) => subscriptionPlanController.list(req, res, next)
+);
+
+router.get('/subscriptions', (req, res, next) =>
+  agentSubscriptionController.listHistory(req, res, next)
+);
+
+router.get('/subscriptions/current', (req, res, next) =>
+  agentSubscriptionController.getCurrent(req, res, next)
+);
+
+router.post(
+  '/subscriptions/create-order',
+  rejectIfBlocked,
+  validate(createAgentSubscriptionOrderSchema),
+  (req, res, next) => agentSubscriptionController.createOrder(req, res, next)
+);
+
+router.post(
+  '/subscriptions/confirm',
+  rejectIfBlocked,
+  validate(confirmAgentSubscriptionSchema),
+  (req, res, next) => agentSubscriptionController.confirm(req, res, next)
+);
+
+router.get(
+  '/invoices',
+  validate(listInvoicesQuerySchema, 'query'),
+  (req, res, next) => invoiceController.listMine(req, res, next)
+);
+
+router.get(
+  '/invoices/:id',
+  validate(invoiceIdParamsSchema, 'params'),
+  (req, res, next) => invoiceController.getMine(req, res, next)
 );
 
 router.get(

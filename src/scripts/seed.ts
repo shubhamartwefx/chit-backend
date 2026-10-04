@@ -436,6 +436,7 @@ const SEED_AGENT_PLANS = [
     title: 'Silver plan',
     subtitle: "You ll get a all details",
     price: 5000,
+    totalChits: 3,
     features: [
       'Up to 3',
       'analytics',
@@ -461,6 +462,7 @@ const SEED_AGENT_PLANS = [
     title: 'Basic personal',
     subtitle: "You ll get a all details",
     price: 7000,
+    totalChits: 5,
     features: [
       'Up to 5',
       'analytics',
@@ -487,6 +489,7 @@ const SEED_AGENT_PLANS = [
     title: 'Startup',
     subtitle: "You ll get a all details",
     price: 10000,
+    totalChits: 10,
     features: [
       'Up to 10',
       'analytics',

@@ -32,6 +32,7 @@ export interface ISubscriptionPlan {
   price: number;
   billingPeriod: SubscriptionBillingPeriod;
   features: string[];
+  totalChits: number;
   icon: string;
   bgClass: string;
   colorClass: string;
@@ -76,6 +77,7 @@ const subscriptionPlanSchema = new Schema<ISubscriptionPlanDocument>(
         message: 'features must be a non-empty array',
       },
     },
+    totalChits: { type: Number, required: true, min: 0, default: 0 },
     icon: { type: String, required: true, trim: true, maxlength: 80 },
     bgClass: { type: String, required: true, trim: true, maxlength: 120 },
     colorClass: { type: String, required: true, trim: true, maxlength: 80 },

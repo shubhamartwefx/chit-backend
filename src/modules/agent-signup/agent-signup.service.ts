@@ -22,6 +22,7 @@ import {
 } from '../../config/roles';
 import { TokenPairMeta, tokenService } from '../auth/token.service';
 import { signupPaymentService } from '../signup-payment/signup-payment.service';
+import { invoiceService } from '../invoices/invoice.service';
 import {
   createAadhaarKycProvider,
   type AadhaarKycProvider,
@@ -407,7 +408,7 @@ export class AgentSignupService {
     await this.assertNoExistingAgentByFingerprint(session.aadhaarFingerprint);
     await this.assertNoExistingAgentByPhone(phone);
 
-    await signupPaymentService.consumePaidOrder({
+    const paidOrder = await signupPaymentService.consumePaidOrder({
       role: 'agent',
       sessionId: input.sessionId,
       paymentId: input.paymentId,
@@ -464,6 +465,20 @@ export class AgentSignupService {
     session.status = SIGNUP_STATUS.COMPLETED;
     session.completedUserId = user._id;
     await session.save();
+
+    try {
+      await invoiceService.createSignupInvoice({
+        userId: user._id,
+        role: USER_ROLES.AGENT,
+        orderId: paidOrder.orderId,
+        paymentId: paidOrder.paymentId,
+        amount: paidOrder.amount,
+        verificationMethod,
+      });
+    } catch (err) {
+      // The invoice is rebuilt lazily by invoiceService.ensureSignupInvoice.
+      console.error('Failed to create agent signup invoice', err);
+    }
 
     const tokens = await tokenService.issueTokenPair(user, meta);
 

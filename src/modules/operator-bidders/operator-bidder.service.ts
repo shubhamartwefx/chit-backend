@@ -19,10 +19,12 @@ import {
   INSTALLMENT_STATUS,
 } from '../installments/installment.model';
 import { User } from '../users/user.model';
+import { toStoredAddress } from '../../common/address';
 import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
   ListOperatorReportsQueryInput,
+  UpdateOperatorBidderInput,
 } from './operator-bidder.validation';
 
 function assertIdentity(phone: string, aadhaarNumber: string): string {
@@ -339,12 +341,19 @@ export class OperatorBidderService {
     const qDigits = qRaw.replace(/\D/g, '');
     const isObjectId = /^[a-fA-F0-9]{24}$/.test(qRaw);
     const isExactPhone = qDigits.length === 10 && isValidIndianPhone(qDigits);
+    // Display id shown in the UI: "BD-XXXX-XXXX" = last 8 hex chars of _id.
+    const displayIdMatch = /^(?:BD-?)?([a-fA-F0-9]{4})-?([a-fA-F0-9]{4})$/i.exec(qRaw);
+    const looksLikeDisplayId = /^BD|-|[a-f]/i.test(qRaw);
+    const displayIdSuffix =
+      displayIdMatch && looksLikeDisplayId
+        ? `${displayIdMatch[1]}${displayIdMatch[2]}`.toLowerCase()
+        : null;
 
     /**
      * Exact phone / id lookup is global so an agent can enroll an existing
      * bidder created by another operator (create still enforces uniqueness).
      */
-    if (qRaw && (isExactPhone || isObjectId)) {
+    if (qRaw && (isExactPhone || isObjectId || displayIdSuffix)) {
       const lookupFilter: Record<string, unknown> = {
         role: USER_ROLES.BIDDER,
       };
@@ -353,6 +362,13 @@ export class OperatorBidderService {
       }
       if (isObjectId) {
         lookupFilter._id = new Types.ObjectId(qRaw);
+      } else if (displayIdSuffix) {
+        lookupFilter.$expr = {
+          $regexMatch: {
+            input: { $toString: '$_id' },
+            regex: `${displayIdSuffix}$`,
+          },
+        };
       } else {
         lookupFilter.phone = normalizePhone(qDigits);
       }
@@ -626,6 +642,9 @@ export class OperatorBidderService {
         id: c._id.toString(),
         chitCode: c.chitCode,
         amountInLakhs: c.amountInLakhs,
+        numberOfTickets:
+          (c.members ?? []).find((m) => m.bidderId.toString() === bidderId)
+            ?.numberOfTickets ?? 1,
       })),
       chitsByAmount: Array.from(amountBuckets.values()).sort(
         (a, b) => b.amountInLakhs - a.amountInLakhs
@@ -637,12 +656,30 @@ export class OperatorBidderService {
     operatorId: string,
     operatorRole: typeof USER_ROLES.AGENT | typeof USER_ROLES.BRANCH_STORE,
     bidderId: string,
-    input: { name: string }
+    input: UpdateOperatorBidderInput
   ) {
     const user = await this.loadScopedBidder(operatorId, operatorRole, bidderId);
-    user.name = input.name.trim();
+    if (input.name !== undefined) user.name = input.name.trim();
+    if (input.phone2 !== undefined) {
+      const raw = input.phone2.trim();
+      if (!raw) {
+        user.phone2 = null;
+      } else {
+        const phone2 = normalizePhone(raw);
+        if (!isValidIndianPhone(phone2)) {
+          throw badRequest('Enter a valid 10-digit Indian mobile number for phone2');
+        }
+        if (phone2 === user.phone) {
+          throw badRequest('Second phone number must differ from the primary number');
+        }
+        user.phone2 = phone2;
+      }
+    }
+    if (input.currentAddress !== undefined) {
+      user.currentAddress = toStoredAddress(input.currentAddress);
+    }
     await user.save();
-    return formatBidder(user, { operatorId, chitCount: 1 });
+    return this.getById(operatorId, operatorRole, bidderId);
   }
 
   async listBidderReports(

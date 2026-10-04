@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { addressObjectSchema } from '../../common/address';
 
 const objectIdSchema = z
   .string()
@@ -65,9 +66,25 @@ export type OperatorBidderStatusActionInput = z.infer<
   typeof operatorBidderStatusActionSchema
 >;
 
-export const updateOperatorBidderSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-});
+export const updateOperatorBidderSchema = z
+  .object({
+    name: z.string().trim().min(2).max(120).optional(),
+    phone2: z
+      .string()
+      .trim()
+      .max(15)
+      .regex(/^$|^\d+$/, 'Phone must contain digits only')
+      .optional(),
+    currentAddress: addressObjectSchema.optional(),
+  })
+  .strict()
+  .refine(
+    (val) =>
+      val.name !== undefined ||
+      val.phone2 !== undefined ||
+      val.currentAddress !== undefined,
+    { message: 'Provide at least one of name, phone2 or currentAddress' }
+  );
 
 export type UpdateOperatorBidderInput = z.infer<
   typeof updateOperatorBidderSchema
