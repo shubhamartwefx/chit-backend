@@ -8,6 +8,7 @@ import {
   normalizePhone,
   verifyOtpHash,
 } from '../../common/crypto';
+import { encryptAadhaar } from '../../common/sensitive-data';
 import {
   badRequest,
   conflict,
@@ -157,6 +158,7 @@ export class AgentSignupService {
       status: SIGNUP_STATUS.PENDING_OTP,
       aadhaarFingerprint,
       aadhaarLast4: aadhaar.slice(-4),
+      aadhaarEncrypted: encryptAadhaar(aadhaar),
       maskedPhone,
       otpHash,
       attempts: 0,
@@ -444,6 +446,7 @@ export class AgentSignupService {
             }
           : null,
         aadhaarLast4: profile.aadhaarLast4,
+        aadhaarEncrypted: session.aadhaarEncrypted ?? null,
         aadhaarVerifiedAt: new Date(),
         verificationMethod,
         lastLoginAt: new Date(),
@@ -464,6 +467,7 @@ export class AgentSignupService {
 
     session.status = SIGNUP_STATUS.COMPLETED;
     session.completedUserId = user._id;
+    session.aadhaarEncrypted = null;
     await session.save();
 
     try {

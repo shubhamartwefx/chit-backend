@@ -176,6 +176,12 @@ export function canCreateBranchStoreUser(
   );
 }
 
+export function canRevealSensitiveData(
+  permissions: readonly string[]
+): boolean {
+  return hasPermission(permissions, PERMISSIONS.PRIVACY.REVEAL);
+}
+
 export function canListPlatformUsers(
   permissions: readonly string[]
 ): boolean {

@@ -32,6 +32,53 @@ export function fingerprintAadhaar(aadhaar: string, secret: string): string {
   return crypto.createHmac('sha256', secret).update(normalized).digest('hex');
 }
 
+const SENSITIVE_CIPHER = 'aes-256-gcm';
+const SENSITIVE_FORMAT_VERSION = 'v1';
+const SENSITIVE_IV_BYTES = 12;
+export const SENSITIVE_KEY_BYTES = 32;
+
+function decodeSensitiveKey(keyBase64: string): Buffer {
+  const key = Buffer.from(keyBase64, 'base64');
+  if (key.length !== SENSITIVE_KEY_BYTES) {
+    throw new Error('Sensitive data encryption key must decode to 32 bytes');
+  }
+  return key;
+}
+
+/**
+ * Reversible encryption for data that privileged staff may need to reveal
+ * (e.g. full Aadhaar). Output: `v1:<iv>:<authTag>:<ciphertext>` (base64 parts).
+ */
+export function encryptSensitive(plaintext: string, keyBase64: string): string {
+  const iv = crypto.randomBytes(SENSITIVE_IV_BYTES);
+  const cipher = crypto.createCipheriv(SENSITIVE_CIPHER, decodeSensitiveKey(keyBase64), iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  return [
+    SENSITIVE_FORMAT_VERSION,
+    iv.toString('base64'),
+    cipher.getAuthTag().toString('base64'),
+    encrypted.toString('base64'),
+  ].join(':');
+}
+
+/** Throws when the payload is malformed, tampered with, or encrypted with another key. */
+export function decryptSensitive(payload: string, keyBase64: string): string {
+  const [version, ivPart, tagPart, dataPart] = payload.split(':');
+  if (version !== SENSITIVE_FORMAT_VERSION || !ivPart || !tagPart || !dataPart) {
+    throw new Error('Unsupported sensitive data payload');
+  }
+  const decipher = crypto.createDecipheriv(
+    SENSITIVE_CIPHER,
+    decodeSensitiveKey(keyBase64),
+    Buffer.from(ivPart, 'base64')
+  );
+  decipher.setAuthTag(Buffer.from(tagPart, 'base64'));
+  return Buffer.concat([
+    decipher.update(Buffer.from(dataPart, 'base64')),
+    decipher.final(),
+  ]).toString('utf8');
+}
+
 export async function hashOtp(otp: string): Promise<string> {
   return bcrypt.hash(otp, 10);
 }

@@ -5,6 +5,7 @@ import {
   isValidIndianPhone,
   normalizePhone,
 } from '../../common/crypto';
+import { aadhaarRevealFields } from '../../common/sensitive-data';
 import { badRequest, conflict, notFound } from '../../common/errors';
 import { env } from '../../config/env';
 import {
@@ -15,12 +16,14 @@ import {
   UserRole,
 } from '../../config/roles';
 import {
+  hasWildcard,
   validatePermissionsForRole,
 } from '../../config/rbac';
 import { Chit, CHIT_STATUS } from '../chits/chit.model';
 import { tokenService } from '../auth/token.service';
 import { IUserDocument, User } from '../users/user.model';
 import {
+  UpdateStaffPermissionsInput,
   UpdateUserProfileInput,
   UserStatusActionInput,
 } from './super-admin.validation';
@@ -279,6 +282,7 @@ export class SuperAdminService {
       countryCode: input.countryCode,
       phone,
       aadhaarFingerprint,
+      ...aadhaarRevealFields(input.aadhaarNumber),
       role: USER_ROLES.BRANCH_STORE,
       permissions: input.permissions,
       status: USER_STATUS.ACTIVE,
@@ -319,6 +323,7 @@ export class SuperAdminService {
       countryCode: input.countryCode,
       phone,
       aadhaarFingerprint,
+      ...aadhaarRevealFields(input.aadhaarNumber),
       role: USER_ROLES.AGENT,
       permissions: [...AGENT_DEFAULT],
       status: USER_STATUS.ACTIVE,
@@ -481,6 +486,7 @@ export class SuperAdminService {
       countryCode: input.countryCode,
       phone,
       aadhaarFingerprint,
+      ...aadhaarRevealFields(input.aadhaarNumber),
       role: USER_ROLES.BIDDER,
       permissions: [...BIDDER_DEFAULT],
       status: USER_STATUS.ACTIVE,
@@ -583,6 +589,40 @@ export class SuperAdminService {
   async listStaff(query: ListUsersQuery = {}) {
     const users = await listUsersByRole(USER_ROLES.SUPER_ADMIN, query);
     return users.map(formatUser);
+  }
+
+  /** Grants/revokes add-on permissions (e.g. privacy:reveal) on another super-admin staff member. */
+  async updateStaffPermissions(
+    actorId: string,
+    userId: string,
+    input: UpdateStaffPermissionsInput
+  ) {
+    if (actorId === userId) {
+      throw badRequest('You cannot change your own permissions');
+    }
+
+    const user = await User.findOne({
+      _id: userId,
+      role: USER_ROLES.SUPER_ADMIN,
+    }).select('-aadhaarFingerprint -__v');
+    if (!user) {
+      throw notFound('Staff member not found');
+    }
+    if (hasWildcard(user.permissions)) {
+      throw badRequest('Full super admins already hold every permission');
+    }
+
+    const toRemove = new Set<string>(input.remove ?? []);
+    const nextPermissions = [
+      ...new Set([
+        ...user.permissions.filter((perm) => !toRemove.has(perm)),
+        ...(input.add ?? []),
+      ]),
+    ];
+
+    user.permissions = nextPermissions;
+    await user.save();
+    return formatUser(user);
   }
 
   private assertBlockableTarget(

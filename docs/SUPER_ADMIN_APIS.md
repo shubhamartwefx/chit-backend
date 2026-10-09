@@ -67,9 +67,11 @@ Role: `super_admin`
 | PATCH | `/bidders/:id/assign-agent` | Body `{ agentId }` — set ownership (`createdBy`) to an agent |
 | GET | `/reports` | Platform-wide member reports list. Query: `q`, `page`, `limit`, `reportedBy` (comma-separated agent ids; filters by reporter) |
 | POST / GET | `/staff` | Create / list super-admin staff |
+| PATCH | `/staff/:userId/permissions` | Full super admin (`*`) only. Body `{ add?: ['privacy:reveal'], remove?: ['privacy:reveal'] }` (grantable whitelist only, strict). Target must be another non-`*` super-admin staff member. Returns the updated staff record; takes effect on the staff member's next token refresh |
 | POST / GET | `/admins` | Deprecated aliases for branch-stores |
 | POST | `/users/:userId/block` | Body: `{ reason }` — cannot block self / other super-admins |
 | POST | `/users/:userId/unblock` | Body: `{ reason }` |
+| POST | `/users/:userId/reveal` | `*` or `privacy:reveal`. Body `{ field: 'aadhaar' }`. Returns `{ field, value, revealedAt }` with `Cache-Control: no-store`. Every attempt is audited in `SensitiveDataAccessLog` (value never stored). Errors: `403` no permission, `404` user missing / field not applicable to role, `409 SENSITIVE_DATA_NOT_ON_FILE` (legacy account; captured on next Aadhaar login), `429` over 30 reveals per 15 min per staff member |
 
 ### Subscription plans (CRUD complete)
 
@@ -211,6 +213,20 @@ Content-Type: application/json
 { "reason": "Fraudulent activity reported" }
 ```
 
+### Reveal sensitive field
+
+```http
+POST /super-admin/users/:userId/reveal
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+
+{ "field": "aadhaar" }
+```
+
+Response `data`: `{ "field": "aadhaar", "value": "123456789012", "revealedAt": "2026-10-09T10:00:00.000Z" }`.
+
+New revealable fields are added to `REVEALABLE_FIELDS` in `src/modules/sensitive-data/revealable-fields.ts` (allowed target roles, select string, resolver); the route, permission and audit log stay unchanged.
+
 ### Create tutorial (after Phase A)
 
 ```http
@@ -221,12 +237,19 @@ Content-Type: application/json
 {
   "title": "New Chit",
   "category": "Chit Management",
-  "content": "Step-by-step…",
+  "description": "How to create your first chit",
+  "content": "<p>Step-by-step…</p>",
   "video": "https://www.youtube.com/watch?v=…",
+  "imageUrl": "https://example.com/cover.png",
   "language": "en",
   "sortOrder": 0
 }
 ```
+
+- Body is strict (unknown fields → 400). `PATCH` accepts any subset of the same fields.
+- `description`: plain text, ≤ 300 chars. `content`: HTML, ≤ 20000 chars, **sanitized server-side** (`src/common/html-sanitizer.ts` allowlist: text formatting, headings, lists, links, images, tables; no scripts, iframes, styles or event handlers; `http`/`https`/`mailto` only). Clients may render it as HTML.
+- `video` / `imageUrl`: empty string or an `http(s)` URL. Empty means none (no placeholder). YouTube `watch?v=` / `youtu.be` links are stored as embed URLs.
+- Responses include `description`, `content`, `video`, `imageUrl` (empty strings when unset).
 
 ### List tutorials by language (agent / admin)
 

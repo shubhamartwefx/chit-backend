@@ -9,6 +9,7 @@ import {
   CreateBranchStoreInput,
   CreateStaffInput,
   ListUsersQueryInput,
+  UpdateStaffPermissionsInput,
   UpdateUserProfileInput,
   UserStatusActionInput,
   assignablePermissionsResponse,
@@ -202,6 +203,24 @@ export class SuperAdminController {
         req.query as ListUsersQueryInput
       );
       sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateStaffPermissions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.updateStaffPermissions(
+        req.user!.sub,
+        req.params.userId,
+        req.body as UpdateStaffPermissionsInput
+      );
+      sendSuccessWithKey(
+        res,
+        data,
+        'OK',
+        API_MESSAGES.STAFF_PERMISSIONS_UPDATED
+      );
     } catch (err) {
       next(err);
     }

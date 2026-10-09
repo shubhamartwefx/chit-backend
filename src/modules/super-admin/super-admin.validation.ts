@@ -7,6 +7,7 @@ import {
 } from '../../config/constants';
 import {
   permissionsForSuperAdminTier,
+  SUPER_ADMIN_GRANTABLE,
   SUPER_ADMIN_TIERS,
 } from '../../config/rbac';
 
@@ -129,6 +130,28 @@ export const userStatusActionSchema = z.object({
 
 export type UserStatusActionInput = z.infer<typeof userStatusActionSchema>;
 
+const grantablePermissionListSchema = z
+  .array(z.enum(SUPER_ADMIN_GRANTABLE))
+  .max(SUPER_ADMIN_GRANTABLE.length);
+
+export const updateStaffPermissionsSchema = z
+  .object({
+    add: grantablePermissionListSchema.optional(),
+    remove: grantablePermissionListSchema.optional(),
+  })
+  .strict()
+  .refine((val) => (val.add?.length ?? 0) + (val.remove?.length ?? 0) > 0, {
+    message: 'Provide at least one permission to add or remove',
+  })
+  .refine(
+    (val) => !(val.add ?? []).some((perm) => (val.remove ?? []).includes(perm)),
+    { message: 'A permission cannot be both added and removed' }
+  );
+
+export type UpdateStaffPermissionsInput = z.infer<
+  typeof updateStaffPermissionsSchema
+>;
+
 export const assignablePermissionsResponse = {
   branchStore: BRANCH_STORE_ASSIGNABLE,
   agent: AGENT_DEFAULT,
@@ -139,4 +162,5 @@ export const assignablePermissionsResponse = {
     manager: PERMISSIONS.PLATFORM.SUPER_ADMIN_MANAGER,
     editor: PERMISSIONS.PLATFORM.SUPER_ADMIN_EDITOR,
   },
+  superAdminGrantable: SUPER_ADMIN_GRANTABLE,
 };

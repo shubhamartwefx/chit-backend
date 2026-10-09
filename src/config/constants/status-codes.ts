@@ -44,6 +44,12 @@ export const API_STATUS = {
     code: 'CONFLICT',
     message: 'Resource conflict',
   },
+  SENSITIVE_DATA_NOT_ON_FILE: {
+    httpStatus: 409,
+    code: 'SENSITIVE_DATA_NOT_ON_FILE',
+    message:
+      'This value is not on file yet. It is captured on the user’s next login with Aadhaar.',
+  },
   RATE_LIMITED: {
     httpStatus: 429,
     code: 'RATE_LIMITED',
@@ -87,6 +93,8 @@ export const API_MESSAGES = {
   BIDDER_CREATED: 'Bidder created successfully',
   BIDDER_UPDATED: 'Bidder updated successfully',
   STAFF_CREATED: 'Super admin staff created successfully',
+  STAFF_PERMISSIONS_UPDATED: 'Staff permissions updated successfully',
+  SENSITIVE_DATA_REVEALED: 'Sensitive data revealed',
   CHIT_CREATED: 'Chit created successfully',
   CHIT_UPDATED: 'Chit updated successfully',
   CHIT_DELETED: 'Chit deleted successfully',

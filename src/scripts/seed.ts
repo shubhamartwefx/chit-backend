@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { connectDatabase } from '../config/db';
 import { env } from '../config/env';
 import { fingerprintAadhaar } from '../common/crypto';
+import { encryptAadhaar } from '../common/sensitive-data';
 import {
   AGENT_DEFAULT,
   BIDDER_DEFAULT,
@@ -295,6 +296,7 @@ async function upsertSeedUser(
     env.JWT_SECRET
   );
   const profile = kycFields(seedUser);
+  const aadhaarEncrypted = encryptAadhaar(seedUser.aadhaar);
 
   const existing = await User.findOne({
     role: seedUser.role,
@@ -304,6 +306,7 @@ async function upsertSeedUser(
   if (existing) {
     existing.name = profile.name || seedUser.name || existing.name;
     existing.aadhaarFingerprint = aadhaarFingerprint;
+    existing.aadhaarEncrypted = aadhaarEncrypted;
     existing.permissions = seedUser.permissions;
     existing.status = USER_STATUS.ACTIVE;
     if (createdById) {
@@ -333,6 +336,7 @@ async function upsertSeedUser(
     countryCode: seedUser.countryCode,
     phone: seedUser.phone,
     aadhaarFingerprint,
+    aadhaarEncrypted,
     role: seedUser.role,
     permissions: seedUser.permissions,
     status: USER_STATUS.ACTIVE,

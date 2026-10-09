@@ -31,6 +31,10 @@ export const PERMISSIONS = {
     READ: 'notifications:read',
     WRITE: 'notifications:write',
   },
+  PRIVACY: {
+    /** View unmasked sensitive user data (e.g. full Aadhaar); every reveal is audited. */
+    REVEAL: 'privacy:reveal',
+  },
 } as const;
 
 /** Flat list of every domain permission (excludes platform tier markers and wildcard). */
@@ -58,10 +62,14 @@ export const PLATFORM_TIER_PERMISSIONS = [
 export type PlatformTierPermission =
   (typeof PLATFORM_TIER_PERMISSIONS)[number];
 
+/** Super-admin-only grants layered on top of a tier; never part of a tier bundle. */
+export const PRIVACY_PERMISSIONS = [PERMISSIONS.PRIVACY.REVEAL] as const;
+
 export const ALL_PERMISSIONS = [
   PERMISSIONS.PLATFORM.ALL,
   ...PLATFORM_TIER_PERMISSIONS,
   ...DOMAIN_PERMISSIONS,
+  ...PRIVACY_PERMISSIONS,
 ] as const;
 
 export type Permission = (typeof ALL_PERMISSIONS)[number];

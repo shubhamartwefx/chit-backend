@@ -55,6 +55,7 @@ export interface IUser {
   aadhaarAddress?: IAadhaarAddress | null;
   currentAddress?: IAadhaarAddress | null;
   aadhaarLast4?: string | null;
+  aadhaarEncrypted?: string | null;
   aadhaarVerifiedAt?: Date | null;
   verificationMethod?: VerificationMethod | null;
   nominees?: INomineeLink[];
@@ -138,7 +139,9 @@ const userSchema = new Schema<IUserDocument>(
     dateOfBirth: { type: String, default: null, trim: true },
     aadhaarAddress: { type: aadhaarAddressSchema, default: null },
     currentAddress: { type: aadhaarAddressSchema, default: null },
-    aadhaarLast4: { type: String, default: null, trim: true },    aadhaarVerifiedAt: { type: Date, default: null },
+    aadhaarLast4: { type: String, default: null, trim: true },
+    aadhaarEncrypted: { type: String, default: null, select: false },
+    aadhaarVerifiedAt: { type: Date, default: null },
     verificationMethod: {
       type: String,
       enum: Object.values(VERIFICATION_METHODS),

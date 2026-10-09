@@ -70,6 +70,11 @@ export const ROUTE_PERMISSIONS = {
     PERMISSIONS.PLATFORM.ALL,
   ],
   'POST /super-admin/staff': [PERMISSIONS.PLATFORM.ALL],
+  'PATCH /super-admin/staff/:userId/permissions': [PERMISSIONS.PLATFORM.ALL],
+  'POST /super-admin/users/:userId/reveal': [
+    PERMISSIONS.PRIVACY.REVEAL,
+    PERMISSIONS.PLATFORM.ALL,
+  ],
   'GET /super-admin/staff': [
     PERMISSIONS.PLATFORM.SUPER_ADMIN_MANAGER,
     PERMISSIONS.PLATFORM.ALL,
