@@ -1,8 +1,9 @@
 import { Types } from 'mongoose';
 import { notFound } from '../../common/errors';
 import { env } from '../../config/env';
-import { USER_ROLES } from '../../config/roles';
+import { USER_ROLES, UserRole } from '../../config/roles';
 import { AgentSignupSession } from '../agent-signup/agent-signup.model';
+import { BidderSignupSession } from '../bidder-signup/bidder-signup.model';
 import {
   PAYMENT_ORDER_STATUS,
   PAYMENT_ROLES,
@@ -23,6 +24,35 @@ type BillToUser = Pick<
   IUserDocument,
   'name' | 'countryCode' | 'phone' | 'currentAddress' | 'aadhaarAddress'
 >;
+
+type SignupInvoiceSource = {
+  paymentRole: (typeof PAYMENT_ROLES)[keyof typeof PAYMENT_ROLES];
+  fee: number;
+  findSignupSessionId: (userId: Types.ObjectId) => Promise<string | null>;
+};
+
+const SIGNUP_INVOICE_SOURCES: Partial<Record<UserRole, SignupInvoiceSource>> = {
+  [USER_ROLES.AGENT]: {
+    paymentRole: PAYMENT_ROLES.AGENT,
+    fee: env.SIGNUP_FEE_AGENT,
+    findSignupSessionId: async (userId) => {
+      const session = await AgentSignupSession.findOne({ completedUserId: userId })
+        .select('sessionId')
+        .lean();
+      return session?.sessionId ?? null;
+    },
+  },
+  [USER_ROLES.BIDDER]: {
+    paymentRole: PAYMENT_ROLES.BIDDER,
+    fee: env.SIGNUP_FEE_BIDDER,
+    findSignupSessionId: async (userId) => {
+      const session = await BidderSignupSession.findOne({ completedUserId: userId })
+        .select('sessionId')
+        .lean();
+      return session?.sessionId ?? null;
+    },
+  },
+};
 
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
@@ -166,13 +196,14 @@ export class InvoiceService {
   }
 
   /**
-   * Agents registered before invoices existed have no signup invoice. Rebuild it
-   * from the used signup payment order when the signup session still exists,
-   * otherwise from the configured agent fee and the account creation date.
-   * Admin-provisioned agents never paid a signup fee and are skipped.
+   * Agents and bidders registered before signup invoices existed have none.
+   * Rebuild it from the used signup payment order when the signup session still
+   * exists, otherwise from the configured role fee and the account creation date.
+   * Admin-provisioned users never paid a signup fee and are skipped.
    */
   async ensureSignupInvoice(user: IUserDocument): Promise<void> {
-    if (user.role !== USER_ROLES.AGENT) return;
+    const source = SIGNUP_INVOICE_SOURCES[user.role];
+    if (!source) return;
     if (
       user.verificationMethod !== VERIFICATION_METHODS.DIGILOCKER &&
       user.verificationMethod !== VERIFICATION_METHODS.MANUAL
@@ -186,13 +217,11 @@ export class InvoiceService {
     });
     if (existing) return;
 
-    const session = await AgentSignupSession.findOne({ completedUserId: user._id })
-      .select('sessionId')
-      .lean();
-    const order = session
+    const sessionId = await source.findSignupSessionId(user._id);
+    const order = sessionId
       ? await SignupPaymentOrder.findOne({
-          sessionId: session.sessionId,
-          role: PAYMENT_ROLES.AGENT,
+          sessionId,
+          role: source.paymentRole,
           status: PAYMENT_ORDER_STATUS.USED,
         }).lean()
       : null;
@@ -203,7 +232,7 @@ export class InvoiceService {
         role: user.role,
         orderId: order?.orderId ?? `SIGNUP-${user._id.toString().slice(-8).toUpperCase()}`,
         paymentId: order?.paymentId ?? null,
-        amount: order?.amount ?? env.SIGNUP_FEE_AGENT,
+        amount: order?.amount ?? source.fee,
         verificationMethod: user.verificationMethod,
         issuedAt: order?.updatedAt ?? user.createdAt,
         source: INVOICE_SOURCES.BACKFILL,

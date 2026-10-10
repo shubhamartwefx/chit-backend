@@ -95,6 +95,14 @@ Defined in [`src/config/rbac/route-permissions.ts`](../src/config/rbac/route-per
 | `GET /agent/invoices` | _(agent role only)_ |
 | `GET /agent/invoices/:id` | _(agent role only)_ |
 | `POST /bidder/chits/:id/join` | `chits:read` |
+| `GET /bidder/reports` | `reports:read` |
+| `GET /bidder/subscription-plans` | `chits:read` |
+| `GET /bidder/subscriptions` | _(bidder role only)_ |
+| `GET /bidder/subscriptions/current` | _(bidder role only)_ |
+| `POST /bidder/subscriptions/create-order` | _(bidder role only)_ |
+| `POST /bidder/subscriptions/confirm` | _(bidder role only)_ |
+| `GET /bidder/invoices` | _(bidder role only)_ |
+| `GET /bidder/invoices/:id` | _(bidder role only)_ |
 | `GET /chits` | `chits:read` |
 | `GET /chits/summary` | `chits:read` |
 | `GET /chits/:id` | `chits:read` |

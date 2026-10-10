@@ -27,7 +27,7 @@ import {
   Verify2faInput,
 } from './auth.validation';
 import { profileService } from './profile.service';
-import { usesTotpLogin } from './security-policy';
+import { allowsPhoneOnlyLogin, usesTotpLogin } from './security-policy';
 import { TokenPairMeta, tokenService } from './token.service';
 import { verifyTotpCode } from './totp.util';
 
@@ -52,8 +52,7 @@ export class AuthService {
   ) {
     assertPhoneFormat(phone);
     const role = urlSlugToRole(roleSlug);
-    const allowPhoneOnly =
-      role === USER_ROLES.AGENT && (!aadhaarNumber || aadhaarNumber.length === 0);
+    const allowPhoneOnly = allowsPhoneOnlyLogin(role) && !aadhaarNumber;
 
     if (!allowPhoneOnly) {
       if (!aadhaarNumber) {

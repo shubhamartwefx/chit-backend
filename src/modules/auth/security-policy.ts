@@ -29,6 +29,16 @@ export function isTwoFaAllowedForRole(role: UserRole): boolean {
   return (TWO_FA_ELIGIBLE_ROLES as readonly string[]).includes(role);
 }
 
+/** Roles whose login portal accepts phone + OTP without an Aadhaar number. */
+export const PHONE_ONLY_LOGIN_ROLES: readonly UserRole[] = [
+  USER_ROLES.AGENT,
+  USER_ROLES.BIDDER,
+] as const;
+
+export function allowsPhoneOnlyLogin(role: UserRole): boolean {
+  return (PHONE_ONLY_LOGIN_ROLES as readonly string[]).includes(role);
+}
+
 export function usesTotpLogin(user: {
   role: UserRole;
   totpEnabled?: boolean;

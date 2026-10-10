@@ -2,16 +2,22 @@ import { NextFunction, Request, Response } from 'express';
 import { sendSuccessWithKey } from '../../common/response';
 import { API_MESSAGES } from '../../common/status';
 import { AGENT_SUBSCRIPTION_KINDS } from './agent-subscription.model';
-import { agentSubscriptionService } from './agent-subscription.service';
+import {
+  AgentSubscriptionService,
+  agentSubscriptionService,
+  bidderSubscriptionService,
+} from './agent-subscription.service';
 import {
   ConfirmAgentSubscriptionInput,
   CreateAgentSubscriptionOrderInput,
 } from './agent-subscription.validation';
 
 export class AgentSubscriptionController {
+  constructor(private readonly service: AgentSubscriptionService) {}
+
   async createOrder(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await agentSubscriptionService.createOrder(
+      const data = await this.service.createOrder(
         req.user!.sub,
         req.body as CreateAgentSubscriptionOrderInput
       );
@@ -23,7 +29,7 @@ export class AgentSubscriptionController {
 
   async confirm(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await agentSubscriptionService.confirm(
+      const data = await this.service.confirm(
         req.user!.sub,
         req.body as ConfirmAgentSubscriptionInput
       );
@@ -39,7 +45,7 @@ export class AgentSubscriptionController {
 
   async listHistory(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await agentSubscriptionService.listHistory(req.user!.sub);
+      const data = await this.service.listHistory(req.user!.sub);
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
@@ -48,7 +54,7 @@ export class AgentSubscriptionController {
 
   async getCurrent(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await agentSubscriptionService.getCurrent(req.user!.sub);
+      const data = await this.service.getCurrent(req.user!.sub);
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
@@ -56,4 +62,9 @@ export class AgentSubscriptionController {
   }
 }
 
-export const agentSubscriptionController = new AgentSubscriptionController();
+export const agentSubscriptionController = new AgentSubscriptionController(
+  agentSubscriptionService
+);
+export const bidderSubscriptionController = new AgentSubscriptionController(
+  bidderSubscriptionService
+);
