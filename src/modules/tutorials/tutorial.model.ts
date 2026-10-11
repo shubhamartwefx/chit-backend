@@ -24,14 +24,22 @@ export const TUTORIAL_LANGUAGE_VALUES = Object.values(
   TUTORIAL_LANGUAGES
 ) as TutorialLanguage[];
 
-export const DEFAULT_TUTORIAL_VIDEO =
-  'https://www.youtube.com/embed/dQw4w9WgXcQ';
+export const TUTORIAL_LIMITS = {
+  TITLE: 200,
+  CATEGORY: 120,
+  DESCRIPTION: 300,
+  CONTENT: 20000,
+  URL: 500,
+} as const;
 
 export interface ITutorial {
   title: string;
   category: string;
+  description: string;
+  /** Sanitized HTML (see common/html-sanitizer). */
   content: string;
   video: string;
+  imageUrl: string;
   language: TutorialLanguage;
   sortOrder: number;
   status: TutorialStatus;
@@ -46,10 +54,37 @@ export interface ITutorialDocument extends ITutorial, Document {
 
 const tutorialSchema = new Schema<ITutorialDocument>(
   {
-    title: { type: String, required: true, trim: true, maxlength: 200 },
-    category: { type: String, required: true, trim: true, maxlength: 120 },
-    content: { type: String, required: true, trim: true, maxlength: 5000 },
-    video: { type: String, required: true, trim: true, maxlength: 500 },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: TUTORIAL_LIMITS.TITLE,
+    },
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: TUTORIAL_LIMITS.CATEGORY,
+    },
+    description: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: TUTORIAL_LIMITS.DESCRIPTION,
+    },
+    content: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: TUTORIAL_LIMITS.CONTENT,
+    },
+    video: { type: String, default: '', trim: true, maxlength: TUTORIAL_LIMITS.URL },
+    imageUrl: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: TUTORIAL_LIMITS.URL,
+    },
     language: {
       type: String,
       enum: TUTORIAL_LANGUAGE_VALUES,

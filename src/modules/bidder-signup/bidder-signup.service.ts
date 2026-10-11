@@ -8,6 +8,7 @@ import {
   normalizePhone,
   verifyOtpHash,
 } from '../../common/crypto';
+import { encryptAadhaar } from '../../common/sensitive-data';
 import {
   badRequest,
   conflict,
@@ -22,6 +23,7 @@ import {
 } from '../../config/roles';
 import { TokenPairMeta, tokenService } from '../auth/token.service';
 import { signupPaymentService } from '../signup-payment/signup-payment.service';
+import { invoiceService } from '../invoices/invoice.service';
 import {
   User,
   VERIFICATION_METHODS,
@@ -159,6 +161,7 @@ export class BidderSignupService {
       status: SIGNUP_STATUS.PENDING_OTP,
       aadhaarFingerprint,
       aadhaarLast4: aadhaar.slice(-4),
+      aadhaarEncrypted: encryptAadhaar(aadhaar),
       maskedPhone,
       otpHash,
       attempts: 0,
@@ -405,7 +408,7 @@ export class BidderSignupService {
     await this.assertNoExistingBidderByFingerprint(session.aadhaarFingerprint);
     await this.assertNoExistingBidderByPhone(phone);
 
-    await signupPaymentService.consumePaidOrder({
+    const paidOrder = await signupPaymentService.consumePaidOrder({
       role: 'bidder',
       sessionId: input.sessionId,
       paymentId: input.paymentId,
@@ -441,6 +444,7 @@ export class BidderSignupService {
             }
           : null,
         aadhaarLast4: profile.aadhaarLast4,
+        aadhaarEncrypted: session.aadhaarEncrypted ?? null,
         aadhaarVerifiedAt: new Date(),
         verificationMethod,
         lastLoginAt: new Date(),
@@ -461,7 +465,22 @@ export class BidderSignupService {
 
     session.status = SIGNUP_STATUS.COMPLETED;
     session.completedUserId = user._id;
+    session.aadhaarEncrypted = null;
     await session.save();
+
+    try {
+      await invoiceService.createSignupInvoice({
+        userId: user._id,
+        role: USER_ROLES.BIDDER,
+        orderId: paidOrder.orderId,
+        paymentId: paidOrder.paymentId,
+        amount: paidOrder.amount,
+        verificationMethod,
+      });
+    } catch (err) {
+      // The invoice is rebuilt lazily by invoiceService.ensureSignupInvoice.
+      console.error('Failed to create bidder signup invoice', err);
+    }
 
     const tokens = await tokenService.issueTokenPair(user, meta);
 

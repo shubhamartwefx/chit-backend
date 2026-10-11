@@ -113,14 +113,14 @@ Base path: \`${API_BASE_PATH}\`
           type: 'object',
           required: ['phone'],
           description:
-            'Agent login: phone + OTP only. Optional aadhaarNumber still accepted for fingerprint match.',
+            'Agent / bidder login: phone + OTP only. Optional aadhaarNumber still accepted for fingerprint match.',
           properties: {
             countryCode: { type: 'string', default: '+91', example: '+91' },
             phone: { type: 'string', example: '9999999999' },
             aadhaarNumber: {
               type: 'string',
               example: '123456789012',
-              description: 'Optional for agent role',
+              description: 'Optional for agent and bidder roles',
             },
           },
         },
@@ -390,7 +390,7 @@ Base path: \`${API_BASE_PATH}\`
                 },
                 examples: {
                   agentPhoneOnly: {
-                    summary: 'Agent — phone + OTP only',
+                    summary: 'Agent / bidder — phone + OTP only',
                     value: { countryCode: '+91', phone: '9999999999' },
                   },
                   withAadhaar: {
@@ -960,6 +960,107 @@ Base path: \`${API_BASE_PATH}\`
             },
           },
           responses: { '200': { description: 'Joined' } },
+        },
+      },
+      '/bidder/reports': {
+        get: {
+          tags: ['Bidder'],
+          summary: 'Reports agents filed against the signed-in bidder (read-only)',
+          security: bearer,
+          responses: { '200': { description: 'Report list' } },
+        },
+      },
+      '/bidder/subscription-plans': {
+        get: {
+          tags: ['Bidder'],
+          summary: 'Active bidder membership plans',
+          security: bearer,
+          responses: { '200': { description: 'Plan list' } },
+        },
+      },
+      '/bidder/subscriptions': {
+        get: {
+          tags: ['Bidder'],
+          summary: 'Membership purchase history',
+          security: bearer,
+          responses: { '200': { description: 'Subscription history' } },
+        },
+      },
+      '/bidder/subscriptions/current': {
+        get: {
+          tags: ['Bidder'],
+          summary: 'Active membership and days remaining',
+          security: bearer,
+          responses: { '200': { description: 'Current membership' } },
+        },
+      },
+      '/bidder/subscriptions/create-order': {
+        post: {
+          tags: ['Bidder'],
+          summary: 'Create a membership payment order',
+          security: bearer,
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['planId'],
+                  properties: { planId: objectId },
+                },
+              },
+            },
+          },
+          responses: {
+            '201': { description: 'Order created' },
+            '409': { description: 'Already subscribed to this plan' },
+          },
+        },
+      },
+      '/bidder/subscriptions/confirm': {
+        post: {
+          tags: ['Bidder'],
+          summary: 'Confirm a paid membership order (idempotent)',
+          security: bearer,
+          requestBody: {
+            required: true,
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['orderId'],
+                  properties: {
+                    orderId: { type: 'string' },
+                    paymentId: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+          responses: { '200': { description: 'Membership activated with invoice' } },
+        },
+      },
+      '/bidder/invoices': {
+        get: {
+          tags: ['Bidder'],
+          summary: 'Signup and membership invoices of the signed-in bidder',
+          security: bearer,
+          parameters: [{ name: 'q', in: 'query', schema: { type: 'string' } }],
+          responses: { '200': { description: 'Invoice list' } },
+        },
+      },
+      '/bidder/invoices/{id}': {
+        get: {
+          tags: ['Bidder'],
+          summary: 'Single invoice of the signed-in bidder',
+          security: bearer,
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: objectId },
+          ],
+          responses: {
+            '200': { description: 'Invoice' },
+            '404': { description: 'Not found' },
+          },
         },
       },
 

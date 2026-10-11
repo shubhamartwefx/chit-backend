@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
+import { sanitizeRichHtml } from '../../common/html-sanitizer';
 import { notFound } from '../../common/errors';
 import {
-  DEFAULT_TUTORIAL_VIDEO,
   TUTORIAL_LANGUAGES,
   TUTORIAL_STATUS,
   Tutorial,
@@ -19,8 +19,10 @@ function toDto(doc: ITutorialDocument) {
     id: doc._id.toString(),
     title: doc.title,
     category: doc.category,
-    content: doc.content,
-    video: doc.video,
+    description: doc.description ?? '',
+    content: doc.content ?? '',
+    video: doc.video ?? '',
+    imageUrl: doc.imageUrl ?? '',
     language: doc.language,
     sortOrder: doc.sortOrder,
     status: doc.status,
@@ -40,9 +42,10 @@ async function loadActive(id: string): Promise<ITutorialDocument> {
   return doc;
 }
 
+/** Empty stays empty (no video); YouTube watch/short links become embeddable. */
 function normalizeYoutubeEmbed(url: string): string {
   const trimmed = url.trim();
-  if (!trimmed) return DEFAULT_TUTORIAL_VIDEO;
+  if (!trimmed) return '';
   const watchMatch = trimmed.match(
     /(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]{6,})/i
   );
@@ -50,6 +53,10 @@ function normalizeYoutubeEmbed(url: string): string {
     return `https://www.youtube.com/embed/${watchMatch[1]}`;
   }
   return trimmed;
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export class TutorialService {
@@ -66,11 +73,12 @@ export class TutorialService {
       filter.category = query.category.trim();
     }
     if (query.q?.trim()) {
-      const q = query.q.trim();
+      const pattern = escapeRegex(query.q.trim());
       filter.$or = [
-        { title: { $regex: q, $options: 'i' } },
-        { category: { $regex: q, $options: 'i' } },
-        { content: { $regex: q, $options: 'i' } },
+        { title: { $regex: pattern, $options: 'i' } },
+        { category: { $regex: pattern, $options: 'i' } },
+        { description: { $regex: pattern, $options: 'i' } },
+        { content: { $regex: pattern, $options: 'i' } },
       ];
     }
 
@@ -103,8 +111,10 @@ export class TutorialService {
     const doc = await Tutorial.create({
       title: input.title.trim(),
       category: input.category.trim(),
-      content: input.content?.trim() || 'No description added yet.',
-      video: normalizeYoutubeEmbed(input.video || DEFAULT_TUTORIAL_VIDEO),
+      description: input.description?.trim() ?? '',
+      content: sanitizeRichHtml(input.content ?? ''),
+      video: normalizeYoutubeEmbed(input.video ?? ''),
+      imageUrl: input.imageUrl?.trim() ?? '',
       language,
       sortOrder: input.sortOrder ?? 0,
       status: TUTORIAL_STATUS.ACTIVE,
@@ -117,12 +127,10 @@ export class TutorialService {
     const doc = await loadActive(id);
     if (input.title !== undefined) doc.title = input.title.trim();
     if (input.category !== undefined) doc.category = input.category.trim();
-    if (input.content !== undefined) {
-      doc.content = input.content.trim() || 'No description added yet.';
-    }
-    if (input.video !== undefined) {
-      doc.video = normalizeYoutubeEmbed(input.video || DEFAULT_TUTORIAL_VIDEO);
-    }
+    if (input.description !== undefined) doc.description = input.description.trim();
+    if (input.content !== undefined) doc.content = sanitizeRichHtml(input.content);
+    if (input.video !== undefined) doc.video = normalizeYoutubeEmbed(input.video);
+    if (input.imageUrl !== undefined) doc.imageUrl = input.imageUrl.trim();
     if (input.language !== undefined) {
       doc.language = input.language as TutorialLanguage;
     }

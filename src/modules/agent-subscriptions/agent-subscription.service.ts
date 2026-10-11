@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 import { badRequest, conflict, notFound } from '../../common/errors';
 import { API_MESSAGES } from '../../common/status';
 import { env } from '../../config/env';
-import { USER_ROLES } from '../../config/roles';
+import { USER_ROLES, UserRole } from '../../config/roles';
 import { CHIT_STATUS, Chit } from '../chits/chit.model';
 import { Invoice } from '../invoices/invoice.model';
 import { invoiceService, toInvoiceDto } from '../invoices/invoice.service';
@@ -13,6 +13,7 @@ import {
   SUBSCRIPTION_PLAN_AUDIENCES,
   SUBSCRIPTION_PLAN_STATUS,
   SubscriptionPlan,
+  SubscriptionPlanAudience,
 } from '../subscription-plans/subscription-plan.model';
 import { resolvePlanTotalChits } from '../subscription-plans/subscription-plan.service';
 import { IUserDocument, User } from '../users/user.model';
@@ -38,6 +39,25 @@ export const SUBSCRIPTION_BLOCK_REASONS = {
   REQUIRED: 'SUBSCRIPTION_REQUIRED',
   LIMIT_REACHED: 'SUBSCRIPTION_LIMIT_REACHED',
 } as const;
+
+export type SubscriptionAudienceConfig = {
+  audience: SubscriptionPlanAudience;
+  role: UserRole;
+  /** Agent plans cap active chits; bidder memberships carry no quota. */
+  tracksChitQuota: boolean;
+};
+
+const AGENT_SUBSCRIPTION_CONFIG: SubscriptionAudienceConfig = {
+  audience: SUBSCRIPTION_PLAN_AUDIENCES.AGENT,
+  role: USER_ROLES.AGENT,
+  tracksChitQuota: true,
+};
+
+const BIDDER_SUBSCRIPTION_CONFIG: SubscriptionAudienceConfig = {
+  audience: SUBSCRIPTION_PLAN_AUDIENCES.BIDDER,
+  role: USER_ROLES.BIDDER,
+  tracksChitQuota: false,
+};
 
 export type UpgradeOption = {
   planId: string;
@@ -146,9 +166,11 @@ function toOrderDto(
   };
 }
 
-async function loadAgentPlans(): Promise<ISubscriptionPlanDocument[]> {
+async function loadPlans(
+  audience: SubscriptionPlanAudience
+): Promise<ISubscriptionPlanDocument[]> {
   return SubscriptionPlan.find({
-    audience: SUBSCRIPTION_PLAN_AUDIENCES.AGENT,
+    audience,
     status: SUBSCRIPTION_PLAN_STATUS.ACTIVE,
   }).sort({ sortOrder: 1, price: 1 });
 }
@@ -171,25 +193,25 @@ function matchCatalogPlan(
 
 function isUpgradeTarget(
   plan: ISubscriptionPlanDocument,
-  active: IAgentSubscriptionDocument
+  active: IAgentSubscriptionDocument,
+  tracksChitQuota: boolean
 ): boolean {
-  return (
-    plan.price > active.planPrice &&
-    resolvePlanTotalChits(plan) > (active.totalChits ?? 0)
-  );
+  if (plan.price <= active.planPrice) return false;
+  return !tracksChitQuota || resolvePlanTotalChits(plan) > (active.totalChits ?? 0);
 }
 
 function buildUpgradeOptions(
   plans: ISubscriptionPlanDocument[],
-  active: IAgentSubscriptionDocument | null
+  active: IAgentSubscriptionDocument | null,
+  tracksChitQuota: boolean
 ): UpgradeOption[] {
   const candidates = active
     ? plans.filter((p) => {
         const matched = matchCatalogPlan(plans, active);
         if (matched && matched._id.equals(p._id)) return false;
-        return isUpgradeTarget(p, active);
+        return isUpgradeTarget(p, active, tracksChitQuota);
       })
-    : plans.filter((p) => resolvePlanTotalChits(p) > 0);
+    : plans.filter((p) => !tracksChitQuota || resolvePlanTotalChits(p) > 0);
 
   return candidates
     .map((p) => ({
@@ -206,14 +228,17 @@ function buildUpgradeOptions(
  * Subscriptions bought before plan limits existed have no `totalChits`
  * snapshot; fill it (and the other snapshot fields) from their plan.
  */
-async function backfillLegacy(userId: Types.ObjectId | string): Promise<void> {
+async function backfillLegacy(
+  userId: Types.ObjectId | string,
+  audience: SubscriptionPlanAudience
+): Promise<void> {
   const legacy = await AgentSubscription.find({
     userId,
     $or: [{ totalChits: { $exists: false } }, { amountPaid: { $exists: false } }],
   }).lean();
   if (!legacy.length) return;
 
-  const plans = await loadAgentPlans();
+  const plans = await loadPlans(audience);
   for (const sub of legacy) {
     const plan =
       (await SubscriptionPlan.findById(sub.planId)) ??
@@ -229,8 +254,11 @@ async function backfillLegacy(userId: Types.ObjectId | string): Promise<void> {
   }
 }
 
-async function expireLapsed(userId: Types.ObjectId | string): Promise<void> {
-  await backfillLegacy(userId);
+async function expireLapsed(
+  userId: Types.ObjectId | string,
+  audience: SubscriptionPlanAudience
+): Promise<void> {
+  await backfillLegacy(userId, audience);
   await AgentSubscription.updateMany(
     {
       userId,
@@ -242,9 +270,10 @@ async function expireLapsed(userId: Types.ObjectId | string): Promise<void> {
 }
 
 async function findActive(
-  userId: Types.ObjectId | string
+  userId: Types.ObjectId | string,
+  audience: SubscriptionPlanAudience
 ): Promise<IAgentSubscriptionDocument | null> {
-  await expireLapsed(userId);
+  await expireLapsed(userId, audience);
   return AgentSubscription.findOne({
     userId,
     status: AGENT_SUBSCRIPTION_STATUS.ACTIVE,
@@ -256,34 +285,37 @@ async function countActiveChits(agentId: Types.ObjectId | string): Promise<numbe
   return Chit.countDocuments({ agentId, status: CHIT_STATUS.ACTIVE });
 }
 
-async function loadAgent(userId: string): Promise<IUserDocument> {
+async function loadSubscriber(userId: string, role: UserRole): Promise<IUserDocument> {
   const user = await User.findById(userId);
-  if (!user) throw notFound('User not found');
+  if (!user || user.role !== role) throw notFound('User not found');
   return user;
 }
 
 export class AgentSubscriptionService {
+  constructor(private readonly config: SubscriptionAudienceConfig) {}
+
   async createOrder(userId: string, input: CreateAgentSubscriptionOrderInput) {
-    const user = await loadAgent(userId);
+    const { audience, role, tracksChitQuota } = this.config;
+    const user = await loadSubscriber(userId, role);
     const plan = await SubscriptionPlan.findOne({
       _id: input.planId,
-      audience: SUBSCRIPTION_PLAN_AUDIENCES.AGENT,
+      audience,
       status: SUBSCRIPTION_PLAN_STATUS.ACTIVE,
     });
     if (!plan) throw notFound('Subscription plan not found');
 
-    const active = await findActive(user._id);
+    const active = await findActive(user._id, audience);
     let kind: (typeof AGENT_SUBSCRIPTION_KINDS)[keyof typeof AGENT_SUBSCRIPTION_KINDS] =
       AGENT_SUBSCRIPTION_KINDS.NEW;
     let amount = plan.price;
 
     if (active) {
-      const plans = await loadAgentPlans();
+      const plans = await loadPlans(audience);
       const matched = matchCatalogPlan(plans, active);
       if (matched && matched._id.equals(plan._id)) {
         throw conflict(API_MESSAGES.SUBSCRIPTION_ALREADY_SUBSCRIBED);
       }
-      if (!isUpgradeTarget(plan, active)) {
+      if (!isUpgradeTarget(plan, active, tracksChitQuota)) {
         throw badRequest(API_MESSAGES.SUBSCRIPTION_DOWNGRADE_BLOCKED);
       }
       kind = AGENT_SUBSCRIPTION_KINDS.UPGRADE;
@@ -318,7 +350,8 @@ export class AgentSubscriptionService {
   }
 
   async confirm(userId: string, input: ConfirmAgentSubscriptionInput) {
-    const user = await loadAgent(userId);
+    const { audience, role } = this.config;
+    const user = await loadSubscriber(userId, role);
     const order = await SubscriptionPaymentOrder.findOne({ orderId: input.orderId });
     if (!order || !order.userId.equals(user._id)) {
       throw notFound('Payment order not found');
@@ -364,7 +397,7 @@ export class AgentSubscriptionService {
       );
 
     const plan = await SubscriptionPlan.findById(claimed.planId);
-    if (!plan) {
+    if (!plan || plan.audience !== audience) {
       await releaseOrder();
       throw notFound('Subscription plan not found');
     }
@@ -418,7 +451,7 @@ export class AgentSubscriptionService {
         throw err;
       }
     } else {
-      const active = await findActive(user._id);
+      const active = await findActive(user._id, audience);
       if (active) {
         await releaseOrder();
         throw conflict(
@@ -457,7 +490,7 @@ export class AgentSubscriptionService {
   }
 
   async listHistory(userId: string) {
-    await expireLapsed(userId);
+    await expireLapsed(userId, this.config.audience);
     const rows = await AgentSubscription.find({ userId }).sort({
       startsAt: -1,
       createdAt: -1,
@@ -466,42 +499,55 @@ export class AgentSubscriptionService {
   }
 
   async getCurrent(userId: string) {
+    const { audience, tracksChitQuota } = this.config;
     const [active, plans, usedChits] = await Promise.all([
-      findActive(userId),
-      loadAgentPlans(),
-      countActiveChits(userId),
+      findActive(userId, audience),
+      loadPlans(audience),
+      tracksChitQuota ? countActiveChits(userId) : Promise.resolve(0),
     ]);
-    const totalChits = active?.totalChits ?? 0;
     const dto = active ? toSubscriptionDto(active) : null;
     const matched = active ? matchCatalogPlan(plans, active) : null;
 
-    return {
+    const membership = {
       active: dto,
       hasActivePlan: Boolean(active),
       subscribedPlanId: active
         ? (matched?._id ?? active.planId).toString()
         : null,
+      daysRemaining: dto?.daysRemaining ?? null,
+      expiringSoon: dto?.expiringSoon ?? false,
+      upgradeOptions: buildUpgradeOptions(plans, active, tracksChitQuota),
+    };
+    if (!tracksChitQuota) return membership;
+
+    const totalChits = active?.totalChits ?? 0;
+    return {
+      ...membership,
       totalChits,
       usedChits,
       remainingChits: Math.max(0, totalChits - usedChits),
       limitReached: Boolean(active) && usedChits >= totalChits,
       canCreateChit: Boolean(active) && usedChits < totalChits,
-      daysRemaining: dto?.daysRemaining ?? null,
-      expiringSoon: dto?.expiringSoon ?? false,
-      upgradeOptions: buildUpgradeOptions(plans, active),
     };
   }
 
   /** Blocks chit creation when the agent has no active plan or is at its limit. */
   async assertCanCreateChit(agentId: string): Promise<void> {
+    const { audience, tracksChitQuota } = this.config;
+    if (!tracksChitQuota) return;
+
     const [active, usedChits] = await Promise.all([
-      findActive(agentId),
+      findActive(agentId, audience),
       countActiveChits(agentId),
     ]);
     const totalChits = active?.totalChits ?? 0;
     if (active && usedChits < totalChits) return;
 
-    const upgradeOptions = buildUpgradeOptions(await loadAgentPlans(), active);
+    const upgradeOptions = buildUpgradeOptions(
+      await loadPlans(audience),
+      active,
+      tracksChitQuota
+    );
     if (!active) {
       throw badRequest(API_MESSAGES.SUBSCRIPTION_REQUIRED, {
         reason: SUBSCRIPTION_BLOCK_REASONS.REQUIRED,
@@ -554,7 +600,7 @@ export class AgentSubscriptionService {
 
     const invoice = await invoiceService.createSubscriptionInvoice({
       userId: user._id,
-      role: USER_ROLES.AGENT,
+      role: this.config.role,
       orderId: subscription.orderId,
       paymentId: subscription.paymentId,
       planId: subscription.planId,
@@ -571,4 +617,9 @@ export class AgentSubscriptionService {
   }
 }
 
-export const agentSubscriptionService = new AgentSubscriptionService();
+export const agentSubscriptionService = new AgentSubscriptionService(
+  AGENT_SUBSCRIPTION_CONFIG
+);
+export const bidderSubscriptionService = new AgentSubscriptionService(
+  BIDDER_SUBSCRIPTION_CONFIG
+);

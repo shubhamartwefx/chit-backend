@@ -329,6 +329,14 @@ Peer operator (same chit/bidder powers as Branch). Self-signup and/or SA create.
 |--------|------|------|-------------|
 | GET | `/bidder/health` | Bidder | Module health |
 | POST | `/bidder/chits/:id/join` | Bidder (`chits:read`) | Self-join an active chit with spare capacity |
+| GET | `/bidder/reports` | Bidder (`reports:read`) | Read-only list of reports agents filed against the signed-in bidder (`chitCode`, `reason`, `note`, `reportedByName`, `createdAt`) |
+| GET | `/bidder/subscription-plans` | Bidder (`chits:read`) | Active bidder membership plans (audience always `bidder`) |
+| GET | `/bidder/subscriptions` | Bidder | Membership history, newest first |
+| GET | `/bidder/subscriptions/current` | Bidder | Active membership, `subscribedPlanId`, `daysRemaining`, `expiringSoon`, `upgradeOptions` (no chit quota) |
+| POST | `/bidder/subscriptions/create-order` | Bidder | `{ planId }` → order; same rules as agents, but an upgrade only needs a higher price. 409 same plan, 400 downgrade |
+| POST | `/bidder/subscriptions/confirm` | Bidder | `{ orderId, paymentId }`; activates the membership and creates the invoice; idempotent. Membership is informational only (no feature gating) |
+| GET | `/bidder/invoices` | Bidder | Own invoices (`?q=`): signup verification fee + memberships |
+| GET | `/bidder/invoices/:id` | Bidder | One own invoice with bill-to details |
 
 ### Reports
 

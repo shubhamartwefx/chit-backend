@@ -57,6 +57,7 @@ export {
   canCreateSuperAdminStaff,
   canCreateBranchStoreUser,
   canListPlatformUsers,
+  canRevealSensitiveData,
   resolveSuperAdminTier,
   ROLE_DEFAULT_PERMISSIONS,
   ROLE_ASSIGNABLE_PERMISSIONS,

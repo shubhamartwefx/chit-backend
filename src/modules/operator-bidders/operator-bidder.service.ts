@@ -5,6 +5,7 @@ import {
   isValidIndianPhone,
   normalizePhone,
 } from '../../common/crypto';
+import { aadhaarRevealFields } from '../../common/sensitive-data';
 import { badRequest, conflict, notFound } from '../../common/errors';
 import { env } from '../../config/env';
 import {
@@ -317,6 +318,7 @@ export class OperatorBidderService {
       countryCode: input.countryCode,
       phone,
       aadhaarFingerprint,
+      ...aadhaarRevealFields(input.aadhaarNumber),
       role: USER_ROLES.BIDDER,
       permissions: [...BIDDER_DEFAULT],
       status: USER_STATUS.ACTIVE,

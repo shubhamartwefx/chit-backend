@@ -6,6 +6,7 @@ import {
 } from '../../common/crypto';
 import { assertAccountCanAuthenticate } from '../../common/account-status';
 import { accessDenied, badRequest, unauthorized } from '../../common/errors';
+import { aadhaarRevealFields } from '../../common/sensitive-data';
 import { API_MESSAGES } from '../../common/status';
 import { env } from '../../config/env';
 import {
@@ -18,14 +19,15 @@ import {
   resolveSuperAdminTier,
 } from '../../config/rbac';
 import { otpService } from '../otp/otp.service';
-import { User } from '../users/user.model';
+import { AADHAAR_REVEALABLE_ROLES } from '../sensitive-data/revealable-fields';
+import { IUserDocument, User } from '../users/user.model';
 import {
   RequestOtpInput,
   VerifyOtpInput,
   Verify2faInput,
 } from './auth.validation';
 import { profileService } from './profile.service';
-import { usesTotpLogin } from './security-policy';
+import { allowsPhoneOnlyLogin, usesTotpLogin } from './security-policy';
 import { TokenPairMeta, tokenService } from './token.service';
 import { verifyTotpCode } from './totp.util';
 
@@ -50,8 +52,7 @@ export class AuthService {
   ) {
     assertPhoneFormat(phone);
     const role = urlSlugToRole(roleSlug);
-    const allowPhoneOnly =
-      role === USER_ROLES.AGENT && (!aadhaarNumber || aadhaarNumber.length === 0);
+    const allowPhoneOnly = allowsPhoneOnlyLogin(role) && !aadhaarNumber;
 
     if (!allowPhoneOnly) {
       if (!aadhaarNumber) {
@@ -60,7 +61,7 @@ export class AuthService {
       assertAadhaarFormat(aadhaarNumber);
     }
 
-    const selectFields = `${extraSelect} role permissions status statusReason statusChangedAt statusChangedBy aadhaarFingerprint`;
+    const selectFields = `${extraSelect} role permissions status statusReason statusChangedAt statusChangedBy aadhaarFingerprint aadhaarEncrypted`;
 
     let user;
     let aadhaarFingerprint: string;
@@ -99,7 +100,33 @@ export class AuthService {
       );
     }
 
+    if (!allowPhoneOnly && aadhaarNumber) {
+      this.backfillEncryptedAadhaar(user, aadhaarNumber);
+    }
+
     return { user, role, phone, aadhaarFingerprint };
+  }
+
+  /**
+   * Accounts created before encrypted storage only hold an HMAC; the full Aadhaar
+   * just matched that HMAC, so persist it for privileged reveal. Never blocks login.
+   */
+  private backfillEncryptedAadhaar(
+    user: Pick<IUserDocument, '_id' | 'role' | 'aadhaarEncrypted'>,
+    aadhaarNumber: string
+  ): void {
+    if (user.aadhaarEncrypted || !AADHAAR_REVEALABLE_ROLES.includes(user.role)) {
+      return;
+    }
+    User.updateOne(
+      { _id: user._id, aadhaarEncrypted: null },
+      { $set: aadhaarRevealFields(aadhaarNumber) }
+    ).catch((err: unknown) => {
+      console.error('Failed to backfill encrypted Aadhaar', {
+        userId: user._id.toString(),
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
   }
 
   async requestOtp(roleSlug: RoleUrlSlug, input: RequestOtpInput) {

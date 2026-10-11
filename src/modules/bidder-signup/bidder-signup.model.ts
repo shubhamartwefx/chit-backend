@@ -39,6 +39,7 @@ export interface IBidderSignupSession {
   status: SignupStatus;
   aadhaarFingerprint?: string | null;
   aadhaarLast4?: string | null;
+  aadhaarEncrypted?: string | null;
   maskedPhone?: string | null;
   otpHash?: string | null;
   attempts: number;
@@ -90,6 +91,7 @@ const bidderSignupSessionSchema = new Schema<IBidderSignupSessionDocument>(
     },
     aadhaarFingerprint: { type: String, default: null, index: true },
     aadhaarLast4: { type: String, default: null },
+    aadhaarEncrypted: { type: String, default: null },
     maskedPhone: { type: String, default: null },
     otpHash: { type: String, default: null },
     attempts: { type: Number, default: 0 },

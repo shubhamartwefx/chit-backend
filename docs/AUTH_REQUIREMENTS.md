@@ -8,12 +8,12 @@ Corrected product rules for Saina Chit Funds (backend APIs).
 |------|---------------|-------------------|-------------|-----------|
 | Super Admin | Phone + Aadhaar → SMS OTP | Phone + Aadhaar → TOTP (no SMS) | PIN / TOTP / biometric unlock | Allowed |
 | Branch Store | Phone + Aadhaar → SMS OTP | Phone + Aadhaar → TOTP | PIN / TOTP / biometric unlock | Allowed |
-| Agent | Phone + Aadhaar → SMS OTP | Phone + Aadhaar → TOTP | PIN / TOTP / biometric unlock | Allowed |
-| Bidder | Phone + Aadhaar → SMS OTP | **2FA not available** | PIN / biometric unlock | Allowed |
+| Agent | Phone (+ optional Aadhaar) → SMS OTP | Phone (+ optional Aadhaar) → TOTP | PIN / TOTP / biometric unlock | Allowed |
+| Bidder | Phone (+ optional Aadhaar) → SMS OTP | **2FA not available** | PIN / biometric unlock | Allowed |
 
 ## Login identity
 
-1. Always identify the user with **phone + Aadhaar** for the role portal.
+1. Identify the user with **phone + Aadhaar** for the role portal. Agent and bidder portals also accept **phone only**; when an Aadhaar number is sent it must still match.
 2. Second factor:
    - If `totpEnabled` is false (or role is bidder): send **SMS OTP**, then `verify-otp`.
    - If `totpEnabled` is true (super_admin / branch_store / agent only): **do not** send SMS; client calls `verify-2fa` with authenticator code.

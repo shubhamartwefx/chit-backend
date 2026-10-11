@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { connectDatabase } from '../config/db';
 import { env } from '../config/env';
 import { fingerprintAadhaar } from '../common/crypto';
+import { encryptAadhaar } from '../common/sensitive-data';
 import {
   AGENT_DEFAULT,
   BIDDER_DEFAULT,
@@ -26,6 +27,7 @@ import {
   SUBSCRIPTION_PLAN_AUDIENCES,
   SUBSCRIPTION_PLAN_STATUS,
   SubscriptionPlan,
+  SubscriptionPlanAudience,
 } from '../modules/subscription-plans/subscription-plan.model';
 import {
   TUTORIAL_STATUS,
@@ -295,6 +297,7 @@ async function upsertSeedUser(
     env.JWT_SECRET
   );
   const profile = kycFields(seedUser);
+  const aadhaarEncrypted = encryptAadhaar(seedUser.aadhaar);
 
   const existing = await User.findOne({
     role: seedUser.role,
@@ -304,6 +307,7 @@ async function upsertSeedUser(
   if (existing) {
     existing.name = profile.name || seedUser.name || existing.name;
     existing.aadhaarFingerprint = aadhaarFingerprint;
+    existing.aadhaarEncrypted = aadhaarEncrypted;
     existing.permissions = seedUser.permissions;
     existing.status = USER_STATUS.ACTIVE;
     if (createdById) {
@@ -333,6 +337,7 @@ async function upsertSeedUser(
     countryCode: seedUser.countryCode,
     phone: seedUser.phone,
     aadhaarFingerprint,
+    aadhaarEncrypted,
     role: seedUser.role,
     permissions: seedUser.permissions,
     status: USER_STATUS.ACTIVE,
@@ -513,6 +518,37 @@ const SEED_AGENT_PLANS = [
   },
 ];
 
+const SEED_BIDDER_PLANS = [
+  {
+    title: 'Enterprise',
+    subtitle: 'You ll get a all details',
+    price: 999,
+    totalChits: 0,
+    features: [
+      'Chiti List',
+      'Month Details',
+      'notification',
+      'Pending Month Details',
+      'Complete Month Details',
+      'Chiti Tankan person',
+      'Subscriber Details',
+      'Last month take an amount',
+      'Balance amount',
+    ],
+    icon: 'mdi:account-supervisor',
+    bgClass: 'bg-primary bg-opacity-10 text-primary',
+    colorClass: 'text-primary',
+    btnType: 'link' as const,
+    btnClass: 'btn btn-primary w-100 rounded-2',
+    cardBorder: 'border-primary border shadow-none',
+    sortOrder: 0,
+  },
+];
+
+type SeedPlan =
+  | (typeof SEED_AGENT_PLANS)[number]
+  | (typeof SEED_BIDDER_PLANS)[number];
+
 const SEED_TUTORIALS = [
   {
     title: 'Messages',
@@ -576,18 +612,22 @@ const SEED_TUTORIALS = [
   },
 ];
 
-async function seedSubscriptionPlans(createdBy: Types.ObjectId) {
+async function seedPlansForAudience(
+  audience: SubscriptionPlanAudience,
+  plans: readonly SeedPlan[],
+  createdBy: Types.ObjectId
+) {
   const existing = await SubscriptionPlan.countDocuments({
-    audience: SUBSCRIPTION_PLAN_AUDIENCES.AGENT,
+    audience,
     status: { $ne: SUBSCRIPTION_PLAN_STATUS.DELETED },
   });
   if (existing > 0) {
-    console.log(`[skip] subscription plans already present (${existing})`);
+    console.log(`[skip] ${audience} subscription plans already present (${existing})`);
     return;
   }
   await SubscriptionPlan.insertMany(
-    SEED_AGENT_PLANS.map((p) => ({
-      audience: SUBSCRIPTION_PLAN_AUDIENCES.AGENT,
+    plans.map((p) => ({
+      audience,
       ...p,
       billingPeriod: 'year',
       cardBorder: 'cardBorder' in p ? p.cardBorder ?? null : null,
@@ -595,7 +635,12 @@ async function seedSubscriptionPlans(createdBy: Types.ObjectId) {
       createdBy,
     }))
   );
-  console.log(`[created] ${SEED_AGENT_PLANS.length} agent subscription plans`);
+  console.log(`[created] ${plans.length} ${audience} subscription plans`);
+}
+
+async function seedSubscriptionPlans(createdBy: Types.ObjectId) {
+  await seedPlansForAudience(SUBSCRIPTION_PLAN_AUDIENCES.AGENT, SEED_AGENT_PLANS, createdBy);
+  await seedPlansForAudience(SUBSCRIPTION_PLAN_AUDIENCES.BIDDER, SEED_BIDDER_PLANS, createdBy);
 }
 
 async function seedTutorials(createdBy: Types.ObjectId) {

@@ -23,11 +23,18 @@ export const ROLE_ASSIGNABLE_PERMISSIONS: Record<UserRole, readonly string[]> =
       PERMISSIONS.PLATFORM.ALL,
       PERMISSIONS.PLATFORM.SUPER_ADMIN_MANAGER,
       PERMISSIONS.PLATFORM.SUPER_ADMIN_EDITOR,
+      PERMISSIONS.PRIVACY.REVEAL,
     ],
     [USER_ROLES.BRANCH_STORE]: BRANCH_STORE_ASSIGNABLE,
     [USER_ROLES.AGENT]: AGENT_DEFAULT,
     [USER_ROLES.BIDDER]: BIDDER_DEFAULT,
   };
+
+/** Permissions a full super admin may grant/revoke on existing super-admin staff. */
+export const SUPER_ADMIN_GRANTABLE = [PERMISSIONS.PRIVACY.REVEAL] as const;
+
+export type SuperAdminGrantablePermission =
+  (typeof SUPER_ADMIN_GRANTABLE)[number];
 
 /** Minimum permissions required to log in per role. */
 export const ROLE_LOGIN_MINIMUM: Record<UserRole, readonly string[]> = {

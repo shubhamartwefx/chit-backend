@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { API_STATUS } from '../../common/status';
 import { PERMISSIONS, USER_ROLES } from '../../config/roles';
 import {
   authenticate,
@@ -10,6 +12,7 @@ import {
   canCreateBranchStoreUser,
   canCreateSuperAdminStaff,
   canListPlatformUsers,
+  canRevealSensitiveData,
 } from '../../config/rbac';
 import { superAdminController } from './super-admin.controller';
 import {
@@ -20,6 +23,7 @@ import {
   createStaffSchema,
   listUsersQuerySchema,
   resourceIdParamsSchema,
+  updateStaffPermissionsSchema,
   updateUserProfileSchema,
   userIdParamsSchema,
   userStatusActionSchema,
@@ -40,8 +44,27 @@ import {
   updateTutorialSchema,
 } from '../tutorials/tutorial.validation';
 import { listOperatorReportsQuerySchema } from '../operator-bidders/operator-bidder.validation';
+import { sensitiveDataController } from '../sensitive-data/sensitive-data.controller';
+import { revealSensitiveFieldSchema } from '../sensitive-data/sensitive-data.validation';
 
 const router = Router();
+
+const REVEAL_WINDOW_MS = 15 * 60 * 1000;
+const REVEAL_MAX_PER_WINDOW = 30;
+
+/** Keyed per staff member (route runs after authenticate) to cap bulk harvesting. */
+const revealLimiter = rateLimit({
+  windowMs: REVEAL_WINDOW_MS,
+  max: REVEAL_MAX_PER_WINDOW,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.sub ?? req.ip ?? 'unknown',
+  message: {
+    success: false,
+    message: API_STATUS.RATE_LIMITED.message,
+    code: API_STATUS.RATE_LIMITED.code,
+  },
+});
 
 router.use(authenticate, authorize(USER_ROLES.SUPER_ADMIN));
 
@@ -168,6 +191,14 @@ router.get(
   (req, res, next) => superAdminController.listStaff(req, res, next)
 );
 
+router.patch(
+  '/staff/:userId/permissions',
+  authorizeIf(canCreateSuperAdminStaff),
+  validate(userIdParamsSchema, 'params'),
+  validate(updateStaffPermissionsSchema),
+  (req, res, next) => superAdminController.updateStaffPermissions(req, res, next)
+);
+
 /** @deprecated aliases — keep for backward compatibility */
 router.post(
   '/admins',
@@ -181,6 +212,18 @@ router.get(
   authorizeIf(canListPlatformUsers),
   validate(listUsersQuerySchema, 'query'),
   (req, res, next) => superAdminController.listAdmins(req, res, next)
+);
+
+router.post(
+  '/users/:userId/reveal',
+  authorizeIf(
+    canRevealSensitiveData,
+    'You do not have permission to reveal this data'
+  ),
+  revealLimiter,
+  validate(userIdParamsSchema, 'params'),
+  validate(revealSensitiveFieldSchema),
+  (req, res, next) => sensitiveDataController.reveal(req, res, next)
 );
 
 router.post(
