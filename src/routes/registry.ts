@@ -8,6 +8,7 @@ import agentRoutes from '../modules/agent/agent.routes';
 import bidderRoutes from '../modules/bidder/bidder.routes';
 import chitRoutes from '../modules/chits/chit.routes';
 import reportsRoutes from '../modules/reports/reports.routes';
+import directoryRoutes from '../modules/directory/directory.routes';
 
 export interface RouteMount {
   module: string;
@@ -67,6 +68,12 @@ export function createRouteRegistry(): RouteMount[] {
       segment: 'reports',
       path: buildApiPath('reports'),
       router: reportsRoutes,
+    },
+    {
+      module: 'directory',
+      segment: 'directory',
+      path: buildApiPath('directory'),
+      router: directoryRoutes,
     },
   ];
 }
