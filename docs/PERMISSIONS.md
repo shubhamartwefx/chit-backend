@@ -121,6 +121,8 @@ Defined in [`src/config/rbac/route-permissions.ts`](../src/config/rbac/route-per
 | `POST /chits/:id/auction-rounds/:roundId/bids` | `chits:read` (bidder role) |
 | `POST /chits/:id/auction-rounds/:roundId/close` | `chits:write` |
 | `GET /reports/overview` | `reports:read` |
+| `GET /directory/search` | _(agent, bidder, branch_store roles; see below)_ |
+| `GET /directory/bidders/:id/reports` | _(agent, branch_store roles)_ |
 | `POST /super-admin/users/:userId/block` | `platform:super_admin:manager`, `*` |
 | `POST /super-admin/users/:userId/unblock` | `platform:super_admin:manager`, `*` |
 
@@ -131,6 +133,11 @@ Deprecated aliases `/super-admin/admins` use the same rules as `/branch-stores`.
 **Account block:** Platform can block branch/agent/bidder. Operators can block/unblock only bidders they **created** (`createdBy`). List endpoints support `status=blocked`.
 
 Chit routes at `/api/v1/chits`: **read** allows `super_admin`, `branch_store`, `agent`, and `bidder`; **write** allows the first three only. **Peer ownership:** agents → own chits (`agentId`); branch stores → own chits (`branchStoreId`, no agent required); bidders → chits where they are in `members[]`; super admin → all (create requires `agentId` **or** `branchStoreId`).
+
+**Directory search** (`/api/v1/directory`) powers the "Search Bidder / Agent" pages:
+
+- `GET /directory/search?q=&role=` — exact lookup only: a 10-digit phone (optional `+91`), a display id (`BD-XXXX-XXXX` / `AG-XXXX-XXXX`, the last 8 hex chars of the Mongo id) or a 24-hex ObjectId. Anything else is `400`. Agents may search `bidder`, bidders may search `agent`, branch stores both; a `role` outside that set is `403`. Platform-wide, excludes the caller, max 10 results, rate limited to 60 requests / 15 min per user. Items: `{ id, name, phone, countryCode, role, status, reportCount? }` — `reportCount` (bidders only) counts reports across all non-deleted chits.
+- `GET /directory/bidders/:id/reports` — platform-wide reports on a bidder, newest first: `{ bidderId, total, items: [{ reason, note, chitCode, createdAt }] }`. Reporter identity is not returned.
 
 Blocked users receive `403 ACCOUNT_BLOCKED` with `{ reason }` in `details` on login, refresh, and any authenticated API call.
 

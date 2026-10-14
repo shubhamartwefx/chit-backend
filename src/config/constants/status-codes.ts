@@ -95,6 +95,8 @@ export const API_MESSAGES = {
   STAFF_CREATED: 'Super admin staff created successfully',
   STAFF_PERMISSIONS_UPDATED: 'Staff permissions updated successfully',
   SENSITIVE_DATA_REVEALED: 'Sensitive data revealed',
+  DIRECTORY_SEARCH_OK: 'Directory search completed',
+  DIRECTORY_REPORTS_OK: 'Bidder reports fetched successfully',
   CHIT_CREATED: 'Chit created successfully',
   CHIT_UPDATED: 'Chit updated successfully',
   CHIT_DELETED: 'Chit deleted successfully',

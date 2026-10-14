@@ -205,6 +205,9 @@ export const ROUTE_PERMISSIONS = {
   'POST /chits/:id/auction-rounds/:roundId/bids': [PERMISSIONS.CHITS.READ],
   'POST /chits/:id/auction-rounds/:roundId/close': [PERMISSIONS.CHITS.WRITE],
   'GET /reports/overview': [PERMISSIONS.REPORTS.READ],
+  /** Role-gated (agent → bidders, bidder → agents, branch_store → both). */
+  'GET /directory/search': [],
+  'GET /directory/bidders/:id/reports': [],
   'POST /super-admin/users/:userId/block': [
     PERMISSIONS.PLATFORM.SUPER_ADMIN_MANAGER,
     PERMISSIONS.PLATFORM.ALL,
