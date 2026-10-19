@@ -273,7 +273,16 @@ Bases: `/auth/bidder/register` and `/auth/agent/register` (same shapes; agent cr
 | GET | `/session/:sessionId` | Session status + sealed profile |
 | POST | `/complete` | Create user from sealed KYC + phone/currentAddress; return token pair |
 
-KYC fields from Aadhaar are sealed server-side — `complete` accepts `phone`, optional structured `currentAddress` (`street`, `city`, `state`, `pincode`, `country`), and `paymentId`. Mock OTP is `MOCK_OTP` (default `123456`). DigiLocker mock uses `code=mock-digilocker-code`.
+KYC fields from Aadhaar are sealed server-side — `complete` accepts `phone`, optional structured `currentAddress` (`street`, `city`, `state`, `pincode`, `country`), and `paymentId`. DigiLocker mock uses `code=mock-digilocker-code`.
+
+**Aadhaar OTP + eKYC (`AADHAAR_KYC_PROVIDER`)**
+
+| Mode | Behaviour |
+|------|-----------|
+| `mock` (default) | Local `MOCK_OTP` (default `123456`); sealed demographics from mock profiles. Dev responses may include `mockOtpHint`. |
+| `uidai` | Signup calls UIDAI sandbox **OTP** (`UIDAI_OTP_BASE_URL`) then **eKYC** (`UIDAI_EKYC_BASE_URL`) with the same `txn`. Auth URL is configured for later use but not used for signup. Sealed profile comes from eKYC PoI/PoA. |
+
+Secrets (`UIDAI_LICENSE_KEY`, cert/key file paths) stay server-side only — never logged, never returned in API responses. OTP plaintext is never persisted; sessions store `aadhaarTxn` (and mock-only `otpHash`). UIDAI `err` codes map to stable API codes (`AADHAAR_OTP_INVALID`, `AADHAAR_TXN_MISMATCH`, etc.).
 
 `:role` ∈ `super-admin` \| `branch-store` \| `admin` (alias) \| `agent` \| `bidder`
 
@@ -400,7 +409,7 @@ Error:
 
 ## 9. Roadmap (post auth)
 
-1. Real SMS OTP provider behind existing `OtpProvider` interface.
+1. Real SMS OTP provider behind existing `OtpProvider` interface (login SMS; separate from UIDAI Aadhaar OTP/eKYC for signup).
 2. ~~Super Admin: branches, chits CRUD with permission checks per route.~~ **Chits CRUD shipped** (`/api/v1/chits`).
 3. ~~Peer operators (Wave A):~~ branch-owned chits, symmetric bidder APIs, incremental members, SA-only branch provisioning.
 4. ~~Account block (Wave B):~~ platform block + operator-scoped bidder block; list `status=blocked`.

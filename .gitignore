@@ -5,6 +5,12 @@ logs/
 .env
 .env.example
 .env.local
+# UIDAI / AUA secrets — never commit
+certs/
+*.pem
+*.key
+*.p12
+*.pfx
 *.log
 .DS_Store
 coverage/

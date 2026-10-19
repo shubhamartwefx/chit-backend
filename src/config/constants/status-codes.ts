@@ -60,6 +60,71 @@ export const API_STATUS = {
     code: 'INTERNAL_ERROR',
     message: 'Internal server error',
   },
+  AADHAAR_INVALID: {
+    httpStatus: 400,
+    code: 'AADHAAR_INVALID',
+    message: 'Enter a valid Aadhaar number',
+  },
+  AADHAAR_NOT_ACTIVE: {
+    httpStatus: 400,
+    code: 'AADHAAR_NOT_ACTIVE',
+    message: 'This Aadhaar cannot be used for verification',
+  },
+  AADHAAR_OTP_INVALID: {
+    httpStatus: 401,
+    code: 'AADHAAR_OTP_INVALID',
+    message: 'Invalid OTP',
+  },
+  AADHAAR_TXN_MISMATCH: {
+    httpStatus: 401,
+    code: 'AADHAAR_TXN_MISMATCH',
+    message: 'OTP session mismatch. Request a new OTP.',
+  },
+  AADHAAR_TS_INVALID: {
+    httpStatus: 400,
+    code: 'AADHAAR_TS_INVALID',
+    message: 'Aadhaar request timestamp is invalid. Try again.',
+  },
+  AADHAAR_DUPLICATE_REQUEST: {
+    httpStatus: 409,
+    code: 'AADHAAR_DUPLICATE_REQUEST',
+    message: 'Duplicate Aadhaar request. Request a new OTP.',
+  },
+  AADHAAR_CONFIG_ERROR: {
+    httpStatus: 502,
+    code: 'AADHAAR_CONFIG_ERROR',
+    message: 'Aadhaar verification is not configured correctly',
+  },
+  AADHAAR_LICENSE_ERROR: {
+    httpStatus: 502,
+    code: 'AADHAAR_LICENSE_ERROR',
+    message: 'Aadhaar license configuration error',
+  },
+  AADHAAR_CRYPTO_ERROR: {
+    httpStatus: 502,
+    code: 'AADHAAR_CRYPTO_ERROR',
+    message: 'Aadhaar encryption error',
+  },
+  AADHAAR_CHANNEL_UNAUTHORIZED: {
+    httpStatus: 502,
+    code: 'AADHAAR_CHANNEL_UNAUTHORIZED',
+    message: 'Aadhaar channel is not authorized',
+  },
+  AADHAAR_SIGNATURE_FAILED: {
+    httpStatus: 502,
+    code: 'AADHAAR_SIGNATURE_FAILED',
+    message: 'Aadhaar request signature failed',
+  },
+  AADHAAR_OTP_NOT_LICENSED: {
+    httpStatus: 502,
+    code: 'AADHAAR_OTP_NOT_LICENSED',
+    message: 'OTP verification is not allowed for this license',
+  },
+  AADHAAR_UPSTREAM_ERROR: {
+    httpStatus: 502,
+    code: 'AADHAAR_UPSTREAM_ERROR',
+    message: 'Aadhaar verification failed. Try again later.',
+  },
 } as const;
 
 export type ApiStatusKey = keyof typeof API_STATUS;

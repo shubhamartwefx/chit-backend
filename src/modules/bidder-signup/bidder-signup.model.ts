@@ -41,6 +41,9 @@ export interface IBidderSignupSession {
   aadhaarLast4?: string | null;
   aadhaarEncrypted?: string | null;
   maskedPhone?: string | null;
+  /** UIDAI txn linking OTP request → eKYC verify. */
+  aadhaarTxn?: string | null;
+  /** Mock provider only — never store OTP plaintext; UIDAI path leaves this null. */
   otpHash?: string | null;
   attempts: number;
   otpExpiresAt?: Date | null;
@@ -93,6 +96,7 @@ const bidderSignupSessionSchema = new Schema<IBidderSignupSessionDocument>(
     aadhaarLast4: { type: String, default: null },
     aadhaarEncrypted: { type: String, default: null },
     maskedPhone: { type: String, default: null },
+    aadhaarTxn: { type: String, default: null, index: true },
     otpHash: { type: String, default: null },
     attempts: { type: Number, default: 0 },
     otpExpiresAt: { type: Date, default: null },

@@ -16,6 +16,19 @@ Central catalog: [`src/config/constants/status-codes.ts`](../src/config/constant
 | `CONFLICT` | 409 | `CONFLICT` | Resource conflict |
 | `RATE_LIMITED` | 429 | `RATE_LIMITED` | Too many requests. Try again later. |
 | `INTERNAL_ERROR` | 500 | `INTERNAL_ERROR` | Internal server error |
+| `AADHAAR_INVALID` | 400 | `AADHAAR_INVALID` | Enter a valid Aadhaar number |
+| `AADHAAR_NOT_ACTIVE` | 400 | `AADHAAR_NOT_ACTIVE` | This Aadhaar cannot be used for verification |
+| `AADHAAR_OTP_INVALID` | 401 | `AADHAAR_OTP_INVALID` | Invalid OTP |
+| `AADHAAR_TXN_MISMATCH` | 401 | `AADHAAR_TXN_MISMATCH` | OTP session mismatch. Request a new OTP. |
+| `AADHAAR_TS_INVALID` | 400 | `AADHAAR_TS_INVALID` | Aadhaar request timestamp is invalid. Try again. |
+| `AADHAAR_DUPLICATE_REQUEST` | 409 | `AADHAAR_DUPLICATE_REQUEST` | Duplicate Aadhaar request. Request a new OTP. |
+| `AADHAAR_CONFIG_ERROR` | 502 | `AADHAAR_CONFIG_ERROR` | Aadhaar verification is not configured correctly |
+| `AADHAAR_LICENSE_ERROR` | 502 | `AADHAAR_LICENSE_ERROR` | Aadhaar license configuration error |
+| `AADHAAR_CRYPTO_ERROR` | 502 | `AADHAAR_CRYPTO_ERROR` | Aadhaar encryption error |
+| `AADHAAR_CHANNEL_UNAUTHORIZED` | 502 | `AADHAAR_CHANNEL_UNAUTHORIZED` | Aadhaar channel is not authorized |
+| `AADHAAR_SIGNATURE_FAILED` | 502 | `AADHAAR_SIGNATURE_FAILED` | Aadhaar request signature failed |
+| `AADHAAR_OTP_NOT_LICENSED` | 502 | `AADHAAR_OTP_NOT_LICENSED` | OTP verification is not allowed for this license |
+| `AADHAAR_UPSTREAM_ERROR` | 502 | `AADHAAR_UPSTREAM_ERROR` | Aadhaar verification failed. Try again later. |
 
 ## Response shape
 

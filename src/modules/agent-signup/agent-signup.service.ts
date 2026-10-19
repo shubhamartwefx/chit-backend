@@ -1,15 +1,14 @@
 import crypto from 'crypto';
 import {
   fingerprintAadhaar,
-  hashOtp,
   isValidAadhaar,
   isValidIndianPhone,
   normalizeAadhaar,
   normalizePhone,
-  verifyOtpHash,
 } from '../../common/crypto';
-import { encryptAadhaar } from '../../common/sensitive-data';
+import { decryptAadhaar, encryptAadhaar } from '../../common/sensitive-data';
 import {
+  AppError,
   badRequest,
   conflict,
   notFound,
@@ -26,8 +25,10 @@ import { signupPaymentService } from '../signup-payment/signup-payment.service';
 import { invoiceService } from '../invoices/invoice.service';
 import {
   createAadhaarKycProvider,
+  isUidaiAadhaarProvider,
   type AadhaarKycProvider,
 } from '../kyc-providers/aadhaar-kyc.provider';
+import { isInvalidOtpErr } from '../kyc-providers/uidai/uidai-error-map';
 import {
   createDigiLockerProvider,
   type DigiLockerProvider,
@@ -144,9 +145,7 @@ export class AgentSignupService {
     const aadhaarFingerprint = fingerprintAadhaar(aadhaar, env.JWT_SECRET);
     await this.assertNoExistingAgentByFingerprint(aadhaarFingerprint);
 
-    const { maskedPhone } = await this.aadhaarKyc.requestLinkedMobile(aadhaar);
-    const otp = env.MOCK_OTP;
-    const otpHash = await hashOtp(otp);
+    const challenge = await this.aadhaarKyc.requestOtp(aadhaar);
     const otpExpiresAt = new Date(
       Date.now() + env.OTP_EXPIRY_MINUTES * 60 * 1000
     );
@@ -159,21 +158,21 @@ export class AgentSignupService {
       aadhaarFingerprint,
       aadhaarLast4: aadhaar.slice(-4),
       aadhaarEncrypted: encryptAadhaar(aadhaar),
-      maskedPhone,
-      otpHash,
+      maskedPhone: challenge.maskedPhone ?? null,
+      aadhaarTxn: challenge.txn,
+      // Mock only — UIDAI must never persist OTP or OTP hash
+      otpHash: challenge.mockOtpHash ?? null,
       attempts: 0,
       otpExpiresAt,
       expiresAt: sessionExpiresAt(),
     });
 
-    await this.aadhaarKyc.deliverOtp(maskedPhone, otp);
-
     return {
       sessionId,
-      maskedPhone,
+      maskedPhone: challenge.maskedPhone,
       expiresInMinutes: env.OTP_EXPIRY_MINUTES,
       message: 'OTP sent to Aadhaar-linked mobile number',
-      ...(env.NODE_ENV === 'development'
+      ...(env.NODE_ENV === 'development' && !isUidaiAadhaarProvider()
         ? { mockOtpHint: env.MOCK_OTP }
         : {}),
     };
@@ -190,12 +189,19 @@ export class AgentSignupService {
     if (session.status !== SIGNUP_STATUS.PENDING_OTP) {
       throw badRequest('OTP has already been verified for this session');
     }
-    if (!session.maskedPhone) {
-      throw badRequest('Signup session is missing linked mobile details');
+    if (!session.aadhaarEncrypted) {
+      throw badRequest('Signup session is missing Aadhaar details');
     }
 
-    const otp = env.MOCK_OTP;
-    session.otpHash = await hashOtp(otp);
+    const aadhaar = decryptAadhaar(session.aadhaarEncrypted);
+    const challenge = await this.aadhaarKyc.resendOtp(
+      aadhaar,
+      session.aadhaarTxn ?? undefined
+    );
+
+    session.aadhaarTxn = challenge.txn;
+    session.maskedPhone = challenge.maskedPhone ?? session.maskedPhone ?? null;
+    session.otpHash = challenge.mockOtpHash ?? null;
     session.attempts = 0;
     session.otpExpiresAt = new Date(
       Date.now() + env.OTP_EXPIRY_MINUTES * 60 * 1000
@@ -203,14 +209,12 @@ export class AgentSignupService {
     session.expiresAt = sessionExpiresAt();
     await session.save();
 
-    await this.aadhaarKyc.deliverOtp(session.maskedPhone, otp);
-
     return {
       sessionId: session.sessionId,
-      maskedPhone: session.maskedPhone,
+      maskedPhone: session.maskedPhone ?? undefined,
       expiresInMinutes: env.OTP_EXPIRY_MINUTES,
       message: 'OTP resent to Aadhaar-linked mobile number',
-      ...(env.NODE_ENV === 'development'
+      ...(env.NODE_ENV === 'development' && !isUidaiAadhaarProvider()
         ? { mockOtpHint: env.MOCK_OTP }
         : {}),
     };
@@ -227,7 +231,12 @@ export class AgentSignupService {
     if (session.status !== SIGNUP_STATUS.PENDING_OTP) {
       throw badRequest('OTP has already been verified for this session');
     }
-    if (!session.otpHash || !session.otpExpiresAt || !session.aadhaarLast4) {
+    if (
+      !session.aadhaarTxn ||
+      !session.otpExpiresAt ||
+      !session.aadhaarLast4 ||
+      !session.aadhaarEncrypted
+    ) {
       throw badRequest('Invalid OTP session state');
     }
 
@@ -239,20 +248,31 @@ export class AgentSignupService {
       throw unauthorized('Too many invalid OTP attempts. Request a new OTP.');
     }
 
-    const valid = await verifyOtpHash(input.otp, session.otpHash);
-    if (!valid) {
-      session.attempts += 1;
-      await session.save();
-      throw unauthorized('Invalid OTP');
-    }
+    const aadhaar = decryptAadhaar(session.aadhaarEncrypted);
 
-    const profile = await this.aadhaarKyc.fetchDemographics(
-      session.aadhaarLast4
-    );
+    let profile: IVerifiedAadhaarProfile;
+    try {
+      profile = await this.aadhaarKyc.verifyOtpAndFetchKyc({
+        aadhaarNumber: aadhaar,
+        txn: session.aadhaarTxn,
+        otp: input.otp,
+        mockOtpHash: session.otpHash,
+      });
+    } catch (err) {
+      if (
+        isInvalidOtpErr(err) ||
+        (err instanceof AppError && err.code === 'UNAUTHORIZED')
+      ) {
+        session.attempts += 1;
+        await session.save();
+      }
+      throw err;
+    }
 
     session.verifiedProfile = profile;
     session.status = SIGNUP_STATUS.VERIFIED;
     session.otpHash = null;
+    session.aadhaarTxn = null;
     session.expiresAt = sessionExpiresAt();
     await session.save();
 
