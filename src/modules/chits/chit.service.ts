@@ -9,6 +9,7 @@ import { USER_ROLES, USER_STATUS } from '../../config/constants';
 import { JwtPayload } from '../../types/express';
 import { User } from '../users/user.model';
 import {
+  BIDDER_REPORT_REASONS,
   CHIT_STATUS,
   Chit,
   ChitStatus,
@@ -17,6 +18,10 @@ import {
   IMemberReport,
   BidderReportReason,
 } from './chit.model';
+import {
+  RUNAWAY_BLOCK_REASON,
+  blockUserAccount,
+} from '../users/account-block.service';
 import {
   buildChitScopeFilter,
   buildScopedChitByIdFilter,
@@ -916,6 +921,22 @@ export class ChitService {
     );
   }
 
+  private async maybeAutoBlockRunawayBidder(
+    actor: JwtPayload,
+    bidderId: string,
+    reason: BidderReportReason
+  ): Promise<boolean> {
+    if (reason !== BIDDER_REPORT_REASONS.AMOUNT_TAKE_AND_RUNAWAY) {
+      return false;
+    }
+    const result = await blockUserAccount({
+      userId: bidderId,
+      actorId: actor.sub,
+      reason: RUNAWAY_BLOCK_REASON,
+    });
+    return result.blocked;
+  }
+
   async reportMember(
     actor: JwtPayload,
     chitId: string,
@@ -945,14 +966,23 @@ export class ChitService {
 
     await chit.save();
 
+    const bidderBlocked = await this.maybeAutoBlockRunawayBidder(
+      actor,
+      bidderId,
+      input.reason
+    );
+
     const populated = await Chit.findById(chit._id)
       .populate('members.bidderId', 'name phone')
       .lean();
 
-    return toEnrichedChitDto(
-      (populated ?? chit) as unknown as IChitDocument,
-      { includeMembers: true, actor }
-    );
+    return {
+      ...toEnrichedChitDto(
+        (populated ?? chit) as unknown as IChitDocument,
+        { includeMembers: true, actor }
+      ),
+      bidderBlocked,
+    };
   }
 
   async updateMemberReport(
@@ -981,14 +1011,23 @@ export class ChitService {
     chit.markModified('members');
     await chit.save();
 
+    const bidderBlocked = await this.maybeAutoBlockRunawayBidder(
+      actor,
+      bidderId,
+      input.reason
+    );
+
     const populated = await Chit.findById(chit._id)
       .populate('members.bidderId', 'name phone')
       .lean();
 
-    return toEnrichedChitDto(
-      (populated ?? chit) as unknown as IChitDocument,
-      { includeMembers: true, actor }
-    );
+    return {
+      ...toEnrichedChitDto(
+        (populated ?? chit) as unknown as IChitDocument,
+        { includeMembers: true, actor }
+      ),
+      bidderBlocked,
+    };
   }
 
   async deleteMemberReport(

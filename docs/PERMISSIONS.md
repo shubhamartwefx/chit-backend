@@ -132,6 +132,18 @@ Deprecated aliases `/super-admin/admins` use the same rules as `/branch-stores`.
 
 **Account block:** Platform can block branch/agent/bidder. Operators can block/unblock only bidders they **created** (`createdBy`). List endpoints support `status=blocked`.
 
+**Runaway auto-block:** When an agent, branch store, or Super Admin reports a chit member with reason `amount_take_and_runaway` (`POST …/members/:bidderId/reports`, or updating a report’s reason to that value), the bidder’s user account is set to `blocked` with a fixed status reason and all refresh sessions are revoked — same helper as Super Admin block. Auto-block does **not** require `createdBy`. Unblock stays unchanged: Super Admin anywhere; agent/branch only if they created that bidder.
+
+**Manual check (opaque URLs + runaway block):**
+
+1. Agent/Branch/Admin: open BidderList → BidderDetails (or home → ChitDetail). Browser URL query uses an opaque token; Network tab still calls APIs with Mongo ObjectIds; page loads.
+2. Tamper the query token → detail page shows a friendly empty/error state (no garbage API id).
+3. Report a bidder with “Amount take and Runaway” → user `status=blocked`, sessions revoked, login / authenticated calls return `403 ACCOUNT_BLOCKED` with contact-support wording; reporter may see a “account blocked” toast.
+4. Report with any other reason → no auto-block.
+5. Unblock as creating agent / Super Admin still works; a non-creator agent still cannot unblock.
+
+Frontends: set `NEXT_PUBLIC_URL_ID_SECRET` (see App.chits-fund / chits.artwefx `.env.local.example`).
+
 Chit routes at `/api/v1/chits`: **read** allows `super_admin`, `branch_store`, `agent`, and `bidder`; **write** allows the first three only. **Peer ownership:** agents → own chits (`agentId`); branch stores → own chits (`branchStoreId`, no agent required); bidders → chits where they are in `members[]`; super admin → all (create requires `agentId` **or** `branchStoreId`).
 
 **Directory search** (`/api/v1/directory`) powers the "Search Bidder / Agent" pages:

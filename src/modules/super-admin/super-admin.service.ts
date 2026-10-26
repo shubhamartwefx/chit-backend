@@ -20,8 +20,8 @@ import {
   validatePermissionsForRole,
 } from '../../config/rbac';
 import { Chit, CHIT_STATUS } from '../chits/chit.model';
-import { tokenService } from '../auth/token.service';
 import { IUserDocument, User } from '../users/user.model';
+import { blockUserAccountOrConflict } from '../users/account-block.service';
 import {
   UpdateStaffPermissionsInput,
   UpdateUserProfileInput,
@@ -652,21 +652,16 @@ export class SuperAdminService {
 
     this.assertBlockableTarget(actorId, user);
 
-    if (user.status === USER_STATUS.BLOCKED) {
-      throw conflict('User is already blocked');
-    }
+    const result = await blockUserAccountOrConflict({
+      userId,
+      actorId,
+      reason: input.reason,
+    });
 
-    user.status = USER_STATUS.BLOCKED;
-    user.statusReason = input.reason.trim();
-    user.statusChangedAt = new Date();
-    user.statusChangedBy = new Types.ObjectId(actorId);
-    await user.save();
-
-    const revokedSessions = await tokenService.revokeAllSessionsForUser(userId);
-
+    const refreshed = await User.findById(userId);
     return {
-      ...formatUser(user),
-      revokedSessions,
+      ...formatUser(refreshed ?? user),
+      revokedSessions: result.revokedSessions,
     };
   }
 

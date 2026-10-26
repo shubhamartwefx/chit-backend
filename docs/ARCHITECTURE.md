@@ -412,7 +412,7 @@ Error:
 1. Real SMS OTP provider behind existing `OtpProvider` interface (login SMS; separate from UIDAI Aadhaar OTP/eKYC for signup).
 2. ~~Super Admin: branches, chits CRUD with permission checks per route.~~ **Chits CRUD shipped** (`/api/v1/chits`).
 3. ~~Peer operators (Wave A):~~ branch-owned chits, symmetric bidder APIs, incremental members, SA-only branch provisioning.
-4. ~~Account block (Wave B):~~ platform block + operator-scoped bidder block; list `status=blocked`.
+4. ~~Account block (Wave B):~~ platform block + operator-scoped bidder block; list `status=blocked`. Reporting `amount_take_and_runaway` auto-blocks the bidder and revokes sessions (`blockUserAccount` / `RUNAWAY_BLOCK_REASON`); unblock remains SA or creating operator.
 5. ~~Pay / bid / join (Wave C):~~ installments, auction rounds + bids, bidder self-join.
 6. ~~Monitoring (Wave D):~~ `GET /reports/overview`; notifications trimmed from agent/bidder defaults (catalog stubs remain for later).
 7. FE integration for peer ownership + Waves B–D screens.
