@@ -117,6 +117,8 @@ If `request-otp` returns `requires2fa: true`, call `POST /auth/:role/verify-2fa`
 
 Public APIs under `/api/v1/auth/bidder/register` and `/api/v1/auth/agent/register` (same shapes).
 
+Set `AADHAAR_KYC_PROVIDER=mock` (default) for local demo, or `uidai` for sandbox OTP + eKYC. When using `uidai`, put `UIDAI_LICENSE_KEY` and cert/key **paths** in `.env` only — never commit PEMs or license keys (see `.env.example` and `docs/ARCHITECTURE.md`).
+
 Mock Aadhaar KYC returns **different demographics per role** (demo only):
 
 | Role | Name | City |
