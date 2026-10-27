@@ -138,7 +138,7 @@ Deprecated aliases `/super-admin/admins` use the same rules as `/branch-stores`.
 
 1. Agent/Branch/Admin: open BidderList → BidderDetails (or home → ChitDetail). Browser URL query uses an opaque token; Network tab still calls APIs with Mongo ObjectIds; page loads.
 2. Tamper the query token → detail page shows a friendly empty/error state (no garbage API id).
-3. Report a bidder with “Amount take and Runaway” → user `status=blocked`, sessions revoked, login / authenticated calls return `403 ACCOUNT_BLOCKED` with contact-support wording; reporter may see a “account blocked” toast.
+3. Report a bidder with “Amount take and Runaway” → user `status=blocked`, sessions revoked; reporter may see a “account blocked” toast. The bidder can still log in and sees a locked Home with support contacts; other bidder modules redirect home. Writes still return `403 ACCOUNT_BLOCKED`.
 4. Report with any other reason → no auto-block.
 5. Unblock as creating agent / Super Admin still works; a non-creator agent still cannot unblock.
 
@@ -151,7 +151,7 @@ Chit routes at `/api/v1/chits`: **read** allows `super_admin`, `branch_store`, `
 - `GET /directory/search?q=&role=` — exact lookup only: a 10-digit phone (optional `+91`), a display id (`BD-XXXX-XXXX` / `AG-XXXX-XXXX`, the last 8 hex chars of the Mongo id) or a 24-hex ObjectId. Anything else is `400`. Agents may search `bidder`, bidders may search `agent`, branch stores both; a `role` outside that set is `403`. Platform-wide, excludes the caller, max 10 results, rate limited to 60 requests / 15 min per user. Items: `{ id, name, phone, countryCode, role, status, reportCount? }` — `reportCount` (bidders only) counts reports across all non-deleted chits.
 - `GET /directory/bidders/:id/reports` — platform-wide reports on a bidder, newest first: `{ bidderId, total, items: [{ reason, note, chitCode, createdAt }] }`. Reporter identity is not returned.
 
-Blocked users receive `403 ACCOUNT_BLOCKED` with `{ reason }` in `details` on login, refresh, and any authenticated API call.
+**Blocked accounts:** Agent / branch / Super Admin stay locked out at login/refresh (`403 ACCOUNT_BLOCKED`). Blocked **bidders** may log in and refresh; mutating routes still use `rejectIfBlocked` → `ACCOUNT_BLOCKED`. The bidder FE shows a locked Home with customer care / email and denies other modules.
 
 ## Middleware
 

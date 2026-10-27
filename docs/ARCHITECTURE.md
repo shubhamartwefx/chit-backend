@@ -255,7 +255,7 @@ Clients use shared `/chits` only (no `/agent/chits` or `/branch-store/chits` ali
 
 - **Access JWT** — short-lived (default `JWT_ACCESS_EXPIRES_IN=15m`); claims include `jti` + `sid`.
 - **Refresh token** — opaque, hashed in `RefreshSession`; default `JWT_REFRESH_EXPIRES_IN=7d`. Rotated on each refresh; reuse of an old refresh revokes the whole session family.
-- `authenticate` middleware verifies JWT and re-checks user `status` (blocked → `403 ACCOUNT_BLOCKED` with reason).
+- `authenticate` middleware verifies JWT and re-checks user `status` (inactive → denied; blocked may still call `/me` and read APIs). Mutating routes use `rejectIfBlocked`. Blocked **bidders** may still log in / refresh so the FE can show a locked dashboard; other roles stay locked out at login when blocked.
 
 ### Bidder / Agent signup endpoints (public, rate-limited)
 
