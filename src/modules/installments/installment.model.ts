@@ -90,6 +90,9 @@ installmentSchema.index(
   }
 );
 
+/** Paid-month aggregates for operator bidder stats. */
+installmentSchema.index({ chitId: 1, bidderId: 1, status: 1, kind: 1 });
+
 /** One agent-taken or skip entry per chit month. */
 installmentSchema.index(
   { chitId: 1, monthNumber: 1, kind: 1 },

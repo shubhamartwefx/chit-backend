@@ -22,6 +22,7 @@ import {
 import { Chit, CHIT_STATUS } from '../chits/chit.model';
 import { IUserDocument, User } from '../users/user.model';
 import { blockUserAccountOrConflict } from '../users/account-block.service';
+import { invalidateAccountStatus } from '../users/account-status-cache';
 import {
   UpdateStaffPermissionsInput,
   UpdateUserProfileInput,
@@ -686,6 +687,7 @@ export class SuperAdminService {
     user.statusChangedAt = new Date();
     user.statusChangedBy = new Types.ObjectId(actorId);
     await user.save();
+    invalidateAccountStatus(userId);
 
     return formatUser(user);
   }
