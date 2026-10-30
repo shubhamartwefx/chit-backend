@@ -148,6 +148,9 @@ chitSchema.index({ chitCode: 1 }, { unique: true });
 chitSchema.index({ agentId: 1, status: 1 });
 chitSchema.index({ branchStoreId: 1, status: 1 });
 chitSchema.index({ amountInLakhs: 1, status: 1 });
+chitSchema.index({ 'members.bidderId': 1 });
+chitSchema.index({ agentId: 1, status: 1, createdAt: -1 });
+chitSchema.index({ branchStoreId: 1, status: 1, createdAt: -1 });
 
 export const Chit: Model<IChitDocument> =
   mongoose.models.Chit || mongoose.model<IChitDocument>('Chit', chitSchema);

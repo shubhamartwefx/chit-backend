@@ -1,4 +1,6 @@
 import mongoose from 'mongoose';
+import { AgentReport } from '../modules/agent-reports/agent-report.model';
+import { User } from '../modules/users/user.model';
 import { env } from './env';
 
 function getMongoUriDiagnostics(uri: string) {
@@ -36,6 +38,18 @@ export async function connectDatabase(): Promise<void> {
     // #endregion
 
     console.log('MongoDB connected');
+
+    // Align indexes (Aadhaar global unique; agent reports allow multiple per chit).
+    try {
+      await User.syncIndexes();
+    } catch (err) {
+      console.warn('[indexes] User.syncIndexes warning:', err);
+    }
+    try {
+      await AgentReport.syncIndexes();
+    } catch (err) {
+      console.warn('[indexes] AgentReport.syncIndexes warning:', err);
+    }
   } catch (err: unknown) {
     const error =
       err && typeof err === 'object'

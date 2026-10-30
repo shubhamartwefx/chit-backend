@@ -2,6 +2,7 @@ import { Types } from 'mongoose';
 import { conflict, notFound } from '../../common/errors';
 import { USER_STATUS } from '../../config/roles';
 import { tokenService } from '../auth/token.service';
+import { invalidateAccountStatus } from './account-status-cache';
 import { User } from './user.model';
 
 export const RUNAWAY_BLOCK_REASON =
@@ -36,6 +37,7 @@ export async function blockUserAccount(input: {
   user.statusChangedAt = new Date();
   user.statusChangedBy = new Types.ObjectId(input.actorId);
   await user.save();
+  invalidateAccountStatus(input.userId);
 
   const revokedSessions = await tokenService.revokeAllSessionsForUser(
     input.userId

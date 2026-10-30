@@ -162,8 +162,10 @@ const userSchema = new Schema<IUserDocument>(
   { timestamps: true }
 );
 
+/** Same phone may exist across roles (e.g. agent + bidder); unique within a role. */
 userSchema.index({ phone: 1, role: 1 }, { unique: true });
-userSchema.index({ aadhaarFingerprint: 1, role: 1 }, { unique: true });
+/** Aadhaar is one-person-one-account platform-wide (any role). */
+userSchema.index({ aadhaarFingerprint: 1 }, { unique: true });
 
 export const User: Model<IUserDocument> =
   mongoose.models.User || mongoose.model<IUserDocument>('User', userSchema);

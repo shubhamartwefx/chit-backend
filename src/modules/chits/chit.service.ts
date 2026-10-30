@@ -185,12 +185,27 @@ async function validateAndBuildMembers(
   const bidders = await User.find({
     _id: { $in: objectIds },
     role: USER_ROLES.BIDDER,
-    status: USER_STATUS.ACTIVE,
   })
-    .select('_id')
+    .select('_id status')
     .lean();
 
   if (bidders.length !== objectIds.length) {
+    throw badRequest(
+      'Every members.bidderId must reference an active bidder user'
+    );
+  }
+
+  const blocked = bidders.filter((b) => b.status === USER_STATUS.BLOCKED);
+  if (blocked.length > 0) {
+    throw badRequest(
+      blocked.length === 1
+        ? 'This bidder is blocked and cannot be added to a chit'
+        : 'One or more bidders are blocked and cannot be added to a chit'
+    );
+  }
+
+  const inactive = bidders.filter((b) => b.status !== USER_STATUS.ACTIVE);
+  if (inactive.length > 0) {
     throw badRequest(
       'Every members.bidderId must reference an active bidder user'
     );

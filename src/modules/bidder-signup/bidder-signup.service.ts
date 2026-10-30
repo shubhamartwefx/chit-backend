@@ -27,6 +27,7 @@ import {
   User,
   VERIFICATION_METHODS,
 } from '../users/user.model';
+import { assertAadhaarFingerprintAvailable } from '../users/assert-aadhaar-unique';
 import {
   createAadhaarKycProvider,
   isUidaiAadhaarProvider,
@@ -99,13 +100,7 @@ export class BidderSignupService {
   private async assertNoExistingBidderByFingerprint(
     aadhaarFingerprint: string
   ): Promise<void> {
-    const existing = await User.findOne({
-      aadhaarFingerprint,
-      role: USER_ROLES.BIDDER,
-    });
-    if (existing) {
-      throw conflict('A bidder account already exists for this Aadhaar number');
-    }
+    await assertAadhaarFingerprintAvailable(aadhaarFingerprint);
   }
 
   private async assertNoExistingBidderByPhone(phone: string): Promise<void> {
@@ -481,7 +476,7 @@ export class BidderSignupService {
         (err as { code?: number }).code === 11000
       ) {
         throw conflict(
-          'A bidder account already exists for this phone or Aadhaar number'
+          'An account already exists for this phone or Aadhaar number. Aadhaar can only be used once.'
         );
       }
       throw err;

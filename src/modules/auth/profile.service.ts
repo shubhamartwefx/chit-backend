@@ -13,10 +13,11 @@ import {
   toClientRole,
   USER_ROLES,
   USER_STATUS,
+  type UserRole,
 } from '../../config/roles';
 import { resolveSuperAdminTier } from '../../config/rbac';
 import { Chit, CHIT_STATUS } from '../chits/chit.model';
-import { User, type IUserDocument } from '../users/user.model';
+import { User } from '../users/user.model';
 import type { UpdateProfileInput } from './auth.validation';
 
 export type NomineeSummary = {
@@ -30,14 +31,21 @@ export type NomineeSummary = {
 
 const OBJECT_ID_RE = /^[a-f\d]{24}$/i;
 
-function toNomineeSummary(user: IUserDocument): NomineeSummary {
+function toNomineeSummary(user: {
+  _id: { toString(): string };
+  name: string;
+  phone: string;
+  countryCode: string;
+  aadhaarLast4?: string | null;
+  role: string;
+}): NomineeSummary {
   return {
     id: user._id.toString(),
     name: user.name,
     phone: user.phone,
     countryCode: user.countryCode,
     aadhaarLast4: user.aadhaarLast4 ?? null,
-    role: toClientRole(user.role),
+    role: toClientRole(user.role as UserRole),
   };
 }
 
@@ -69,9 +77,9 @@ export class ProfileService {
     }
   }
 
-  private async resolveNominees(
-    user: IUserDocument
-  ): Promise<NomineeSummary[]> {
+  private async resolveNominees(user: {
+    nominees?: Array<{ userId: Types.ObjectId }>;
+  }): Promise<NomineeSummary[]> {
     const links = user.nominees ?? [];
     if (!links.length) return [];
 
@@ -79,7 +87,9 @@ export class ProfileService {
     const found = await User.find({
       _id: { $in: ids },
       status: USER_STATUS.ACTIVE,
-    }).select('name phone countryCode aadhaarLast4 role');
+    })
+      .select('name phone countryCode aadhaarLast4 role')
+      .lean();
 
     const byId = new Map(found.map((u) => [u._id.toString(), u]));
     const summaries: NomineeSummary[] = [];
@@ -91,9 +101,30 @@ export class ProfileService {
   }
 
   async formatProfile(userId: string) {
-    const user = await User.findById(userId).select(
-      '-aadhaarFingerprint -__v'
-    );
+    const user = await User.findById(userId)
+      .select(
+        [
+          'name',
+          'phone',
+          'phone2',
+          'countryCode',
+          'role',
+          'permissions',
+          'status',
+          'statusReason',
+          'lastLoginAt',
+          'totpEnabled',
+          'screenLockEnabled',
+          'biometricEnabled',
+          'gender',
+          'dateOfBirth',
+          'aadhaarLast4',
+          'aadhaarAddress',
+          'currentAddress',
+          'nominees',
+        ].join(' ')
+      )
+      .lean();
     if (!user) {
       throw unauthorized('User not found');
     }

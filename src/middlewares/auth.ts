@@ -16,7 +16,7 @@ import {
 } from '../config/rbac';
 import { env } from '../config/env';
 import { JwtPayload } from '../types/express';
-import { User } from '../modules/users/user.model';
+import { getAccountStatus } from '../modules/users/account-status-cache';
 
 export async function authenticate(
   req: Request,
@@ -32,9 +32,7 @@ export async function authenticate(
   const token = header.slice(7);
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
-    const account = await User.findById(decoded.sub)
-      .select('status statusReason')
-      .lean();
+    const account = await getAccountStatus(decoded.sub);
 
     if (!account) {
       next(unauthorized('Invalid or expired token'));

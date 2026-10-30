@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { API_MESSAGES } from '../../common/status';
 import { sendSuccessWithKey } from '../../common/response';
 import { agentService } from './agent.service';
+import type { ListAgentReportsQueryInput } from '../agent-reports';
 import {
   CreateOperatorBidderInput,
   ListOperatorBiddersQueryInput,
@@ -73,6 +74,19 @@ export class AgentController {
       const data = await agentService.listReports(
         req.user!.sub,
         req.query as unknown as ListOperatorReportsQueryInput
+      );
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  /** Reports filed against this agent by bidders. */
+  async listReportsAgainstMe(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await agentService.listReportsAgainstMe(
+        req.user!,
+        req.query as unknown as ListAgentReportsQueryInput
       );
       sendSuccessWithKey(res, data, 'OK');
     } catch (err) {

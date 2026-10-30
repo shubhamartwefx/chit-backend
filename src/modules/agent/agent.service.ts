@@ -6,6 +6,9 @@ import {
   UpdateOperatorBidderInput,
 } from '../operator-bidders/operator-bidder.validation';
 import { USER_ROLES } from '../../config/roles';
+import { agentReportService } from '../agent-reports';
+import type { ListAgentReportsQueryInput } from '../agent-reports';
+import type { JwtPayload } from '../../types/express';
 
 export class AgentService {
   async listBidders(agentId: string, query: ListOperatorBiddersQueryInput) {
@@ -47,6 +50,13 @@ export class AgentService {
       USER_ROLES.AGENT,
       query
     );
+  }
+
+  async listReportsAgainstMe(
+    actor: JwtPayload,
+    query: ListAgentReportsQueryInput
+  ) {
+    return agentReportService.listReportsAgainstAgent(actor, query);
   }
 }
 

@@ -38,6 +38,7 @@ import {
   User,
   VERIFICATION_METHODS,
 } from '../users/user.model';
+import { assertAadhaarFingerprintAvailable } from '../users/assert-aadhaar-unique';
 import {
   AgentSignupSession,
   IAgentSignupSessionDocument,
@@ -96,13 +97,7 @@ export class AgentSignupService {
   private async assertNoExistingAgentByFingerprint(
     aadhaarFingerprint: string
   ): Promise<void> {
-    const existing = await User.findOne({
-      aadhaarFingerprint,
-      role: USER_ROLES.AGENT,
-    });
-    if (existing) {
-      throw conflict('An agent account already exists for this Aadhaar number');
-    }
+    await assertAadhaarFingerprintAvailable(aadhaarFingerprint);
   }
 
   private async assertNoExistingAgentByPhone(phone: string): Promise<void> {
@@ -479,7 +474,7 @@ export class AgentSignupService {
         (err as { code?: number }).code === 11000
       ) {
         throw conflict(
-          'An agent account already exists for this phone or Aadhaar number'
+          'An account already exists for this phone or Aadhaar number. Aadhaar can only be used once.'
         );
       }
       throw err;
