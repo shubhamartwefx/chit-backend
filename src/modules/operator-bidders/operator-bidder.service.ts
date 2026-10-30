@@ -20,6 +20,7 @@ import {
   INSTALLMENT_STATUS,
 } from '../installments/installment.model';
 import { User } from '../users/user.model';
+import { assertAadhaarFingerprintAvailable } from '../users/assert-aadhaar-unique';
 import { toStoredAddress } from '../../common/address';
 import {
   CreateOperatorBidderInput,
@@ -342,16 +343,17 @@ export class OperatorBidderService {
     const phone = normalizePhone(input.phone);
     const aadhaarFingerprint = assertIdentity(phone, input.aadhaarNumber);
 
-    const existing = await User.findOne({
-      $or: [
-        { phone, role: USER_ROLES.BIDDER },
-        { aadhaarFingerprint, role: USER_ROLES.BIDDER },
-      ],
-    });
-
-    if (existing) {
-      throw conflict('A bidder with this phone or Aadhaar already exists');
+    const phoneExisting = await User.findOne({
+      phone,
+      role: USER_ROLES.BIDDER,
+    })
+      .select('_id')
+      .lean();
+    if (phoneExisting) {
+      throw conflict('A bidder with this phone number already exists');
     }
+
+    await assertAadhaarFingerprintAvailable(aadhaarFingerprint);
 
     const user = await User.create({
       name: input.name,

@@ -21,6 +21,7 @@ import {
 } from '../../config/rbac';
 import { Chit, CHIT_STATUS } from '../chits/chit.model';
 import { IUserDocument, User } from '../users/user.model';
+import { assertAadhaarFingerprintAvailable } from '../users/assert-aadhaar-unique';
 import { blockUserAccountOrConflict } from '../users/account-block.service';
 import { invalidateAccountStatus } from '../users/account-status-cache';
 import {
@@ -247,16 +248,14 @@ export class SuperAdminService {
     aadhaarFingerprint: string,
     label: string
   ): Promise<void> {
-    const existing = await User.findOne({
-      $or: [
-        { phone, role },
-        { aadhaarFingerprint, role },
-      ],
-    });
-
-    if (existing) {
-      throw conflict(`A ${label} with this phone or Aadhaar already exists`);
+    const phoneExisting = await User.findOne({ phone, role })
+      .select('_id')
+      .lean();
+    if (phoneExisting) {
+      throw conflict(`A ${label} with this phone number already exists`);
     }
+
+    await assertAadhaarFingerprintAvailable(aadhaarFingerprint);
   }
 
   async createBranchStore(createdById: string, input: CreateBranchStoreInput) {

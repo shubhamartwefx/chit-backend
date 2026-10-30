@@ -13,6 +13,12 @@ import {
   chitIdParamsSchema,
   joinChitSchema,
 } from '../chits/chit.validation';
+import {
+  reportAgentSchema,
+  updateAgentReportSchema,
+  agentReportIdParamsSchema,
+  chitIdParamsSchema as agentReportChitParamsSchema,
+} from '../agent-reports/agent-report.validation';
 import { bidderSubscriptionController } from '../agent-subscriptions/agent-subscription.controller';
 import {
   confirmAgentSubscriptionSchema,
@@ -40,10 +46,42 @@ router.post(
   (req, res, next) => bidderController.joinChit(req, res, next)
 );
 
+router.post(
+  '/chits/:id/report-agent',
+  rejectIfBlocked,
+  authorizePermission(PERMISSIONS.REPORTS.READ),
+  validate(agentReportChitParamsSchema, 'params'),
+  validate(reportAgentSchema),
+  (req, res, next) => bidderController.reportAgent(req, res, next)
+);
+
 router.get(
   '/reports',
   authorizePermission(PERMISSIONS.REPORTS.READ),
   (req, res, next) => bidderController.listMyReports(req, res, next)
+);
+
+router.get(
+  '/agent-reports',
+  authorizePermission(PERMISSIONS.REPORTS.READ),
+  (req, res, next) => bidderController.listMyAgentReports(req, res, next)
+);
+
+router.patch(
+  '/agent-reports/:reportId',
+  rejectIfBlocked,
+  authorizePermission(PERMISSIONS.REPORTS.READ),
+  validate(agentReportIdParamsSchema, 'params'),
+  validate(updateAgentReportSchema),
+  (req, res, next) => bidderController.updateMyAgentReport(req, res, next)
+);
+
+router.delete(
+  '/agent-reports/:reportId',
+  rejectIfBlocked,
+  authorizePermission(PERMISSIONS.REPORTS.READ),
+  validate(agentReportIdParamsSchema, 'params'),
+  (req, res, next) => bidderController.deleteMyAgentReport(req, res, next)
 );
 
 router.get(

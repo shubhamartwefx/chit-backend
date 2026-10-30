@@ -102,6 +102,12 @@ router.get(
 );
 
 router.get(
+  '/reports-against-me',
+  authorizePermission(PERMISSIONS.REPORTS.READ),
+  (req, res, next) => agentController.listReportsAgainstMe(req, res, next)
+);
+
+router.get(
   '/subscription-plans',
   authorizePermission(PERMISSIONS.CHITS.READ),
   validate(listSubscriptionPlansQuerySchema, 'query'),

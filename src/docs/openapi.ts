@@ -962,12 +962,54 @@ Base path: \`${API_BASE_PATH}\`
           responses: { '200': { description: 'Joined' } },
         },
       },
+      '/bidder/chits/{id}/report-agent': {
+        post: {
+          tags: ['Bidder'],
+          summary:
+            'Report the agent of a chit the bidder is enrolled in (auto-blocks after 10 unique reporters)',
+          security: bearer,
+          parameters: [
+            { name: 'id', in: 'path', required: true, schema: objectId },
+          ],
+          requestBody: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  required: ['reason'],
+                  properties: {
+                    reason: {
+                      type: 'string',
+                      enum: [
+                        'not_settling_payments',
+                        'amount_take_and_runaway',
+                        'not_responding',
+                        'mismanaging_chit',
+                      ],
+                    },
+                    note: { type: 'string', maxLength: 500 },
+                  },
+                },
+              },
+            },
+          },
+          responses: { '200': { description: 'Report filed' } },
+        },
+      },
       '/bidder/reports': {
         get: {
           tags: ['Bidder'],
           summary: 'Reports agents filed against the signed-in bidder (read-only)',
           security: bearer,
           responses: { '200': { description: 'Report list' } },
+        },
+      },
+      '/bidder/agent-reports': {
+        get: {
+          tags: ['Bidder'],
+          summary: 'Agent reports filed by the signed-in bidder',
+          security: bearer,
+          responses: { '200': { description: 'Agent report list' } },
         },
       },
       '/bidder/subscription-plans': {
