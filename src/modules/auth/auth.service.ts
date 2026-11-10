@@ -162,7 +162,7 @@ export class AuthService {
       expiresInMinutes,
       maskedPhone: `${'*'.repeat(6)}${phone.slice(-4)}`,
       role,
-      ...(env.NODE_ENV === 'development'
+      ...(otpService.isMock && env.NODE_ENV === 'development'
         ? { mockOtpHint: env.MOCK_OTP }
         : {}),
     };
