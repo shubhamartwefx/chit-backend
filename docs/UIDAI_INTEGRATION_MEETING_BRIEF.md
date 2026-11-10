@@ -292,10 +292,11 @@ HTTP mapping for these codes is documented in `docs/API_STATUS.md`.
 
 ### B. High risk — endpoint URL template
 
-We POST to the **configured base URL only**. Many UIDAI deployments require path segments such as:
+We append path segments to the configured base URL:
 
-`/{ver}/{ac}/{uid[0]}/{uid[1]}/`  
-and/or ASA-related segments.
+`{UIDAI_*_BASE_URL}/{ac}/{uid[0]}/{uid[1]}/{asalk?}`  
+
+(e.g. `…/uidotp/2.5/public/9/9/<ASA_LICENSE>`). Confirm with UIDAI if your AUA needs a different template.
 
 **Ask:** Exact OTP and eKYC URL templates for our registered AUA/ASA (sandbox and production).
 

@@ -3,68 +3,76 @@ import { AgentReport } from '../modules/agent-reports/agent-report.model';
 import { User } from '../modules/users/user.model';
 import { env } from './env';
 
-function getMongoUriDiagnostics(uri: string) {
-  try {
-    const parsed = new URL(uri);
-    return {
-      scheme: parsed.protocol.replace(':', ''),
-      host: parsed.hostname,
-      port: parsed.port || '(default)',
-      database: parsed.pathname.replace(/^\//, '') || '(missing)',
-      hasUsername: Boolean(parsed.username),
-      hasPassword: Boolean(parsed.password),
-      hasQueryParams: Boolean(parsed.search),
-      isAtlasSrv: uri.startsWith('mongodb+srv://'),
-    };
-  } catch {
-    return { parseError: true };
+/**
+ * Older schemas used `aadhaarFingerprint: { index: true }` (non-unique
+ * `aadhaarFingerprint_1`). Current schema wants the same key unique — Mongo
+ * rejects createIndex with IndexKeySpecsConflict. Drop the non-unique one first.
+ *
+ * Also rewrite duplicate fingerprints (legacy seed/test data) so the unique
+ * index can build; keep the oldest document per fingerprint.
+ */
+async function reconcileUserAadhaarIndex(): Promise<void> {
+  const indexes = await User.collection.indexes();
+  const existing = indexes.find((idx) => idx.name === 'aadhaarFingerprint_1');
+  if (existing && !existing.unique) {
+    await User.collection.dropIndex('aadhaarFingerprint_1');
+    console.log(
+      '[indexes] Dropped non-unique aadhaarFingerprint_1 (will recreate as unique)'
+    );
+  }
+
+  const dups = await User.collection
+    .aggregate<{
+      _id: string;
+      ids: { id: mongoose.Types.ObjectId; createdAt?: Date }[];
+    }>([
+      {
+        $group: {
+          _id: '$aadhaarFingerprint',
+          ids: {
+            $push: { id: '$_id', createdAt: '$createdAt' },
+          },
+          n: { $sum: 1 },
+        },
+      },
+      { $match: { n: { $gt: 1 } } },
+    ])
+    .toArray();
+
+  for (const group of dups) {
+    const sorted = [...group.ids].sort((a, b) => {
+      const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return at - bt;
+    });
+    const [, ...extras] = sorted;
+    for (const extra of extras) {
+      const nextFp = `legacy-dup:${extra.id.toString()}:${group._id}`;
+      await User.collection.updateOne(
+        { _id: extra.id },
+        { $set: { aadhaarFingerprint: nextFp } }
+      );
+      console.warn(
+        `[indexes] Rewrote duplicate aadhaarFingerprint on user ${extra.id.toString()} (kept oldest)`
+      );
+    }
   }
 }
 
 export async function connectDatabase(): Promise<void> {
-  const uriDiagnostics = getMongoUriDiagnostics(env.MONGODB_URI);
-
-  // #region agent log
-  fetch('http://127.0.0.1:7868/ingest/e103a877-46af-4069-b658-a72c70fd5449',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'855c47'},body:JSON.stringify({sessionId:'855c47',runId:'pre-fix',hypothesisId:'H2-H3-H5',location:'db.ts:connectDatabase:entry',message:'Mongo connect attempt',data:{uriDiagnostics,nodeEnv:env.NODE_ENV},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
-
   mongoose.set('strictQuery', true);
+  await mongoose.connect(env.MONGODB_URI);
+  console.log('MongoDB connected');
 
   try {
-    await mongoose.connect(env.MONGODB_URI);
-
-    // #region agent log
-    fetch('http://127.0.0.1:7868/ingest/e103a877-46af-4069-b658-a72c70fd5449',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'855c47'},body:JSON.stringify({sessionId:'855c47',runId:'pre-fix',hypothesisId:'ALL',location:'db.ts:connectDatabase:success',message:'Mongo connected',data:{readyState:mongoose.connection.readyState,host:mongoose.connection.host,name:mongoose.connection.name},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
-    console.log('MongoDB connected');
-
-    // Align indexes (Aadhaar global unique; agent reports allow multiple per chit).
-    try {
-      await User.syncIndexes();
-    } catch (err) {
-      console.warn('[indexes] User.syncIndexes warning:', err);
-    }
-    try {
-      await AgentReport.syncIndexes();
-    } catch (err) {
-      console.warn('[indexes] AgentReport.syncIndexes warning:', err);
-    }
-  } catch (err: unknown) {
-    const error =
-      err && typeof err === 'object'
-        ? (err as {
-            name?: string;
-            message?: string;
-            code?: string;
-            reason?: { type?: string };
-          })
-        : { message: String(err) };
-
-    // #region agent log
-    fetch('http://127.0.0.1:7868/ingest/e103a877-46af-4069-b658-a72c70fd5449',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'855c47'},body:JSON.stringify({sessionId:'855c47',runId:'pre-fix',hypothesisId:'H1-H4',location:'db.ts:connectDatabase:error',message:'Mongo connect failed',data:{errorName:error.name,errorCode:error.code,errorMessage:error.message?.slice(0,200),topologyType:error.reason?.type,uriDiagnostics},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
-    throw err;
+    await reconcileUserAadhaarIndex();
+    await User.syncIndexes();
+  } catch (err) {
+    console.warn('[indexes] User.syncIndexes warning:', err);
+  }
+  try {
+    await AgentReport.syncIndexes();
+  } catch (err) {
+    console.warn('[indexes] AgentReport.syncIndexes warning:', err);
   }
 }

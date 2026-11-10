@@ -11,6 +11,7 @@ export type UidaiRuntimeConfig = {
   subAuaCode: string;
   asaCode: string;
   licenseKey: string;
+  asaLicenseKey: string;
   ci: string;
   publicCertPem: string;
   signingCertPem: string;
@@ -28,7 +29,11 @@ function readPem(filePath: string, label: string): string {
       'AADHAAR_CONFIG_ERROR'
     );
   }
-  const pem = fs.readFileSync(resolved, 'utf8').trim();
+  const raw = fs.readFileSync(resolved, 'utf8');
+  const match = raw.match(
+    /-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/
+  );
+  const pem = (match ? match[0] : raw).trim();
   if (!pem.includes('BEGIN')) {
     throw new AppError(
       `Invalid UIDAI ${label} file contents.`,
@@ -36,7 +41,7 @@ function readPem(filePath: string, label: string): string {
       'AADHAAR_CONFIG_ERROR'
     );
   }
-  return pem;
+  return `${pem}\n`;
 }
 
 /**
@@ -84,6 +89,7 @@ export function getUidaiConfig(): UidaiRuntimeConfig {
     subAuaCode: env.UIDAI_SUB_AUA_CODE,
     asaCode: env.UIDAI_ASA_CODE,
     licenseKey,
+    asaLicenseKey: env.UIDAI_ASA_LICENSE_KEY?.trim() ?? '',
     ci: env.UIDAI_CI,
     publicCertPem: readPem(env.UIDAI_PUBLIC_CERT_PATH, 'public certificate'),
     signingCertPem: readPem(

@@ -55,17 +55,19 @@ const envSchema = z.object({
   AADHAAR_KYC_PROVIDER: z.enum(['mock', 'uidai']).default('mock'),
   UIDAI_OTP_BASE_URL: z
     .string()
-    .default('https://apisandbox.uidai.gov.in/uidotpserver/2.5'),
+    .default('https://developer.uidai.gov.in/uidotp/2.5'),
   UIDAI_AUTH_BASE_URL: z
     .string()
-    .default('https://apisandbox.uidai.gov.in/uidauthserver/2.5'),
+    .default('https://developer.uidai.gov.in/authserver/2.5'),
   UIDAI_EKYC_BASE_URL: z
     .string()
-    .default('https://apisandbox.uidai.gov.in/uidkycserver/kyc/2.5'),
+    .default('https://developer.uidai.gov.in/uidkyc/kyc/2.5'),
   UIDAI_AUA_CODE: z.string().default('public'),
   UIDAI_SUB_AUA_CODE: z.string().default('public'),
   UIDAI_ASA_CODE: z.string().default('public'),
   UIDAI_LICENSE_KEY: z.string().optional().default(''),
+  /** ASA license key appended as final URL path segment (asalk). */
+  UIDAI_ASA_LICENSE_KEY: z.string().optional().default(''),
   UIDAI_CI: z.string().default('20300811'),
   UIDAI_PUBLIC_CERT_PATH: z.string().optional().default(''),
   UIDAI_AUA_SIGNING_CERT_PATH: z.string().optional().default(''),

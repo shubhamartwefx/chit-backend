@@ -4,6 +4,7 @@ import { encryptPidBlock } from './uidai-crypto';
 import { mapUidaiErr } from './uidai-error-map';
 import { mapEkycXmlToProfile } from './uidai-kyc-map';
 import { signUidaiXml } from './uidai-sign';
+import { buildUidaiRequestUrl } from './uidai-url';
 import type { IVerifiedAadhaarProfile } from '../types';
 import {
   escapeXmlAttr,
@@ -146,7 +147,13 @@ export async function verifyUidaiOtpViaEkyc(input: {
     signed.replace(/^<\?xml[^>]*\?>/, '') +
     `</Kyc>`;
 
-  const responseXml = await postXml(input.config.ekycBaseUrl, kycEnvelope);
+  const ekycUrl = buildUidaiRequestUrl(
+    input.config.ekycBaseUrl,
+    input.config.auaCode,
+    input.aadhaarNumber,
+    input.config.asaLicenseKey
+  );
+  const responseXml = await postXml(ekycUrl, kycEnvelope);
   let kycXml: string;
   try {
     kycXml = extractKycXml(responseXml);

@@ -2,6 +2,7 @@ import { AppError } from '../../../common/errors';
 import type { UidaiRuntimeConfig } from './uidai-config';
 import { mapUidaiErr } from './uidai-error-map';
 import { signUidaiXml } from './uidai-sign';
+import { buildUidaiRequestUrl } from './uidai-url';
 import {
   escapeXmlAttr,
   findRoot,
@@ -59,7 +60,7 @@ function buildOtpXml(input: {
     `ts="${escapeXmlAttr(input.ts)}" ` +
     `lk="${escapeXmlAttr(config.licenseKey)}" ` +
     `type="A">` +
-    `<Opts ch="00"/>` +
+    `<Opts ch="01"/>` +
     `</Otp>`
   );
 }
@@ -83,7 +84,13 @@ export async function requestUidaiOtp(input: {
     signingCertPem: input.config.signingCertPem,
   });
 
-  const responseXml = await postXml(input.config.otpBaseUrl, signed);
+  const otpUrl = buildUidaiRequestUrl(
+    input.config.otpBaseUrl,
+    input.config.auaCode,
+    input.aadhaarNumber,
+    input.config.asaLicenseKey
+  );
+  const responseXml = await postXml(otpUrl, signed);
   let parsed: Record<string, unknown>;
   try {
     parsed = parseXml(responseXml);

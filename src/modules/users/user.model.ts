@@ -113,7 +113,8 @@ const userSchema = new Schema<IUserDocument>(
     countryCode: { type: String, required: true, default: '+91' },
     phone: { type: String, required: true, trim: true, index: true },
     phone2: { type: String, default: null, trim: true },
-    aadhaarFingerprint: { type: String, required: true, index: true },
+    // Unique index declared below (do not also set index:true — same auto-name conflicts).
+    aadhaarFingerprint: { type: String, required: true },
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
