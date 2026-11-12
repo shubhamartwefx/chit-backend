@@ -345,6 +345,56 @@ export function buildExtraOpenApiPaths(bearer: { BearerAuth: never[] }[]) {
         responses: { '200': { description: 'Updated' } },
       },
     },
+    '/auth/preferences': {
+      get: {
+        tags: ['Auth'],
+        summary: 'Get UI preferences (theme / currency / dateFormat)',
+        description:
+          'Cross-portal preferences for the authenticated user (any role).',
+        security: bearer,
+        responses: {
+          '200': {
+            description:
+              'Returns { theme, currency, dateFormat }. Defaults: system / INR / DD/MM/YYYY.',
+          },
+        },
+      },
+      patch: {
+        tags: ['Auth'],
+        summary: 'Update UI preferences (partial)',
+        description:
+          'Provide at least one of theme, currency, dateFormat. Shared across all portals.',
+        security: bearer,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  theme: {
+                    type: 'string',
+                    enum: ['system', 'light', 'dark'],
+                    example: 'dark',
+                  },
+                  currency: {
+                    type: 'string',
+                    enum: ['INR', 'USD', 'EUR'],
+                    example: 'INR',
+                  },
+                  dateFormat: {
+                    type: 'string',
+                    enum: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'],
+                    example: 'DD/MM/YYYY',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: { '200': { description: 'Updated preferences object' } },
+      },
+    },
     '/auth/profile/nominee-search': {
       get: {
         tags: ['Auth'],
