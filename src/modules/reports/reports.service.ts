@@ -97,6 +97,105 @@ export class ReportsService {
     return result;
   }
 
+  /** Platform geo rollup for super-admin map / sales-by-city screens. */
+  async byCity() {
+    const rows = await User.aggregate<{
+      _id: { state: string; city: string; pincode: string; role: string }
+      count: number
+    }>([
+      {
+        $match: {
+          role: {
+            $in: [USER_ROLES.AGENT, USER_ROLES.BIDDER, USER_ROLES.BRANCH_STORE],
+          },
+          $or: [
+            { 'currentAddress.city': { $exists: true, $ne: '' } },
+            { 'aadhaarAddress.city': { $exists: true, $ne: '' } },
+          ],
+        },
+      },
+      {
+        $project: {
+          role: 1,
+          state: {
+            $ifNull: ['$currentAddress.state', '$aadhaarAddress.state'],
+          },
+          city: {
+            $ifNull: ['$currentAddress.city', '$aadhaarAddress.city'],
+          },
+          pincode: {
+            $ifNull: ['$currentAddress.pincode', '$aadhaarAddress.pincode'],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            state: { $ifNull: ['$state', 'Unknown'] },
+            city: { $ifNull: ['$city', 'Unknown'] },
+            pincode: { $ifNull: ['$pincode', ''] },
+            role: '$role',
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { '_id.state': 1, '_id.city': 1 } },
+    ]);
+
+    const byKey = new Map<
+      string,
+      {
+        State: string
+        District: string
+        Area: string
+        details: Array<{
+          District: string
+          Area: string
+          Area_PIN: string
+          Agent_Number: string
+          Bidder_Number: string
+        }>
+      }
+    >()
+
+    for (const row of rows) {
+      const state = row._id.state || 'Unknown'
+      const city = row._id.city || 'Unknown'
+      const pin = row._id.pincode || ''
+      const key = `${state}|${city}|${pin}`
+      let entry = byKey.get(key)
+      if (!entry) {
+        entry = {
+          State: state,
+          District: city,
+          Area: city,
+          details: [
+            {
+              District: city,
+              Area: city,
+              Area_PIN: pin,
+              Agent_Number: '0',
+              Bidder_Number: '0',
+            },
+          ],
+        }
+        byKey.set(key, entry)
+      }
+      const detail = entry.details[0]
+      if (row._id.role === USER_ROLES.AGENT) {
+        detail.Agent_Number = String(
+          Number(detail.Agent_Number) + row.count
+        )
+      } else if (row._id.role === USER_ROLES.BIDDER) {
+        detail.Bidder_Number = String(
+          Number(detail.Bidder_Number) + row.count
+        )
+      }
+    }
+
+    return { items: [...byKey.values()] }
+  }
+
   private async countInstallments(
     actor: JwtPayload,
     status: string

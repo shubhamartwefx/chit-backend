@@ -152,6 +152,40 @@ export type UpdateStaffPermissionsInput = z.infer<
   typeof updateStaffPermissionsSchema
 >;
 
+export const updateStaffSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    tier: z.enum(SUPER_ADMIN_TIERS).optional(),
+  })
+  .strict()
+  .refine((val) => val.name !== undefined || val.tier !== undefined, {
+    message: 'Provide at least one of name or tier',
+  });
+
+export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
+
+export const platformSearchQuerySchema = z.object({
+  q: z.string().trim().min(2).max(80),
+  roles: z
+    .string()
+    .optional()
+    .transform((raw) => {
+      if (!raw) return undefined;
+      return raw
+        .split(',')
+        .map((r) => r.trim())
+        .filter(Boolean);
+    })
+    .pipe(
+      z
+        .array(z.enum(['agent', 'bidder', 'branch_store']))
+        .max(3)
+        .optional()
+    ),
+});
+
+export type PlatformSearchQueryInput = z.infer<typeof platformSearchQuerySchema>;
+
 export const assignablePermissionsResponse = {
   branchStore: BRANCH_STORE_ASSIGNABLE,
   agent: AGENT_DEFAULT,

@@ -23,7 +23,9 @@ import {
   createStaffSchema,
   listUsersQuerySchema,
   resourceIdParamsSchema,
+  platformSearchQuerySchema,
   updateStaffPermissionsSchema,
+  updateStaffSchema,
   updateUserProfileSchema,
   userIdParamsSchema,
   userStatusActionSchema,
@@ -46,6 +48,9 @@ import {
 import { listOperatorReportsQuerySchema } from '../operator-bidders/operator-bidder.validation';
 import { sensitiveDataController } from '../sensitive-data/sensitive-data.controller';
 import { revealSensitiveFieldSchema } from '../sensitive-data/sensitive-data.validation';
+import { transactionController } from '../transactions/transaction.controller';
+import { listTransactionsQuerySchema } from '../transactions/transaction.validation';
+import { reportsController } from '../reports/reports.controller';
 
 const router = Router();
 
@@ -72,6 +77,13 @@ router.get('/permissions', (req, res, next) =>
   superAdminController.getPermissionsCatalog(req, res, next)
 );
 
+router.get(
+  '/search',
+  authorizeIf(canListPlatformUsers),
+  validate(platformSearchQuerySchema, 'query'),
+  (req, res, next) => superAdminController.platformSearch(req, res, next)
+);
+
 router.post(
   '/branch-stores',
   authorizeIf(canCreateBranchStoreUser),
@@ -91,6 +103,14 @@ router.get(
   authorizeIf(canListPlatformUsers),
   validate(resourceIdParamsSchema, 'params'),
   (req, res, next) => superAdminController.getBranchStore(req, res, next)
+);
+
+router.patch(
+  '/branch-stores/:id',
+  authorizeIf(canCreateBranchStoreUser),
+  validate(resourceIdParamsSchema, 'params'),
+  validate(updateUserProfileSchema),
+  (req, res, next) => superAdminController.updateBranchStore(req, res, next)
 );
 
 router.post(
@@ -120,6 +140,13 @@ router.patch(
   validate(resourceIdParamsSchema, 'params'),
   validate(updateUserProfileSchema),
   (req, res, next) => superAdminController.updateAgent(req, res, next)
+);
+
+router.get(
+  '/agents/:id/subscriptions',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.getAgentSubscriptions(req, res, next)
 );
 
 router.post(
@@ -167,6 +194,14 @@ router.patch(
 );
 
 router.get(
+  '/bidders/:id/subscriptions',
+  authorizeIf(canListPlatformUsers),
+  validate(resourceIdParamsSchema, 'params'),
+  (req, res, next) =>
+    superAdminController.getBidderSubscriptions(req, res, next)
+);
+
+router.get(
   '/reports',
   authorizeIf(canListPlatformUsers),
   validate(listOperatorReportsQuerySchema, 'query'),
@@ -197,6 +232,28 @@ router.patch(
   validate(userIdParamsSchema, 'params'),
   validate(updateStaffPermissionsSchema),
   (req, res, next) => superAdminController.updateStaffPermissions(req, res, next)
+);
+
+router.get(
+  '/staff/:userId',
+  authorizeIf(canCreateSuperAdminStaff),
+  validate(userIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.getStaff(req, res, next)
+);
+
+router.patch(
+  '/staff/:userId',
+  authorizeIf(canCreateSuperAdminStaff),
+  validate(userIdParamsSchema, 'params'),
+  validate(updateStaffSchema),
+  (req, res, next) => superAdminController.updateStaff(req, res, next)
+);
+
+router.post(
+  '/staff/:userId/deactivate',
+  authorizeIf(canCreateSuperAdminStaff),
+  validate(userIdParamsSchema, 'params'),
+  (req, res, next) => superAdminController.deactivateStaff(req, res, next)
 );
 
 /** @deprecated aliases — keep for backward compatibility */
@@ -312,6 +369,19 @@ router.delete(
   authorizeIf(canCreateBranchStoreUser),
   validate(tutorialIdParamsSchema, 'params'),
   (req, res, next) => tutorialController.remove(req, res, next)
+);
+
+router.get(
+  '/transactions',
+  authorizeIf(canListPlatformUsers),
+  validate(listTransactionsQuerySchema, 'query'),
+  (req, res, next) => transactionController.list(req, res, next)
+);
+
+router.get(
+  '/analytics/by-city',
+  authorizeIf(canListPlatformUsers),
+  (req, res, next) => reportsController.byCity(req, res, next)
 );
 
 export default router;
