@@ -99,11 +99,12 @@ sequenceDiagram
   FE->>FE: Store tokens; go to role dashboard only
 ```
 
-### Phase-1 OTP (mock / development)
+### Phase-1 OTP (SMS login)
 
-- Fixed OTP from env (`MOCK_OTP`, default `123456`).
-- Printed to server console; also returned as `mockOtpHint` in development responses only.
-- Provider interface is swappable later (MSG91 / Twilio) without changing Auth routes.
+- Provider selected by `SMS_PROVIDER`: `mock` (default) or `2factor`.
+- `mock`: fixed OTP from `MOCK_OTP` (default `123456`), logged to console; `mockOtpHint` only in development.
+- `2factor`: random 6-digit OTP sent via 2Factor.in (`TWOFACTOR_API_KEY`, optional `TWOFACTOR_TEMPLATE_NAME`); verified locally against hashed `OtpSession`.
+- Auth routes stay the same (`POST /auth/{role}/request-otp` + `verify-otp`).
 
 ### Access + refresh tokens
 

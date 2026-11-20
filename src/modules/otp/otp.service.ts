@@ -1,9 +1,14 @@
-import { env } from '../../config/env';
+import { Types } from 'mongoose';
+
 import { hashOtp, verifyOtpHash } from '../../common/crypto';
 import { accessDenied, unauthorized } from '../../common/errors';
+import { env } from '../../config/env';
 import { UserRole } from '../../config/roles';
 import { OtpSession } from './otp.model';
-import { Types } from 'mongoose';
+import {
+  SmsOtpProvider,
+  TwoFactorOtpProvider,
+} from './twofactor.provider';
 
 export interface CreateOtpInput {
   phone: string;
@@ -13,10 +18,7 @@ export interface CreateOtpInput {
   userId: Types.ObjectId;
 }
 
-export interface OtpProvider {
-  generateOtp(): string;
-  deliver(phone: string, countryCode: string, otp: string): Promise<void>;
-}
+export type OtpProvider = SmsOtpProvider;
 
 /** Dev/mock OTP — logs to console; fixed value from env. */
 export class MockOtpProvider implements OtpProvider {
@@ -31,8 +33,22 @@ export class MockOtpProvider implements OtpProvider {
   }
 }
 
+export function createOtpProvider(): OtpProvider {
+  switch (env.SMS_PROVIDER) {
+    case '2factor':
+      return new TwoFactorOtpProvider();
+    case 'mock':
+    default:
+      return new MockOtpProvider();
+  }
+}
+
 export class OtpService {
-  constructor(private readonly provider: OtpProvider = new MockOtpProvider()) {}
+  constructor(private readonly provider: OtpProvider = createOtpProvider()) {}
+
+  get isMock(): boolean {
+    return env.SMS_PROVIDER === 'mock';
+  }
 
   async createAndSend(input: CreateOtpInput): Promise<{ expiresInMinutes: number }> {
     const otp = this.provider.generateOtp();

@@ -6,6 +6,7 @@ import { validate } from '../../middlewares/validate';
 import agentSignupRoutes from '../agent-signup/agent-signup.routes';
 import bidderSignupRoutes from '../bidder-signup/bidder-signup.routes';
 import signupPaymentRoutes from '../signup-payment/signup-payment.routes';
+import userPreferencesRoutes from '../user-preferences/user-preferences.routes';
 import { authController } from './auth.controller';
 import {
   nomineeSearchQuerySchema,
@@ -48,6 +49,7 @@ const refreshLimiter = rateLimit({
 router.use('/bidder/register', bidderSignupRoutes);
 router.use('/agent/register', agentSignupRoutes);
 router.use('/payments', signupPaymentRoutes);
+router.use('/preferences', userPreferencesRoutes);
 
 router.post(
   '/refresh',

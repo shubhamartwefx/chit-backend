@@ -36,6 +36,45 @@ export interface INomineeLink {
   linkedAt: Date;
 }
 
+export const PREFERENCE_THEMES = {
+  SYSTEM: 'system',
+  LIGHT: 'light',
+  DARK: 'dark',
+} as const;
+
+export type PreferenceTheme =
+  (typeof PREFERENCE_THEMES)[keyof typeof PREFERENCE_THEMES];
+
+export const PREFERENCE_CURRENCIES = {
+  INR: 'INR',
+  USD: 'USD',
+  EUR: 'EUR',
+} as const;
+
+export type PreferenceCurrency =
+  (typeof PREFERENCE_CURRENCIES)[keyof typeof PREFERENCE_CURRENCIES];
+
+export const PREFERENCE_DATE_FORMATS = {
+  DMY: 'DD/MM/YYYY',
+  MDY: 'MM/DD/YYYY',
+  YMD: 'YYYY-MM-DD',
+} as const;
+
+export type PreferenceDateFormat =
+  (typeof PREFERENCE_DATE_FORMATS)[keyof typeof PREFERENCE_DATE_FORMATS];
+
+export interface IUserPreferences {
+  theme: PreferenceTheme;
+  currency: PreferenceCurrency;
+  dateFormat: PreferenceDateFormat;
+}
+
+export const DEFAULT_USER_PREFERENCES: IUserPreferences = {
+  theme: PREFERENCE_THEMES.SYSTEM,
+  currency: PREFERENCE_CURRENCIES.INR,
+  dateFormat: PREFERENCE_DATE_FORMATS.DMY,
+};
+
 export interface IUser {
   name: string;
   countryCode: string;
@@ -59,6 +98,7 @@ export interface IUser {
   aadhaarVerifiedAt?: Date | null;
   verificationMethod?: VerificationMethod | null;
   nominees?: INomineeLink[];
+  preferences?: IUserPreferences;
   totpSecret?: string | null;
   totpPendingSecret?: string | null;
   totpEnabled?: boolean;
@@ -107,6 +147,27 @@ const nomineeLinkSchema = new Schema<INomineeLink>(
   { _id: false }
 );
 
+const userPreferencesSchema = new Schema<IUserPreferences>(
+  {
+    theme: {
+      type: String,
+      enum: Object.values(PREFERENCE_THEMES),
+      default: DEFAULT_USER_PREFERENCES.theme,
+    },
+    currency: {
+      type: String,
+      enum: Object.values(PREFERENCE_CURRENCIES),
+      default: DEFAULT_USER_PREFERENCES.currency,
+    },
+    dateFormat: {
+      type: String,
+      enum: Object.values(PREFERENCE_DATE_FORMATS),
+      default: DEFAULT_USER_PREFERENCES.dateFormat,
+    },
+  },
+  { _id: false }
+);
+
 const userSchema = new Schema<IUserDocument>(
   {
     name: { type: String, required: true, trim: true },
@@ -148,6 +209,10 @@ const userSchema = new Schema<IUserDocument>(
       default: undefined,
     },
     nominees: { type: [nomineeLinkSchema], default: [] },
+    preferences: {
+      type: userPreferencesSchema,
+      default: () => ({ ...DEFAULT_USER_PREFERENCES }),
+    },
     totpSecret: { type: String, default: null, select: false },
     totpPendingSecret: { type: String, default: null, select: false },
     totpEnabled: { type: Boolean, default: false },

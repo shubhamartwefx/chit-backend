@@ -21,9 +21,15 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  /** Login SMS OTP: `mock` (console) or `2factor` (2factor.in). */
+  SMS_PROVIDER: z.enum(['mock', '2factor']).default('mock'),
   MOCK_OTP: z.string().length(6).default('123456'),
   OTP_EXPIRY_MINUTES: z.coerce.number().default(5),
   OTP_MAX_ATTEMPTS: z.coerce.number().default(5),
+  TWOFACTOR_API_KEY: z.string().optional().default(''),
+  TWOFACTOR_BASE_URL: z.string().default('https://2factor.in/API/V1'),
+  /** Optional approved DLT/OTP template name on 2Factor. */
+  TWOFACTOR_TEMPLATE_NAME: z.string().optional().default(''),
   SEED_SUPER_ADMIN_PHONE: z.string().default('9999999999'),
   SEED_SUPER_ADMIN_COUNTRY_CODE: z.string().default('+91'),
   SEED_SUPER_ADMIN_AADHAAR: z.string().default('123456789012'),

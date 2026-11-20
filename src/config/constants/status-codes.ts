@@ -152,6 +152,7 @@ export const API_MESSAGES = {
   SCREEN_LOCK_UPDATED: 'Screen lock settings updated',
   SCREEN_UNLOCKED: 'Screen unlocked successfully',
   PROFILE_UPDATED: 'Profile updated successfully',
+  PREFERENCES_UPDATED: 'Preferences updated successfully',
   BIOMETRIC_UPDATED: 'Biometric settings updated',
   BRANCH_STORE_CREATED: 'Branch store user created successfully',
   AGENT_CREATED: 'Agent created successfully',

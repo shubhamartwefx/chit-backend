@@ -17,6 +17,7 @@ import {
 } from '../../config/roles';
 import { resolveSuperAdminTier } from '../../config/rbac';
 import { Chit, CHIT_STATUS } from '../chits/chit.model';
+import { normalizePreferences } from '../user-preferences/user-preferences.service';
 import { User } from '../users/user.model';
 import type { UpdateProfileInput } from './auth.validation';
 
@@ -122,6 +123,7 @@ export class ProfileService {
           'aadhaarAddress',
           'currentAddress',
           'nominees',
+          'preferences',
         ].join(' ')
       )
       .lean();
@@ -152,6 +154,7 @@ export class ProfileService {
       aadhaarAddress: user.aadhaarAddress ?? null,
       currentAddress: user.currentAddress ?? null,
       nominees,
+      preferences: normalizePreferences(user.preferences),
       redirectTo: ROLE_DASHBOARD_PATH[user.role],
       ...(user.role === USER_ROLES.SUPER_ADMIN
         ? { tier: resolveSuperAdminTier(user.permissions) }
