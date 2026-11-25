@@ -11,6 +11,15 @@ export class ReportsController {
       next(err);
     }
   }
+
+  async byCity(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await reportsService.byCity();
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const reportsController = new ReportsController();

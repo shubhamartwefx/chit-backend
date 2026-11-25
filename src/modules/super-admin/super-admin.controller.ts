@@ -9,6 +9,8 @@ import {
   CreateBranchStoreInput,
   CreateStaffInput,
   ListUsersQueryInput,
+  PlatformSearchQueryInput,
+  UpdateStaffInput,
   UpdateStaffPermissionsInput,
   UpdateUserProfileInput,
   UserStatusActionInput,
@@ -120,6 +122,36 @@ export class SuperAdminController {
     }
   }
 
+  async updateBranchStore(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.updateBranchStoreProfile(
+        req.params.id,
+        req.body as UpdateUserProfileInput
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Branch store profile updated');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getAgentSubscriptions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.getAgentSubscriptions(req.params.id);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getBidderSubscriptions(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.getBidderSubscriptions(req.params.id);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getBidder(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await superAdminService.getBidderById(req.params.id);
@@ -221,6 +253,51 @@ export class SuperAdminController {
         'OK',
         API_MESSAGES.STAFF_PERMISSIONS_UPDATED
       );
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getStaff(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.getStaffById(req.params.userId);
+      sendSuccessWithKey(res, data, 'OK');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateStaff(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.updateStaff(
+        req.user!.sub,
+        req.params.userId,
+        req.body as UpdateStaffInput
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Staff updated');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deactivateStaff(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.deactivateStaff(
+        req.user!.sub,
+        req.params.userId
+      );
+      sendSuccessWithKey(res, data, 'OK', 'Staff deactivated');
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async platformSearch(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await superAdminService.platformSearch(
+        req.query as PlatformSearchQueryInput
+      );
+      sendSuccessWithKey(res, data, 'OK');
     } catch (err) {
       next(err);
     }

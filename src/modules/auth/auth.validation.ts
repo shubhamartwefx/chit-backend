@@ -25,18 +25,21 @@ const optionalAadhaar = z.preprocess(
 
 /**
  * Login credentials.
- * Agent may omit aadhaarNumber (phone + OTP only).
- * All other roles must provide aadhaarNumber (enforced in service).
+ * Agent / bidder / super-admin may omit aadhaarNumber (phone + OTP only).
+ * Other roles must provide aadhaarNumber (enforced in service).
+ * preferOtp: super-admin only — request/verify SMS OTP even when TOTP is enabled.
  */
 export const requestOtpSchema = z.object({
   ...phoneFields,
   aadhaarNumber: optionalAadhaar,
+  preferOtp: z.boolean().optional(),
 });
 
 export const verifyOtpSchema = z.object({
   ...phoneFields,
   aadhaarNumber: optionalAadhaar,
   otp: z.string().regex(/^\d{6}$/, 'OTP must be exactly 6 digits'),
+  preferOtp: z.boolean().optional(),
 });
 
 export type RequestOtpInput = z.infer<typeof requestOtpSchema>;

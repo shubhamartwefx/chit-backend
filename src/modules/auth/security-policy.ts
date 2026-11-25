@@ -33,6 +33,7 @@ export function isTwoFaAllowedForRole(role: UserRole): boolean {
 export const PHONE_ONLY_LOGIN_ROLES: readonly UserRole[] = [
   USER_ROLES.AGENT,
   USER_ROLES.BIDDER,
+  USER_ROLES.SUPER_ADMIN,
 ] as const;
 
 export function allowsPhoneOnlyLogin(role: UserRole): boolean {

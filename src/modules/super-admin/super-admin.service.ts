@@ -17,7 +17,10 @@ import {
 } from '../../config/roles';
 import {
   hasWildcard,
+  permissionsForSuperAdminTier,
+  resolveSuperAdminTier,
   validatePermissionsForRole,
+  type SuperAdminTier,
 } from '../../config/rbac';
 import { Chit, CHIT_STATUS } from '../chits/chit.model';
 import { IUserDocument, User } from '../users/user.model';
@@ -37,6 +40,10 @@ import {
 } from './super-admin.validation';
 import { operatorBidderService } from '../operator-bidders/operator-bidder.service';
 import { ListOperatorReportsQueryInput } from '../operator-bidders/operator-bidder.validation';
+import {
+  agentSubscriptionService,
+  bidderSubscriptionService,
+} from '../agent-subscriptions';
 
 function assertIdentity(phone: string, aadhaarNumber: string): string {
   if (!isValidIndianPhone(phone)) {
@@ -392,6 +399,34 @@ export class SuperAdminService {
     return this.getBidderById(bidderId);
   }
 
+  async updateBranchStoreProfile(
+    branchStoreId: string,
+    input: UpdateUserProfileInput
+  ) {
+    const user = await User.findById(branchStoreId);
+    if (!user || user.role !== USER_ROLES.BRANCH_STORE) {
+      throw notFound('Branch store not found');
+    }
+    await this.applyProfileUpdate(user, input, 'branch store');
+    return this.getBranchStoreById(branchStoreId);
+  }
+
+  async getAgentSubscriptions(agentId: string) {
+    const user = await User.findById(agentId);
+    if (!user || user.role !== USER_ROLES.AGENT) {
+      throw notFound('Agent not found');
+    }
+    return agentSubscriptionService.listHistory(agentId);
+  }
+
+  async getBidderSubscriptions(bidderId: string) {
+    const user = await User.findById(bidderId);
+    if (!user || user.role !== USER_ROLES.BIDDER) {
+      throw notFound('Bidder not found');
+    }
+    return bidderSubscriptionService.listHistory(bidderId);
+  }
+
   private async applyProfileUpdate(
     user: IUserDocument,
     input: UpdateUserProfileInput,
@@ -588,7 +623,114 @@ export class SuperAdminService {
 
   async listStaff(query: ListUsersQuery = {}) {
     const users = await listUsersByRole(USER_ROLES.SUPER_ADMIN, query);
-    return users.map(formatUser);
+    return users.map((u) => ({
+      ...formatUser(u),
+      tier: resolveSuperAdminTier(u.permissions),
+    }));
+  }
+
+  async getStaffById(userId: string) {
+    const user = await User.findOne({
+      _id: userId,
+      role: USER_ROLES.SUPER_ADMIN,
+    });
+    if (!user) {
+      throw notFound('Staff member not found');
+    }
+    return {
+      ...formatUser(user),
+      tier: resolveSuperAdminTier(user.permissions),
+    };
+  }
+
+  async updateStaff(
+    actorId: string,
+    userId: string,
+    input: { name?: string; tier?: SuperAdminTier }
+  ) {
+    if (actorId === userId) {
+      throw badRequest('You cannot change your own staff profile here');
+    }
+    const user = await User.findOne({
+      _id: userId,
+      role: USER_ROLES.SUPER_ADMIN,
+    });
+    if (!user) {
+      throw notFound('Staff member not found');
+    }
+    if (hasWildcard(user.permissions) && input.tier && input.tier !== 'full') {
+      throw badRequest('Cannot demote a full super admin via this endpoint');
+    }
+    if (input.name !== undefined) {
+      const name = input.name.trim();
+      if (!name) throw badRequest('Name is required');
+      user.name = name;
+    }
+    if (input.tier) {
+      user.permissions = [...permissionsForSuperAdminTier(input.tier)];
+    }
+    await user.save();
+    return {
+      ...formatUser(user),
+      tier: resolveSuperAdminTier(user.permissions),
+    };
+  }
+
+  async deactivateStaff(actorId: string, userId: string) {
+    if (actorId === userId) {
+      throw badRequest('You cannot deactivate your own account');
+    }
+    const user = await User.findOne({
+      _id: userId,
+      role: USER_ROLES.SUPER_ADMIN,
+    });
+    if (!user) {
+      throw notFound('Staff member not found');
+    }
+    if (hasWildcard(user.permissions)) {
+      throw badRequest('Full super admins cannot be deactivated');
+    }
+    user.status = USER_STATUS.INACTIVE;
+    user.statusReason = 'Deactivated by super admin';
+    user.statusChangedAt = new Date();
+    user.statusChangedBy = new Types.ObjectId(actorId);
+    await user.save();
+    invalidateAccountStatus(userId);
+    return {
+      ...formatUser(user),
+      tier: resolveSuperAdminTier(user.permissions),
+    };
+  }
+
+  async platformSearch(query: {
+    q?: string;
+    roles?: Array<'agent' | 'bidder' | 'branch_store'>;
+  }) {
+    const q = query.q?.trim();
+    if (!q || q.length < 2) {
+      throw badRequest('Search query must be at least 2 characters');
+    }
+    const roles =
+      query.roles && query.roles.length > 0
+        ? query.roles
+        : ([USER_ROLES.AGENT, USER_ROLES.BIDDER, USER_ROLES.BRANCH_STORE] as const);
+
+    const lists = await Promise.all(
+      roles.map(async (role) => {
+        const users = await listUsersByRole(role as UserRole, { q, status: undefined });
+        return users.slice(0, 20).map((u) => ({
+          ...formatUser(u),
+          type:
+            role === USER_ROLES.AGENT
+              ? ('Agent' as const)
+              : role === USER_ROLES.BIDDER
+                ? ('Bidder' as const)
+                : ('Branch' as const),
+        }));
+      })
+    );
+
+    return { items: lists.flat().slice(0, 40) };
   }
 
   /** Grants/revokes add-on permissions (e.g. privacy:reveal) on another super-admin staff member. */

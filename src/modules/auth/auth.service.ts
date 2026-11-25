@@ -137,7 +137,10 @@ export class AuthService {
       input.aadhaarNumber
     );
 
-    if (usesTotpLogin(user)) {
+    const preferOtp =
+      Boolean(input.preferOtp) && role === USER_ROLES.SUPER_ADMIN;
+
+    if (usesTotpLogin(user) && !preferOtp) {
       return {
         message: 'Enter the code from your authenticator app',
         authMethod: 'totp' as const,
@@ -180,7 +183,10 @@ export class AuthService {
       input.aadhaarNumber
     );
 
-    if (usesTotpLogin(user)) {
+    const preferOtp =
+      Boolean(input.preferOtp) && role === USER_ROLES.SUPER_ADMIN;
+
+    if (usesTotpLogin(user) && !preferOtp) {
       throw badRequest(
         '2FA is enabled for this account. Use verify-2fa instead of verify-otp.'
       );
